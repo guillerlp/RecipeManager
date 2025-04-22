@@ -1,8 +1,9 @@
-﻿namespace RecipeManager.Domain.Entities
+﻿using RecipeManager.Domain.Shared;
+
+namespace RecipeManager.Domain.Entities
 {
-    public class Recipe
+    public sealed class Recipe : Entity
     {
-        public Guid Id { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
         public int PreparationTime { get; set; }

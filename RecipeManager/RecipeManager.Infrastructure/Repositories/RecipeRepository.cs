@@ -18,15 +18,15 @@ namespace RecipeManager.Infrastructure.Repositories
         }
         #endregion
 
-        public async Task AddAsync(Recipe recipe)
+        public async Task AddAsync(Recipe recipe, CancellationToken cancellationToken)
         {
-            await _context.Recipes.AddAsync(recipe);
-            await _context.SaveChangesAsync();
+            await _context.Recipes.AddAsync(recipe , cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task DeleteAsync(Guid id)
+        public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
         {
-            var recipeToDelete = GetRecipeByIdAsync(id);
+            var recipeToDelete = GetRecipeByIdAsync(id, cancellationToken);
 
             if (recipeToDelete is null)
             {
@@ -34,12 +34,17 @@ namespace RecipeManager.Infrastructure.Repositories
             }
 
             _context.Remove(recipeToDelete);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<Recipe> GetByIdAsync(Guid id)
+        public async Task<IEnumerable<Recipe>> GetAllAsync(CancellationToken cancellationToken)
         {
-            var recipe = await GetRecipeByIdAsync(id);
+            return await _context.Recipes.ToListAsync(cancellationToken);
+        }
+
+        public async Task<Recipe> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        {
+            var recipe = await GetRecipeByIdAsync(id, cancellationToken);
 
             if (recipe == null)
             {
@@ -49,9 +54,9 @@ namespace RecipeManager.Infrastructure.Repositories
             return recipe;
         }
 
-        public async Task UpdateAsync(Recipe recipe)
+        public async Task UpdateAsync(Recipe recipe, CancellationToken cancellationToken)
         {
-            var recipeToUpdate = GetRecipeByIdAsync(recipe.Id);
+            var recipeToUpdate = GetRecipeByIdAsync(recipe.Id, cancellationToken);
 
             if (recipeToUpdate is null)
             {
@@ -59,14 +64,14 @@ namespace RecipeManager.Infrastructure.Repositories
             }
 
             _context.Update(recipeToUpdate);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         #region Private methods 
 
-        private async Task<Recipe?> GetRecipeByIdAsync(Guid id)
+        private async Task<Recipe?> GetRecipeByIdAsync(Guid id, CancellationToken cancellationToken)
         {
-            return await _context.Recipes.FirstOrDefaultAsync(recipe => recipe.Id == id);
+            return await _context.Recipes.FirstOrDefaultAsync(recipe => recipe.Id == id, cancellationToken);
         }
 
         #endregion

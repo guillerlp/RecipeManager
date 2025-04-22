@@ -4,9 +4,10 @@ namespace RecipeManager.Domain.Interfaces.Repositories
 {
     public interface IRecipeRepository
     {
-        Task<Recipe> GetByIdAsync(Guid id);
-        Task AddAsync(Recipe recipe);
-        Task UpdateAsync(Recipe recipe);
-        Task DeleteAsync(Guid id);
+        Task<IEnumerable<Recipe>> GetAllAsync(CancellationToken cancellationToken);
+        Task<Recipe> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+        Task AddAsync(Recipe recipe, CancellationToken cancellationToken);
+        Task UpdateAsync(Recipe recipe, CancellationToken cancellationToken);
+        Task DeleteAsync(Guid id, CancellationToken cancellationToken);
     }
 }
