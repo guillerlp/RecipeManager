@@ -11,6 +11,10 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["RecipeManager.Api/RecipeManager.Api.csproj", "RecipeManager.Api/"]
+COPY ["RecipeManager.Application/RecipeManager.Application.csproj", "RecipeManager.Application/"]
+COPY ["RecipeManager.Domain/RecipeManager.Domain.csproj", "RecipeManager.Domain/"]
+COPY ["RecipeManager.Infrastructure/RecipeManager.Infrastructure.csproj", "RecipeManager.Infrastructure/"]
+
 RUN dotnet restore "./RecipeManager.Api/RecipeManager.Api.csproj"
 COPY . .
 WORKDIR "/src/RecipeManager.Api"
