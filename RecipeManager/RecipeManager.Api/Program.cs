@@ -1,3 +1,5 @@
+using RecipeManager.Api.Startup;
+using RecipeManager.Api.Startup.CustomObjects;
 
 namespace RecipeManager.Api
 {
@@ -6,29 +8,26 @@ namespace RecipeManager.Api
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            var dbContextConfiguration = builder.Configuration.GetSection("ConnectionStrings").Get<DatabaseConnectionConfiguration>();
 
-            // Add services to the container.
+            if (dbContextConfiguration is null || dbContextConfiguration.DefaultConnection == String.Empty)
+            {
+                throw new Exception("Error while parsing appsettings data");
+            }
 
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services
+                .RegisterDbContext(dbContextConfiguration)
+                .RegisterApiDependencies()
+                .RegisterApplicationDependencies()
+                .RegisterInfrastructureDependencies()
+                .RegisterSwagger()
+                .RegisterBuildersServices();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
-
-
-            app.MapControllers();
+            app.MigrateDatabase()
+                .SetupSwagger()
+                .ConfigurePipeline();
 
             app.Run();
         }
