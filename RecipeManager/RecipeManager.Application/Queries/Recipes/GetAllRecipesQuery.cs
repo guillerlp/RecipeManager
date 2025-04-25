@@ -1,5 +1,4 @@
-﻿using FluentResults;
-using MediatR;
+﻿using MediatR;
 using RecipeManager.Application.DTO.Recipes;
 
 namespace RecipeManager.Application.Queries.Recipes

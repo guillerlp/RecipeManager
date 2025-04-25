@@ -7,16 +7,12 @@ namespace RecipeManager.Infrastructure.Repositories
 {
     public class RecipeRepository : IRecipeRepository
     {
-        #region Fields
         private readonly AppDbContext _context;
-        #endregion
 
-        #region Constructor
         public RecipeRepository(AppDbContext context)
         {
             _context = context;
         }
-        #endregion
 
         public async Task AddAsync(Recipe recipe, CancellationToken cancellationToken)
         {
@@ -26,54 +22,33 @@ namespace RecipeManager.Infrastructure.Repositories
 
         public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
         {
-            var recipeToDelete = GetRecipeByIdAsync(id, cancellationToken);
-
-            if (recipeToDelete is null)
-            {
-                throw new ArgumentException();
-            }
-
-            _context.Remove(recipeToDelete);
+            var recipeToDelete = await GetByIdAsync(id, cancellationToken);
+            _context.Recipes.Remove(recipeToDelete);
             await _context.SaveChangesAsync(cancellationToken);
         }
 
         public async Task<IEnumerable<Recipe>> GetAllAsync(CancellationToken cancellationToken)
         {
-            return await _context.Recipes.ToListAsync(cancellationToken);
+            return await _context.Recipes.AsNoTracking().ToListAsync(cancellationToken);
         }
 
         public async Task<Recipe> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
-            var recipe = await GetRecipeByIdAsync(id, cancellationToken);
-
-            if (recipe == null)
-            {
-                throw new ArgumentException();
-            }
+            var recipe = await _context.Recipes.Where(r => r.Id == id).FirstOrDefaultAsync();
+            if (recipe is null)
+                throw new KeyNotFoundException($"Recipe with Id '{id}' not found.");
 
             return recipe;
         }
 
         public async Task UpdateAsync(Recipe recipe, CancellationToken cancellationToken)
         {
-            var recipeToUpdate = GetRecipeByIdAsync(recipe.Id, cancellationToken);
+            if (!await _context.Recipes.AnyAsync(r => r.Id == recipe.Id, cancellationToken))
+                throw new KeyNotFoundException($"Recipe with Id '{recipe.Id}' not found.");
 
-            if (recipeToUpdate is null)
-            {
-                throw new ArgumentException();
-            }
 
-            _context.Update(recipeToUpdate);
+            _context.Recipes.Update(recipe);
             await _context.SaveChangesAsync(cancellationToken);
         }
-
-        #region Private methods 
-
-        private async Task<Recipe?> GetRecipeByIdAsync(Guid id, CancellationToken cancellationToken)
-        {
-            return await _context.Recipes.FirstOrDefaultAsync(recipe => recipe.Id == id, cancellationToken);
-        }
-
-        #endregion
     }
 }
