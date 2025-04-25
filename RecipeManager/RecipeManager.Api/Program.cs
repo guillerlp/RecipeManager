@@ -10,7 +10,7 @@ namespace RecipeManager.Api
             var builder = WebApplication.CreateBuilder(args);
             var dbContextConfiguration = builder.Configuration.GetSection("ConnectionStrings").Get<DatabaseConnectionConfiguration>();
 
-            if (dbContextConfiguration is null || dbContextConfiguration.DefaultConnection == String.Empty)
+            if (dbContextConfiguration is null || dbContextConfiguration.DefaultConnection == string.Empty)
             {
                 throw new Exception("Error while parsing appsettings data");
             }

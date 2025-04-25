@@ -1,6 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using RecipeManager.Api.Startup.CustomObjects;
+using RecipeManager.Application.Queries.Recipes;
+using RecipeManager.Application.Validators.Recipes;
 using RecipeManager.Domain.Interfaces.Repositories;
 using RecipeManager.Infrastructure.Context;
 using RecipeManager.Infrastructure.Repositories;
@@ -29,6 +33,16 @@ namespace RecipeManager.Api.Startup
 
         public static IServiceCollection RegisterApplicationDependencies(this IServiceCollection services)
         {
+            var appAssembly = typeof(CreateRecipeCommandValidator).Assembly;
+
+            services.AddMediatR(cfg => {
+                cfg.RegisterServicesFromAssemblies(appAssembly);
+            });
+
+            services.AddAutoMapper(appAssembly);
+
+            services.AddValidatorsFromAssembly(appAssembly);
+
             return services;
         }
 
@@ -46,7 +60,10 @@ namespace RecipeManager.Api.Startup
 
         public static IServiceCollection RegisterBuildersServices(this IServiceCollection services)
         {
-            services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+            services.AddControllers()
+                    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+            services.AddFluentValidationAutoValidation();
             return services;
         }
     }
