@@ -16,13 +16,19 @@ namespace RecipeManager.Application.Validators.Recipes
                 .WithMessage("Description is required.");
 
             RuleFor(x => x.PreparationTime)
-                .GreaterThanOrEqualTo(0);
+                .GreaterThanOrEqualTo(0)
+                .WithMessage("{PropertyName} must be zero or a positive number.")
+                .WithName("Preparation time"); ;
 
             RuleFor(x => x.CookingTime)
-                .GreaterThanOrEqualTo(0);
+                .GreaterThanOrEqualTo(0)
+                .WithMessage("{PropertyName} must be zero or a positive number.")
+                .WithName("Cooking time");
 
             RuleFor(x => x.Servings)
-                .GreaterThan(0);
+                .GreaterThan(0)
+                .WithMessage("{PropertyName} must be at least {ComparisonValue}.")
+                .WithName("Servings");
 
             RuleFor(x => x.Ingredients)
                 .NotEmpty()

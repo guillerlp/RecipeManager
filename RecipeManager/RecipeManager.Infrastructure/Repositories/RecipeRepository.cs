@@ -20,10 +20,9 @@ namespace RecipeManager.Infrastructure.Repositories
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+        public async Task DeleteAsync(Recipe recipe, CancellationToken cancellationToken)
         {
-            var recipeToDelete = await GetByIdAsync(id, cancellationToken);
-            _context.Recipes.Remove(recipeToDelete);
+            _context.Recipes.Remove(recipe);
             await _context.SaveChangesAsync(cancellationToken);
         }
 
@@ -43,10 +42,6 @@ namespace RecipeManager.Infrastructure.Repositories
 
         public async Task UpdateAsync(Recipe recipe, CancellationToken cancellationToken)
         {
-            if (!await _context.Recipes.AnyAsync(r => r.Id == recipe.Id, cancellationToken))
-                throw new KeyNotFoundException($"Recipe with Id '{recipe.Id}' not found.");
-
-
             _context.Recipes.Update(recipe);
             await _context.SaveChangesAsync(cancellationToken);
         }

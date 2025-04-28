@@ -25,8 +25,8 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation("Fetching all recipes...");
 
-            var list = await _mediator.Send(new GetAllRecipesQuery(), cancellationToken);
-            return Ok(list);
+            var result = await _mediator.Send(new GetAllRecipesQuery(), cancellationToken);
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
@@ -34,8 +34,21 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation($"Fetching recipe with ID {id}...");
 
-            var list = await _mediator.Send(new GetRecipeByIdQuery(id), cancellationToken);
-            return Ok(list);
+            var result = await _mediator.Send(new GetRecipeByIdQuery(id), cancellationToken); 
+            
+            if (result.IsSuccess)
+            {
+                return Ok(result.Value);
+            }
+
+            var problemDetails = new ProblemDetails
+            {
+                Title = "Recipe not found",
+                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault()  ?? "Recipe not found",
+                Status = StatusCodes.Status404NotFound
+            };
+
+            return NotFound(problemDetails);
         }
 
         [HttpPost]
@@ -45,6 +58,28 @@ namespace RecipeManager.Api.Controllers
             Result<RecipeDto> result = await _mediator.Send(command, cancellationToken);
 
             return Ok(result.Value);
+        }
+
+        [HttpDelete()]
+        public async Task<IActionResult> Delete([FromBody] DeleteRecipeCommand command, CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"Deleting recipe with ID {command.Id}...");
+
+            var result = await _mediator.Send(command, cancellationToken);
+
+            if (result.IsSuccess)
+            {
+                return Ok();
+            }
+
+            var problemDetails = new ProblemDetails
+            {
+                Title = "Recipe not found",
+                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault() ?? "Recipe not found",
+                Status = StatusCodes.Status404NotFound
+            };
+
+            return NotFound(problemDetails);
         }
     }
 }

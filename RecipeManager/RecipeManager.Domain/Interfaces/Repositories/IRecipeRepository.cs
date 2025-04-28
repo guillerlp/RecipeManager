@@ -8,6 +8,6 @@ namespace RecipeManager.Domain.Interfaces.Repositories
         Task<Recipe> GetByIdAsync(Guid id, CancellationToken cancellationToken);
         Task AddAsync(Recipe recipe, CancellationToken cancellationToken);
         Task UpdateAsync(Recipe recipe, CancellationToken cancellationToken);
-        Task DeleteAsync(Guid id, CancellationToken cancellationToken);
+        Task DeleteAsync(Recipe id, CancellationToken cancellationToken);
     }
 }
