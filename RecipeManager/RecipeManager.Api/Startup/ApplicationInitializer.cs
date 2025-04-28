@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using RecipeManager.Api.Extensions;
 using RecipeManager.Infrastructure.Context;
 
 namespace RecipeManager.Api.Startup
@@ -18,6 +19,8 @@ namespace RecipeManager.Api.Startup
 
         public static WebApplication ConfigurePipeline(this WebApplication app)
         {
+            app.UseErrorHandler();
+
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseAuthorization();
