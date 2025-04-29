@@ -34,8 +34,8 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation($"Fetching recipe with ID {id}...");
 
-            var result = await _mediator.Send(new GetRecipeByIdQuery(id), cancellationToken); 
-            
+            var result = await _mediator.Send(new GetRecipeByIdQuery(id), cancellationToken);
+
             if (result.IsSuccess)
             {
                 return Ok(result.Value);
@@ -44,7 +44,7 @@ namespace RecipeManager.Api.Controllers
             var problemDetails = new ProblemDetails
             {
                 Title = "Recipe not found",
-                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault()  ?? "Recipe not found",
+                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault() ?? "Recipe not found",
                 Status = StatusCodes.Status404NotFound
             };
 
@@ -60,10 +60,32 @@ namespace RecipeManager.Api.Controllers
             return Ok(result.Value);
         }
 
-        [HttpDelete()]
-        public async Task<IActionResult> Delete([FromBody] DeleteRecipeCommand command, CancellationToken cancellationToken)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Deleting recipe with ID {command.Id}...");
+            _logger.LogInformation($"Deleting recipe with ID {id}...");
+
+            var result = await _mediator.Send(new DeleteRecipeCommand(id), cancellationToken);
+
+            if (result.IsSuccess)
+            {
+                return Ok();
+            }
+
+            var problemDetails = new ProblemDetails
+            {
+                Title = "Recipe not found",
+                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault() ?? "Recipe not found",
+                Status = StatusCodes.Status404NotFound
+            };
+
+            return NotFound(problemDetails);
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> Update([FromBody] UpdateRecipeCommand command, CancellationToken cancellationToken)
+        {
+            _logger.LogInformation($"Updating recipe with ID {command.Id}...");
 
             var result = await _mediator.Send(command, cancellationToken);
 

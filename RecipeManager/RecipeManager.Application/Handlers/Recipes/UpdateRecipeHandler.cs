@@ -6,30 +6,32 @@ using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.Application.Handlers.Recipes
 {
-    public class DeleteRecipeHandler : IRequestHandler<DeleteRecipeCommand, Result>
+    public class UpdateRecipeHandler : IRequestHandler<UpdateRecipeCommand, Result>
     {
         private readonly IRecipeRepository _recipeRepository;
-        private readonly ILogger<DeleteRecipeHandler> _logger;
+        private readonly ILogger<UpdateRecipeHandler> _logger;
 
-        public DeleteRecipeHandler(IRecipeRepository recipeRepository, ILogger<DeleteRecipeHandler> logger)
+        public UpdateRecipeHandler(IRecipeRepository recipeRepository, ILogger<UpdateRecipeHandler> logger)
         {
             _recipeRepository = recipeRepository;
             _logger = logger;
         }
 
-        public async Task<Result> Handle(DeleteRecipeCommand request, CancellationToken cancellationToken)
+        public async Task<Result> Handle(UpdateRecipeCommand request, CancellationToken cancellationToken)
         {
             try
             {
-                var recipeToDelete = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
+                var recipeToUpdate = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
 
-                await _recipeRepository.DeleteAsync(recipeToDelete, cancellationToken);
+                recipeToUpdate.Update(request.Title, request.Description, request.PreparationTime, request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
+
+                await _recipeRepository.UpdateAsync(recipeToUpdate, cancellationToken);
 
                 return Result.Ok();
             }
             catch (KeyNotFoundException knf)
             {
-                _logger.LogWarning(knf, "Tried to delete missing recipe {RecipeId}", request.Id);
+                _logger.LogWarning(knf, "Tried to update missing recipe {RecipeId}", request.Id);
                 return Result.Fail(knf.Message);
             }
             catch (Exception ex)
