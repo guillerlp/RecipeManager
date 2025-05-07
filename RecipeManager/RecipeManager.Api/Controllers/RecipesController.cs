@@ -43,12 +43,12 @@ namespace RecipeManager.Api.Controllers
 
             var problemDetails = new ProblemDetails
             {
-                Title = "Recipe not found",
-                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault() ?? "Recipe not found",
-                Status = StatusCodes.Status404NotFound
+                Title = "Error while creating recipe",
+                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
+                Status = StatusCodes.Status400BadRequest
             };
 
-            return NotFound(problemDetails);
+            return BadRequest(problemDetails);
         }
 
         [HttpPost]
@@ -69,39 +69,41 @@ namespace RecipeManager.Api.Controllers
 
             if (result.IsSuccess)
             {
-                return Ok();
+                return NoContent();
             }
 
             var problemDetails = new ProblemDetails
             {
-                Title = "Recipe not found",
-                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault() ?? "Recipe not found",
-                Status = StatusCodes.Status404NotFound
+                Title = "Error while deleting recipe",
+                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
+                Status = StatusCodes.Status400BadRequest
             };
 
-            return NotFound(problemDetails);
+            return BadRequest(problemDetails);
         }
 
-        [HttpPut]
-        public async Task<IActionResult> Update([FromBody] UpdateRecipeCommand command, CancellationToken cancellationToken)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRecipeDto dto, CancellationToken cancellationToken)
         {
-            _logger.LogInformation($"Updating recipe with ID {command.Id}...");
+            _logger.LogInformation($"Updating recipe with ID {id}...");
+
+            var command = new UpdateRecipeCommand(id, dto.Title, dto.Description, dto.PreparationTime, dto.CookingTime, dto.Servings, dto.Ingredients, dto.Instructions);
 
             var result = await _mediator.Send(command, cancellationToken);
 
             if (result.IsSuccess)
             {
-                return Ok();
+                return NoContent();
             }
 
             var problemDetails = new ProblemDetails
             {
-                Title = "Recipe not found",
-                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault() ?? "Recipe not found",
-                Status = StatusCodes.Status404NotFound
+                Title = "Error while updating recipe",
+                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
+                Status = StatusCodes.Status400BadRequest
             };
 
-            return NotFound(problemDetails);
+            return BadRequest(problemDetails);
         }
     }
 }

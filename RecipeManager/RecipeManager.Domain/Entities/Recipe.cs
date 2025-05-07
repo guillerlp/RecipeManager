@@ -50,17 +50,17 @@ namespace RecipeManager.Domain.Entities
             Servings = servings;
             Ingredients = ingredients.ToList().AsReadOnly();
             Instructions = instructions.ToList().AsReadOnly();
-
         }
+
         private static void ValidateProperties(string title, string description, int preparationTime, int cookingTime, int servings, IEnumerable<string> ingredients, IEnumerable<string> instructions)
         {
-            Guard.Against.NullOrWhiteSpace(title, nameof(title), "Title is required.");
-            Guard.Against.NullOrWhiteSpace(description, nameof(description), "Description is required.");
+            Guard.Against.NullOrWhiteSpace(title, nameof(title), "Title is required");
+            Guard.Against.NullOrWhiteSpace(description, nameof(description), "Description is required");
             Guard.Against.Negative(preparationTime, nameof(preparationTime), "Preparation time must be at least 0");
             Guard.Against.Negative(cookingTime, nameof(cookingTime), "Cooking time must be at least 0");
             Guard.Against.NegativeOrZero(servings, nameof(servings), "Servings must be superior to 0");
-            Guard.Against.NullOrEmpty(ingredients, nameof(ingredients), "At least one ingredient is required.");
-            Guard.Against.NullOrEmpty(instructions, nameof(instructions), "At least one instruction is required.");
+            Guard.Against.NullOrEmpty(ingredients, nameof(ingredients), "At least one ingredient is required");
+            Guard.Against.NullOrEmpty(instructions, nameof(instructions), "At least one instruction is required");
         }
     }
 }
