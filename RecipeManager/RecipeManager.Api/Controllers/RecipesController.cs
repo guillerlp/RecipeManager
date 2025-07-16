@@ -1,7 +1,7 @@
 ﻿using FluentResults;
-using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using RecipeManager.Application.Commands.Recipes;
+using RecipeManager.Application.Common;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Queries.Recipes;
 
@@ -11,13 +11,16 @@ namespace RecipeManager.Api.Controllers
     [Route("api/[controller]")]
     public class RecipesController : ControllerBase
     {
-        private readonly IMediator _mediator;
+        private readonly IQueryDispatcher _queryDispatcher;
+        private readonly ICommandDispatcher _commandDispatcher;
         private readonly ILogger<RecipesController> _logger;
 
-        public RecipesController(IMediator mediator, ILogger<RecipesController> logger)
+        public RecipesController(ILogger<RecipesController> logger, IQueryDispatcher queryDispatcher,
+            ICommandDispatcher commandDispatcher)
         {
-            _mediator = mediator;
             _logger = logger;
+            _queryDispatcher = queryDispatcher;
+            _commandDispatcher = commandDispatcher;
         }
 
         [HttpGet]
@@ -25,16 +28,21 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation("Fetching all recipes...");
 
-            var result = await _mediator.Send(new GetAllRecipesQuery(), cancellationToken);
+            var query = new GetAllRecipesQuery();
+            var result =
+                await _queryDispatcher.Dispatch<GetAllRecipesQuery, IEnumerable<RecipeDto>>(query, cancellationToken);
             return Ok(result);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<IEnumerable<RecipeDto>>> Get([FromRoute] Guid id, CancellationToken cancellationToken)
+        public async Task<ActionResult<IEnumerable<RecipeDto>>> Get([FromRoute] Guid id,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Fetching recipe with ID {id}...");
 
-            var result = await _mediator.Send(new GetRecipeByIdQuery(id), cancellationToken);
+            var query = new GetRecipeByIdQuery(id);
+            var result =
+                await _queryDispatcher.Dispatch<GetRecipeByIdQuery, Result<RecipeDto>>(query, cancellationToken);
 
             if (result.IsSuccess)
             {
@@ -43,7 +51,7 @@ namespace RecipeManager.Api.Controllers
 
             var problemDetails = new ProblemDetails
             {
-                Title = "Error while creating recipe",
+                Title = "Error while obtaining recipe",
                 Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
                 Status = StatusCodes.Status400BadRequest
             };
@@ -52,10 +60,12 @@ namespace RecipeManager.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateRecipeCommand command, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create([FromBody] CreateRecipeCommand command,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("Creating recipe...");
-            Result<RecipeDto> result = await _mediator.Send(command, cancellationToken);
+            Result<RecipeDto> result =
+                await _commandDispatcher.Dispatch<CreateRecipeCommand, Result<RecipeDto>>(command, cancellationToken);
 
             return Ok(result.Value);
         }
@@ -65,7 +75,8 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation($"Deleting recipe with ID {id}...");
 
-            var result = await _mediator.Send(new DeleteRecipeCommand(id), cancellationToken);
+            var command = new DeleteRecipeCommand(id);
+            var result = await _commandDispatcher.Dispatch<DeleteRecipeCommand, Result>(command, cancellationToken);
 
             if (result.IsSuccess)
             {
@@ -83,13 +94,15 @@ namespace RecipeManager.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRecipeDto dto, CancellationToken cancellationToken)
+        public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRecipeDto dto,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Updating recipe with ID {id}...");
 
-            var command = new UpdateRecipeCommand(id, dto.Title, dto.Description, dto.PreparationTime, dto.CookingTime, dto.Servings, dto.Ingredients, dto.Instructions);
+            var command = new UpdateRecipeCommand(id, dto.Title, dto.Description, dto.PreparationTime, dto.CookingTime,
+                dto.Servings, dto.Ingredients, dto.Instructions);
 
-            var result = await _mediator.Send(command, cancellationToken);
+            var result = await _commandDispatcher.Dispatch<UpdateRecipeCommand, Result>(command, cancellationToken);
 
             if (result.IsSuccess)
             {

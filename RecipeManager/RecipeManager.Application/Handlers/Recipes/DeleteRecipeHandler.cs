@@ -2,11 +2,12 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using RecipeManager.Application.Commands.Recipes;
+using RecipeManager.Application.Common;
 using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.Application.Handlers.Recipes
 {
-    public class DeleteRecipeHandler : IRequestHandler<DeleteRecipeCommand, Result>
+    public class DeleteRecipeHandler : ICommandHandler<DeleteRecipeCommand, Result>
     {
         private readonly IRecipeRepository _recipeRepository;
         private readonly ILogger<DeleteRecipeHandler> _logger;

@@ -33,7 +33,7 @@ namespace RecipeManager.Infrastructure.Repositories
 
         public async Task<Recipe> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
-            var recipe = await _context.Recipes.Where(r => r.Id == id).FirstOrDefaultAsync();
+            var recipe = await _context.Recipes.Where(r => r.Id == id).FirstOrDefaultAsync(cancellationToken);
             if (recipe is null)
                 throw new KeyNotFoundException($"Recipe with Id '{id}' not found.");
 

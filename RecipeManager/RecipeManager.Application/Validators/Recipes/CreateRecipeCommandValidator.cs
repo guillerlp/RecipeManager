@@ -18,7 +18,7 @@ namespace RecipeManager.Application.Validators.Recipes
             RuleFor(x => x.PreparationTime)
                 .GreaterThanOrEqualTo(0)
                 .WithMessage("{PropertyName} must be zero or a positive number.")
-                .WithName("Preparation time"); ;
+                .WithName("Preparation time");
 
             RuleFor(x => x.CookingTime)
                 .GreaterThanOrEqualTo(0)

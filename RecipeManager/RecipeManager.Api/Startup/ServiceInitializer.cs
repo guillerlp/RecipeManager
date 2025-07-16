@@ -1,14 +1,20 @@
-﻿using FluentValidation;
+﻿using System.Text.Json.Serialization;
+using FluentResults;
+using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using RecipeManager.Api.Startup.CustomObjects;
+using RecipeManager.Application.Commands.Recipes;
+using RecipeManager.Application.Common;
+using RecipeManager.Application.Dispatchers;
+using RecipeManager.Application.DTO.Recipes;
+using RecipeManager.Application.Handlers.Recipes;
 using RecipeManager.Application.Queries.Recipes;
 using RecipeManager.Application.Validators.Recipes;
 using RecipeManager.Domain.Interfaces.Repositories;
 using RecipeManager.Infrastructure.Context;
 using RecipeManager.Infrastructure.Repositories;
-using System.Text.Json.Serialization;
 
 namespace RecipeManager.Api.Startup
 {
@@ -39,9 +45,8 @@ namespace RecipeManager.Api.Startup
                 cfg.RegisterServicesFromAssemblies(appAssembly);
             });
 
-            services.AddAutoMapper(appAssembly);
-
             services.AddValidatorsFromAssembly(appAssembly);
+            services.RegisterCqrsDispatchers();
 
             return services;
         }
@@ -64,6 +69,26 @@ namespace RecipeManager.Api.Startup
                     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
             services.AddFluentValidationAutoValidation();
+            return services;
+        }
+
+        private static IServiceCollection RegisterCqrsDispatchers(this IServiceCollection services)
+        {
+            services.AddScoped<ICommandDispatcher, CommandDispatcher>();
+            services.AddScoped<IQueryDispatcher, QueryDispatcher>();
+            
+            return services.RegisterCqrsHandlers();
+        }
+        
+        public static IServiceCollection RegisterCqrsHandlers(this IServiceCollection services)
+        {
+            services.AddScoped<ICommandHandler<CreateRecipeCommand, Result<RecipeDto>>, CreateRecipeHandler>();
+            services.AddScoped<ICommandHandler<UpdateRecipeCommand, Result>, UpdateRecipeHandler>();
+            services.AddScoped<ICommandHandler<DeleteRecipeCommand, Result>, DeleteRecipeHandler>();
+            
+            services.AddScoped<IQueryHandler<GetAllRecipesQuery, IEnumerable<RecipeDto>>, GetAllRecipesHandler>();
+            services.AddScoped<IQueryHandler<GetRecipeByIdQuery, Result<RecipeDto>>, GetRecipeByIdHandler>();
+        
             return services;
         }
     }

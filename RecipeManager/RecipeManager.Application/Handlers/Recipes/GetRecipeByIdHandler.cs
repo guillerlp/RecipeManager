@@ -1,23 +1,22 @@
-﻿using AutoMapper;
-using FluentResults;
+﻿using FluentResults;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using RecipeManager.Application.Common;
 using RecipeManager.Application.DTO.Recipes;
+using RecipeManager.Application.Mappings;
 using RecipeManager.Application.Queries.Recipes;
 using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.Application.Handlers.Recipes
 {
-    public class GetRecipeByIdHandler : IRequestHandler<GetRecipeByIdQuery, Result<RecipeDto>>
+    public class GetRecipeByIdHandler : IQueryHandler<GetRecipeByIdQuery, Result<RecipeDto>>
     {
         private readonly IRecipeRepository _recipeRepository;
-        private readonly IMapper _mapper;
         private readonly ILogger<GetRecipeByIdHandler> _logger;
 
-        public GetRecipeByIdHandler(IRecipeRepository recipeRepository, IMapper mapper, ILogger<GetRecipeByIdHandler> logger)
+        public GetRecipeByIdHandler(IRecipeRepository recipeRepository, ILogger<GetRecipeByIdHandler> logger)
         {
             _recipeRepository = recipeRepository;
-            _mapper = mapper;
             _logger = logger;
         }
 
@@ -27,7 +26,7 @@ namespace RecipeManager.Application.Handlers.Recipes
             {
                 var recipe = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
 
-                var recipeDto = _mapper.Map<RecipeDto>(recipe);
+                var recipeDto = recipe.MapToRecipeDto();
 
                 return Result.Ok(recipeDto);
             }

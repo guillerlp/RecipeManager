@@ -11,14 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecipeManager.Infrastructur
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecipeManager.Domain", "RecipeManager.Domain\RecipeManager.Domain.csproj", "{57E24C71-E4B7-4A79-A4D8-53C312C91BAA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecipeManager.Api.Tests", "RecipeManager.Api.Tests\RecipeManager.Api.Tests.csproj", "{5512E4F7-4E2D-44F5-ADF2-82C24FCD90B4}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecipeManager.Application.Tests", "RecipeManager.Application.Tests\RecipeManager.Application.Tests.csproj", "{1A64C700-C0BF-47D1-89AC-B690637C8B70}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecipeManager.Domain.Tests", "RecipeManager.Domain.Tests\RecipeManager.Domain.Tests.csproj", "{F99424EB-2FCD-42CF-B4C3-4B9C2A21D3FC}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecipeManager.Infrastructure.Tests", "RecipeManager.Infrastructure.Tests\RecipeManager.Infrastructure.Tests.csproj", "{E4887706-645E-4077-A1B8-1EB890BF324C}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,22 +33,6 @@ Global
 		{57E24C71-E4B7-4A79-A4D8-53C312C91BAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{57E24C71-E4B7-4A79-A4D8-53C312C91BAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{57E24C71-E4B7-4A79-A4D8-53C312C91BAA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5512E4F7-4E2D-44F5-ADF2-82C24FCD90B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5512E4F7-4E2D-44F5-ADF2-82C24FCD90B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5512E4F7-4E2D-44F5-ADF2-82C24FCD90B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5512E4F7-4E2D-44F5-ADF2-82C24FCD90B4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1A64C700-C0BF-47D1-89AC-B690637C8B70}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1A64C700-C0BF-47D1-89AC-B690637C8B70}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1A64C700-C0BF-47D1-89AC-B690637C8B70}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1A64C700-C0BF-47D1-89AC-B690637C8B70}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F99424EB-2FCD-42CF-B4C3-4B9C2A21D3FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F99424EB-2FCD-42CF-B4C3-4B9C2A21D3FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F99424EB-2FCD-42CF-B4C3-4B9C2A21D3FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F99424EB-2FCD-42CF-B4C3-4B9C2A21D3FC}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E4887706-645E-4077-A1B8-1EB890BF324C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E4887706-645E-4077-A1B8-1EB890BF324C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E4887706-645E-4077-A1B8-1EB890BF324C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E4887706-645E-4077-A1B8-1EB890BF324C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

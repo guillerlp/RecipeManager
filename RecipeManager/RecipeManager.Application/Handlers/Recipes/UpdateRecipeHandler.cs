@@ -2,11 +2,13 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using RecipeManager.Application.Commands.Recipes;
+using RecipeManager.Application.Common;
+using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.Application.Handlers.Recipes
 {
-    public class UpdateRecipeHandler : IRequestHandler<UpdateRecipeCommand, Result>
+    public class UpdateRecipeHandler : ICommandHandler<UpdateRecipeCommand, Result>
     {
         private readonly IRecipeRepository _recipeRepository;
         private readonly ILogger<UpdateRecipeHandler> _logger;
@@ -36,8 +38,8 @@ namespace RecipeManager.Application.Handlers.Recipes
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting recipe {RecipeId}", request.Id);
-                return Result.Fail("Error while deleting the recipe").WithError(ex.Message);
+                _logger.LogError(ex, "Error updating recipe {RecipeId}", request.Id);
+                return Result.Fail("Error while updating the recipe").WithError(ex.Message);
             }
         }
     }

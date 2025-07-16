@@ -1,22 +1,21 @@
-﻿using AutoMapper;
-using FluentResults;
+﻿using FluentResults;
 using MediatR;
 using RecipeManager.Application.Commands.Recipes;
+using RecipeManager.Application.Common;
 using RecipeManager.Application.DTO.Recipes;
+using RecipeManager.Application.Mappings;
 using RecipeManager.Domain.Entities;
 using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.Application.Handlers.Recipes
 {
-    public class CreateRecipeHandler : IRequestHandler<CreateRecipeCommand, Result<RecipeDto>>
+    public class CreateRecipeHandler : ICommandHandler<CreateRecipeCommand, Result<RecipeDto>>
     {
         private readonly IRecipeRepository _recipeRepository;
-        private readonly IMapper _mapper;
 
-        public CreateRecipeHandler(IRecipeRepository recipeRepository, IMapper mapper)
+        public CreateRecipeHandler(IRecipeRepository recipeRepository)
         {
             _recipeRepository = recipeRepository;
-            _mapper = mapper;
         }
 
         public async Task<Result<RecipeDto>> Handle(CreateRecipeCommand request, CancellationToken cancellationToken)
@@ -25,7 +24,7 @@ namespace RecipeManager.Application.Handlers.Recipes
 
             await _recipeRepository.AddAsync(recipe, cancellationToken);
 
-            var recipeDto = _mapper.Map<RecipeDto>(recipe);
+            var recipeDto = recipe.MapToRecipeDto();
 
             return Result.Ok(recipeDto);
         }
