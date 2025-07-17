@@ -17,6 +17,7 @@ namespace RecipeManager.Api
 
             builder.Services
                 .RegisterDbContext(dbContextConfiguration)
+                .RegisterCors()
                 .RegisterApiDependencies()
                 .RegisterApplicationDependencies()
                 .RegisterInfrastructureDependencies()

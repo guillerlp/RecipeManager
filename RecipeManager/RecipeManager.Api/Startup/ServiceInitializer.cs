@@ -25,6 +25,20 @@ namespace RecipeManager.Api.Startup
             services.AddDbContext<AppDbContext>(options => options.UseSqlServer(databaseContextConfiguration.DefaultConnection));
             return services;
         }
+        
+        public static IServiceCollection RegisterCors(this IServiceCollection services)
+        {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowReactApp", builder =>
+                {
+                    builder.WithOrigins("http://localhost:3000")
+                        .AllowAnyMethod()
+                        .AllowAnyHeader();
+                });
+            });
+            return services;
+        }
 
         public static IServiceCollection RegisterInfrastructureDependencies(this IServiceCollection services)
         {
