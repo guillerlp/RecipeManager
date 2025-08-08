@@ -16,6 +16,13 @@ const App: React.FC = () => {
               <HomePage/>
             </AppLayout>
           } />
+          <Route path='/profile' element={
+            <AppLayout>
+              <div>
+                Profile
+              </div>
+            </AppLayout>
+          } />
         </Routes>
       </ThemeProvider>
     </BrowserRouter>

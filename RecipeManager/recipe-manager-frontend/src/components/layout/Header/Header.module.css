@@ -1,9 +1,14 @@
 /* Header.module.css */
 
-.headerContainer {
+.logoDiv {
     display: flex;
-    flex-direction: row; 
     align-items: center; 
+    margin-left: 1%;
+    margin-right: 1%;
     gap: 8px;  
     padding: 1rem;
+}
+
+.navLinkDiv {
+    margin-left: auto;
 }
