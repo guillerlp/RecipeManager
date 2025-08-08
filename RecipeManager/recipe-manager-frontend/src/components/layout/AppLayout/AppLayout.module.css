@@ -1,0 +1,8 @@
+/* Header.module.css */
+
+.appWrapper {
+  width: 100%;
+  max-width: none;    
+  margin: 150;         
+  padding: 1500;
+}

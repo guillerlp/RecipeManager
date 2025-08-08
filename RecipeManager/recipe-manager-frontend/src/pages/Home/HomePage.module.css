@@ -1,0 +1,9 @@
+/* HomePage.module.css */
+
+.headerContainer {
+    display: flex;
+    flex-direction: row; 
+    align-items: center; 
+    gap: 8px;  
+    padding: 1rem;
+}
