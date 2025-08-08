@@ -1,8 +1,8 @@
 // src/services/recipeService.ts
 /// <reference types="vite/client" />
 
+import { Recipe } from '@/types';
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
-import type { Recipe } from '../types/recipe.js';
 
 const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? '/api';
 
