@@ -1,0 +1,25 @@
+[data-theme="dark"] {
+  /* Text colors */
+  --color-text-primary: #f9fafb;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted: #6b7280;
+
+  /* Background colors */
+  --color-background: #111827;
+  --color-surface: #1f2937;
+  --color-surface-hover: #374151;
+
+  /* Border colors */
+  --color-border: #374151;
+  --color-border-hover: #4b5563;
+
+  /* Brand colors */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #60a5fa;
+  --color-primary-text: #ffffff;
+
+  /* Status colors */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+}
