@@ -1,29 +1,40 @@
-import js from '@eslint/js'
+// eslint.config.ts
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
-import { defineConfig, globalIgnores } from 'eslint/config'
+import tseslint from 'typescript-eslint'
 
-export default defineConfig([
-  globalIgnores(['dist']),
+// tseslint.config(...) returns a properly-typed flat config array
+export default tseslint.config(
+  { ignores: ['dist'] },
+
+  // TypeScript recommended baseline
+  ...tseslint.configs.recommended,
+
+  // Your project rules
   {
     files: ['**/*.{ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      reactHooks.configs['recommended-latest'],
-      reactRefresh.configs.vite,
-    ],
     languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
+      parser: tseslint.parser,
       parserOptions: {
-        ecmaVersion: 'latest',
-        ecmaFeatures: { tsx: true },
+        ecmaFeatures: { jsx: true },  // <- not "tsx"
         sourceType: 'module',
       },
+      globals: globals.browser,
     },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    // bring in React hooks/refresh rules
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      ...reactHooks.configs['recommended-latest'].rules,
+      ...reactRefresh.configs.vite.rules,
+
+      // prefer the TS version
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
-  },
-])
+  }
+)
