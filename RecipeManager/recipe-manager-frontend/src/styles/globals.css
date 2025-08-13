@@ -1,34 +1,29 @@
+/* globals.module.css */
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light;
-  color: rgba(0, 0, 0, 0.87);
-  background-color: #e6e6e6;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
+html, body, #root {
   height: 100%;
-  min-width: 320px;
-  min-height: 100vh;
+}
+body {
+  margin: 0;         /* removes the default 8px margin that causes tiny scrollbars */
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 /* Headings */
-h1 {
-  font-size: 4.2em;
-  line-height: 1.1;
-}
+h1 { font-size: 4.2em; line-height: 1.1;}
+h2 { font-size: 3rem; line-height: 1.1; }
+h3 { font-size: 1.7rem; line-height: 0.5; }
 
-h2 {
-  font-size: 1.7rem;
-  line-height: 0;
-}
