@@ -1,9 +1,41 @@
+import { useContext } from "react";
+import styles from "./Footer.module.css";
+import { ThemeContext } from "@/contexts";
+import SunnyIcon from '@mui/icons-material/Sunny';
+import DarkIcon from '@mui/icons-material/Bedtime';
 
+export const Footer: React.FC = () => {
+  const { theme, toggleTheme } = useContext(ThemeContext);
+  const nextTheme = theme === "light" ? "dark" : "light";
 
-export const Footer:React.FC = () => {
-    return(
-        <div>
+  return (
+    <footer className={styles.footer}>
+      <p className={styles.text}>© {new Date().getFullYear()} Recipe Manager</p>
 
-        </div>
-    )
-}
+      <div className={styles.toggleWrapper}>
+        <span className={styles.toggleLabel}>Theme</span>
+
+        <button
+          className={`${styles.toggle} ${theme === "dark" ? styles.dark : ""}`}
+          onClick={toggleTheme}
+          aria-label={`Switch to ${nextTheme} mode`}
+          title={`Switch to ${nextTheme} mode`}
+          type="button"
+        >
+          {/* Track icons */}
+          <span className={`${styles.icon} ${styles.iconSun}`} aria-hidden="true">
+            <SunnyIcon sx={{ fontSize: 20 }}/>
+          </span>
+          <span className={`${styles.icon} ${styles.iconMoon}`} aria-hidden="true">
+            <DarkIcon sx={{ fontSize: 20 }}/>
+          </span>
+
+          {/* Sliding knob */}
+          <span className={styles.knob} aria-hidden="true" />
+        </button>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
