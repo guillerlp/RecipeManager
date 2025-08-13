@@ -1,3 +1,3 @@
 // src/components/ui/Logo/index.ts
 
-export { Logo } from './Logo.js'
+export { Logo } from './Logo'

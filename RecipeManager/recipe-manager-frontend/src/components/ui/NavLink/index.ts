@@ -1,3 +1,3 @@
 // src/components/ui/Logo/index.ts
 
-export { NavLink } from './NavLink.js'
+export { NavLink } from './NavLink'

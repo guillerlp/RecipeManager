@@ -1,7 +1,7 @@
 // src/main.tsx
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App.js';
+import App from './App';
 
 import './styles/themes/variables.css';
 import './styles/themes/light.css';

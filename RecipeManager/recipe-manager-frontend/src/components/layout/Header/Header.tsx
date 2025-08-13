@@ -1,7 +1,6 @@
 // components/layout/header/Header.tsx
-import { Logo } from '@/components/ui';
+import { Logo, NavLink } from '@/components/ui';
 import styles from './Header.module.css';
-import { NavLink } from '@/components/ui/NavLink/NavLink.js';
 
 export const Header: React.FC = () => {
   return (

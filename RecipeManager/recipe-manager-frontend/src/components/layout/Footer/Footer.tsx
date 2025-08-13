@@ -24,10 +24,10 @@ export const Footer: React.FC = () => {
         >
           {/* Track icons */}
           <span className={`${styles.icon} ${styles.iconSun}`} aria-hidden="true">
-            <SunnyIcon sx={{ fontSize: 20 }}/>
+            <SunnyIcon className={styles.iconToggle}/>
           </span>
           <span className={`${styles.icon} ${styles.iconMoon}`} aria-hidden="true">
-            <DarkIcon sx={{ fontSize: 20 }}/>
+            <DarkIcon className={styles.iconToggle}/>
           </span>
 
           {/* Sliding knob */}

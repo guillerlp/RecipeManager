@@ -1,3 +1,3 @@
 // src/pages/Home/index.ts
 
-export { HomePage } from './HomePage.js'
+export { HomePage } from './HomePage'

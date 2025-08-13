@@ -61,6 +61,10 @@
 .iconSun { left: 6px; }
 .iconMoon { right: 6px; }
 
+.iconToggle {
+  font-size: 20px !important;
+}
+
 /* Sliding knob */
 .knob {
   position: absolute;
