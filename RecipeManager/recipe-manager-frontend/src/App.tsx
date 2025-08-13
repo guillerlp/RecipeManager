@@ -16,6 +16,13 @@ const App: React.FC = () => {
               <HomePage/>
             </AppLayout>
           } />
+          <Route path='/recipes' element={
+            <AppLayout>
+              <div>
+                Recipes
+              </div>
+            </AppLayout>
+          } />
           <Route path='/profile' element={
             <AppLayout>
               <div>

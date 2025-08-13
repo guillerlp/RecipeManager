@@ -6,7 +6,7 @@ export const Logo:React.FC = () => {
     return (
         <>
             <BlenderOutlinedIcon sx={{ fontSize: 27 }}/>
-            <h2>Recipe Manager</h2>
+            <h3>Recipe Manager</h3>
         </>
     )
 }
