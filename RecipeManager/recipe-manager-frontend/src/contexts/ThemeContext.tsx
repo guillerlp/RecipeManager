@@ -14,7 +14,11 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children 
         if (!isBrowser) return 'light';
         try {
             const saved = window.localStorage.getItem('theme');
-            return saved === 'dark' ? 'dark' : 'light';
+            const initial = saved === 'dark' ? 'dark' : 'light';
+            if (typeof document !== 'undefined') {
+                document.documentElement.setAttribute('data-theme', initial);
+            }
+            return initial;
         } catch {
             return 'light';
         }
@@ -24,7 +28,7 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children 
         if (!isBrowser) return;
         document.documentElement.setAttribute('data-theme', theme);
         try {
-        window.localStorage.setItem('theme', theme);
+            window.localStorage.setItem('theme', theme);
         } catch {
         }
     }, [theme]);

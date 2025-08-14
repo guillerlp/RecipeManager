@@ -22,6 +22,8 @@ export const NavLink = ({ to, children }: NavLinkProps) => {
     <Link 
       to={to} 
       className={`${styles.navLink} ${isActive ? styles.active : ''}`}
+      aria-current={isActive ? 'page' : undefined}
+      title={typeof children === 'string' ? children : undefined}
     >
       {children}
     </Link>

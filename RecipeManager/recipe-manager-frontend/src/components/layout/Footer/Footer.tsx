@@ -21,8 +21,10 @@ export const Footer: React.FC = () => {
           aria-label={`Switch to ${nextTheme} mode`}
           title={`Switch to ${nextTheme} mode`}
           type="button"
+          role="switch"
+          aria-checked={theme === 'dark'}
+          aria-pressed={theme === 'dark'}
         >
-          {/* Track icons */}
           <span className={`${styles.icon} ${styles.iconSun}`} aria-hidden="true">
             <SunnyIcon className={styles.iconToggle}/>
           </span>
@@ -30,7 +32,6 @@ export const Footer: React.FC = () => {
             <DarkIcon className={styles.iconToggle}/>
           </span>
 
-          {/* Sliding knob */}
           <span className={styles.knob} aria-hidden="true" />
         </button>
       </div>
