@@ -8,14 +8,25 @@ export const ThemeContext = React.createContext<ThemeContextType>({
 });
 
 export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+    const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+
     const [theme, setTheme] = useState<Theme>(() => {
-        const saved = localStorage.getItem('theme');
-        return saved === 'dark' ? 'dark' : 'light';
+        if (!isBrowser) return 'light';
+        try {
+            const saved = window.localStorage.getItem('theme');
+            return saved === 'dark' ? 'dark' : 'light';
+        } catch {
+            return 'light';
+        }
     });
 
     useEffect(() => {
+        if (!isBrowser) return;
         document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
+        try {
+        window.localStorage.setItem('theme', theme);
+        } catch {
+        }
     }, [theme]);
 
     const toggleTheme = useCallback(() => {

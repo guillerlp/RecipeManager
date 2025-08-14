@@ -4,21 +4,20 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
-// tseslint.config(...) returns a properly-typed flat config array
 export default tseslint.config(
   { ignores: ['dist'] },
 
-  // TypeScript recommended baseline
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
 
-  // Your project rules
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        ecmaFeatures: { jsx: true },  // <- not "tsx"
+        ecmaFeatures: { jsx: true },
         sourceType: 'module',
+        project: ['./tsconfig.json'],
       },
       globals: globals.browser,
     },
@@ -27,14 +26,17 @@ export default tseslint.config(
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
     },
-    // bring in React hooks/refresh rules
     rules: {
       ...reactHooks.configs['recommended-latest'].rules,
       ...reactRefresh.configs.vite.rules,
 
-      // prefer the TS version
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
-  }
+  },
+
+  {
+    files: ['**/*.{js,cjs,mjs}'],
+    ...tseslint.configs.disableTypeChecked,
+  },
 )

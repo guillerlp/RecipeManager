@@ -10,7 +10,13 @@ interface NavLinkProps {
 
 export const NavLink = ({ to, children }: NavLinkProps) => {
   const location = useLocation();
-  const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to + '/'));
+  const normalize = (p: string) =>
+    p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p;
+  const current = normalize(location.pathname);
+  const target = normalize(to);
+  const isActive =
+    current === target ||
+    (target !== '/' && current.startsWith(`${target}/`));
   
   return (
     <Link 

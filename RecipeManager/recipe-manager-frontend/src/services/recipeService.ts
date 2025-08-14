@@ -4,7 +4,9 @@
 import { Recipe } from '@/types';
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 
-const API_BASE_URL: string = import.meta.env.VITE_API_URL ?? '/api';
+const rawBase = import.meta.env.VITE_API_URL as string | undefined;
+const API_BASE_URL = rawBase ? rawBase.replace(/\/+$/, '') : '/api';
+
 
 const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
