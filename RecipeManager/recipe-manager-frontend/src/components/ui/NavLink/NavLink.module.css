@@ -1,0 +1,19 @@
+/* NavLink.module.css */
+
+.navLink {
+  text-decoration: none;
+  padding: 0.3rem 1rem;
+  color: var(--color-text-primary);
+  font-size: 1.5rem;
+  display: inline-block;
+  font-weight: 500;
+}
+
+.navLink:not(.active):hover {
+  color: var(--color-primary-hover);
+}
+
+.active {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}

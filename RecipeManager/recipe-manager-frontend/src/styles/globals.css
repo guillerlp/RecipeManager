@@ -1,0 +1,29 @@
+/* globals.module.css */
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body, #root {
+  height: 100%;
+}
+body {
+  margin: 0;         /* removes the default 8px margin that causes tiny scrollbars */
+}
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Headings */
+h1 { font-size: 4.2em; line-height: 1.1;}
+h2 { font-size: 3rem; line-height: 1.1; }
+h3 { font-size: 1.7rem; line-height: 0.5; }
+
