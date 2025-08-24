@@ -1,0 +1,54 @@
+/* RecipeList.module.css */
+
+.heroSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 1rem 1rem 1rem 0;   
+    max-width: 680px; 
+    margin: 0 auto; 
+    height: 100%; 
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;  
+}
+
+.heroSection::-webkit-scrollbar {
+    width: 6px;
+}
+
+.heroSection::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.heroSection::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+}
+
+.heroSection::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+}
+
+@media (max-width: 420px) {
+    .heroSection {
+        padding: 0.75rem 0.5rem 0.5rem 0; 
+        max-width: none; 
+    }
+}
+
+@media (min-width: 421px) and (max-width: 768px) {
+    .heroSection {
+        padding: 1rem 0.5rem 0.5rem 0; 
+    }
+}
+
+@media (min-width: 769px) {
+    .heroSection {
+        padding: 1rem 0.5rem 0.5rem 0; 
+    }
+}

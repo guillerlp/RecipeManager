@@ -1,0 +1,139 @@
+/* Card */
+.recipesList {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    color: var(--color-text-primary);
+    background: var(--color-surface);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    width: 100%;
+    text-align: left;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+/* Clickable state */
+.recipesList.clickable {
+    cursor: pointer;
+}
+
+.recipesList.clickable:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.recipesList.clickable:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.recipesList.clickable:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* Thumbnail */
+.imageBox {
+    flex: 0 0 auto;
+    width: 70px;
+    height: 70px;     
+    border-radius: 10px;
+    overflow: hidden;
+}
+.heroImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Text column */
+.recipeInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    flex: 1; 
+    text-align: left; 
+}
+
+/* Title + body */
+.recipeTitle {
+    margin: 0;
+    font-size: 1.125rem;
+    line-height: 1.25;
+    font-weight: 700;
+    text-align: left;
+}
+
+.heroSubtitle {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+    line-height: 1.35;
+    text-align: left;
+}
+
+/* Meta row (Prep | Cook) */
+.recipeTime {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.metaItem {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+.metaItem + .metaItem {
+    position: relative;
+    padding-left: 0.75rem;
+}
+
+.metaItem + .metaItem::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 1px;
+    height: 1em;
+    background: var(--color-border);
+    transform: translateY(-50%);
+}
+
+@media (max-width: 420px) {
+    .recipesList { 
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+    .recipeTitle { 
+        font-size: 1rem; 
+    }
+    .heroSubtitle { 
+        font-size: 0.9rem; 
+    }
+    .imageBox {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+@media (min-width: 421px) and (max-width: 768px) {
+    .heroSection {
+        padding: 0 1rem;
+    }
+}
+
+@media (min-width: 769px) {
+    .heroSection {
+        padding: 0 1rem;
+    }
+}

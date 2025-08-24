@@ -1,11 +1,9 @@
 // src/pages/RecipeList.tsx
 import React, { useState, useEffect } from 'react';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import Divider from '@mui/material/Divider';
 import type { Recipe } from '@/types';
 import { recipeService } from '@/services';
+import { RecipeCard } from '@/components';
+import styles from './RecipeList.module.css';
 
 export const RecipeList: React.FC = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -29,32 +27,24 @@ export const RecipeList: React.FC = () => {
     fetchRecipes();
   }, []);
 
+  const handleRecipeClick = (recipe: Recipe) => {
+    // Navigate to recipe detail page
+    // Example: navigate(`/recipes/${recipe.id}`);
+    console.log('Clicked recipe:', recipe.title);
+  };
+
   if (loading) return <div>Loading…</div>;
   if (error)   return <div>Error: {error}</div>;
 
   return (
-    <div>
-      <h1>RECIPES</h1>
-      <List sx={{ width: '100%', maxWidth: 360 }}>
-        {recipes.map((recipe, idx) => (
-          <React.Fragment key={recipe.id}>
-            <ListItem disablePadding>
-              <ListItemText
-                disableTypography
-                primary={recipe.title}
-                secondary={
-                  <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
-                    {recipe.ingredients.map((ing, i) => (
-                      <li key={i}>{ing}</li>
-                    ))}
-                  </ul>
-                }
-              />
-            </ListItem>
-            {idx < recipes.length - 1 && <Divider component="li" />}
-          </React.Fragment>
-        ))}
-      </List>
-    </div>
+    <section className={styles.heroSection}>
+      {recipes.map((recipe) => (
+        <RecipeCard
+          key={recipe.id}
+          recipe={recipe}
+          onClick={handleRecipeClick}
+        />
+      ))}
+    </section>
   );
 };
