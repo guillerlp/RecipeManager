@@ -53,5 +53,3 @@ export const HomePage: React.FC = () => {
     </section>
   );
 };
-
-export default HomePage;

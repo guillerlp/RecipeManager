@@ -1,22 +1,24 @@
 /* AppLayout.module.css */
 
 .appShell {
-  min-height: 100svh;               
-  display: flex;
-  flex-direction: column;
-  background: var(--color-background);
-  color: var(--color-text-primary);
+    min-height: 100svh;    
+    height: 100vh;           
+    display: flex;
+    flex-direction: column;
+    background: var(--color-background);
+    color: var(--color-text-primary);
+    overflow: hidden;
 }
 
-/* The main area expands to fill space between header & footer */
 .main {
-  flex: 1;
-  min-height: 0; 
-  display: flex;
-  flex-direction: column;
-  padding: var(--spacing-md) var(--spacing-xl);
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  box-sizing: border-box;
+    flex: 1;
+    min-height: 0; 
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-md) var(--spacing-xl);
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    overflow: hidden;
 }
