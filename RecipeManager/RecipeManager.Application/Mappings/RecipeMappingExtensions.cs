@@ -14,7 +14,7 @@ public static class RecipeMappingExtensions
             recipe.PreparationTime,
             recipe.CookingTime,
             recipe.Servings,
-            recipe.Instructions.ToList(),
-            recipe.Ingredients.ToList());
+            recipe.Ingredients.ToList(),
+            recipe.Instructions.ToList());
     }
 }
