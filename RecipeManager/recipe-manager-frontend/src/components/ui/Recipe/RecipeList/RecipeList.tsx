@@ -1,11 +1,15 @@
 // src/pages/RecipeList.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Recipe } from '@/types';
 import { recipeService } from '@/services';
 import { RecipeCard } from '@/components';
 import styles from './RecipeList.module.css';
 
-export const RecipeList: React.FC = () => {
+interface RecipeListProps {
+  searchQuery? : string;
+}
+
+export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +31,35 @@ export const RecipeList: React.FC = () => {
     fetchRecipes();
   }, []);
 
+  const filteredRecipes = useMemo(() => {
+
+    if(!searchQuery.trim()){
+      return recipes;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+
+    return recipes.filter( recipe => {
+      
+        if(recipe.title.toLowerCase().includes(query)) {
+          return true;
+        }
+
+        if(recipe.description.toLowerCase().includes(query)) {
+          return true;
+        }
+
+        if(recipe.ingredients.some(
+            ingredient => ingredient.toLowerCase().includes(query)
+          )) 
+        {
+          return true;
+        }
+
+        return false;
+    })
+  }, [recipes, searchQuery])
+
   const handleRecipeClick = (recipe: Recipe) => {
     // Navigate to recipe detail page
     // Example: navigate(`/recipes/${recipe.id}`);
@@ -38,13 +71,42 @@ export const RecipeList: React.FC = () => {
 
   return (
     <section className={styles.heroSection}>
-      {recipes.map((recipe) => (
-        <RecipeCard
-          key={recipe.id}
-          recipe={recipe}
-          onClick={handleRecipeClick}
-        />
-      ))}
+      {filteredRecipes.length === 0 ? 
+      (
+        <div>
+          { searchQuery ? 
+          (
+            <>
+              <h3>No recipes found</h3>
+              <p>No recipes match "{searchQuery}". Try a different search term.</p>
+            </>
+          ) : 
+          (
+            <>
+              <h3>No recipes available</h3>
+              <p>Start by adding some recipes to your collection.</p>
+            </>
+          )}
+        </div>
+      ) : 
+      (
+        <>
+          {searchQuery && (
+            <div className={styles.resultsCount}>
+              Found {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} 
+              {searchQuery && ` matching "${searchQuery}"`}
+            </div>
+          )}
+
+          {filteredRecipes.map((recipe) => (
+            <RecipeCard
+              key={recipe.id}
+              recipe={recipe}
+              onClick={handleRecipeClick}
+            />
+          ))}
+        </>
+      )}
     </section>
   );
 };

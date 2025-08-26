@@ -10,13 +10,13 @@
     overflow: hidden;
 }
 
-.searchSection {
-    flex: 0 0 auto; 
-    padding: 1rem 0;
+.searchSection{
+    width:min(680px, 100%); 
 }
 
 .recipeListSection {
     flex: 1; 
     min-height: 0;
     overflow: hidden; 
+    width:min(680px, 100%); 
 }
