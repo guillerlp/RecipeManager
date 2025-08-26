@@ -1,5 +1,5 @@
 // src/components/index.ts
 
 export * from './layout';
-export * from './ui/Recipe';
 export * from './ui';
+export * from './common';
