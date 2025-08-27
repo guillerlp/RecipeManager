@@ -34,6 +34,18 @@
     background: var(--color-text-muted);
 }
 
+.loadingSection{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.errorSection{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 @media (max-width: 420px) {
     .heroSection {
         padding: 0.5rem 0.5rem 0.5rem 0.5rem; 

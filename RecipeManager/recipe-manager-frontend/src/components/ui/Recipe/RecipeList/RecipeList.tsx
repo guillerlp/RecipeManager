@@ -1,35 +1,21 @@
 // src/pages/RecipeList.tsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import type { Recipe } from '@/types';
-import { recipeService } from '@/services';
 import { RecipeCard } from '@/components';
 import styles from './RecipeList.module.css';
+import { useRecipes } from '@/hooks/useRecipes';
 
 interface RecipeListProps {
   searchQuery? : string;
 }
 
 export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchRecipes = async (): Promise<void> => {
-      setLoading(true);
-      try {
-        const { data } = await recipeService.getAllRecipes();
-        setRecipes(data);
-      } catch (err) {
-        console.error('Error fetching recipes:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRecipes();
-  }, []);
+  const {
+      data: recipes = [],
+      isLoading: loading,
+      error,
+  } = useRecipes();
 
   const filteredRecipes = useMemo(() => {
 
@@ -39,38 +25,35 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
 
     const query = searchQuery.toLowerCase().trim();
 
-    return recipes.filter( recipe => {
-      
-        if(recipe.title.toLowerCase().includes(query)) {
-          return true;
-        }
+    return recipes.filter(recipe => {
+      const searchableText = [
+        recipe.title,
+        recipe.description,
+        ...recipe.ingredients
+      ].join(' ').toLowerCase();
 
-        if(recipe.description.toLowerCase().includes(query)) {
-          return true;
-        }
-
-        if(recipe.ingredients.some(
-            ingredient => ingredient.toLowerCase().includes(query)
-          )) 
-        {
-          return true;
-        }
-
-        return false;
-    })
+      return searchableText.includes(query);
+    });
   }, [recipes, searchQuery])
 
   const handleRecipeClick = (recipe: Recipe) => {
-    // Navigate to recipe detail page
-    // Example: navigate(`/recipes/${recipe.id}`);
     console.log('Clicked recipe:', recipe.title);
   };
 
-  if (loading) return <div>Loading…</div>;
-  if (error)   return <div>Error: {error}</div>;
+  if (loading) return <div className={styles.loadingSection}>Loading…</div>;
+  if (error) {
+    return (
+      <div className={styles.errorSection}>
+        Error: {error instanceof Error ? error.message : 'Unknown error'}
+        <button onClick={() => window.location.reload()}>
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <section className={styles.heroSection}>
+    <section className={styles.heroSection}>  
       {filteredRecipes.length === 0 ? 
       (
         <div>
