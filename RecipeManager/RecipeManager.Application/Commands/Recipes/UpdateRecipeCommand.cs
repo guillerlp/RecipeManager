@@ -1,9 +1,9 @@
 ﻿using FluentResults;
-using MediatR;
+using RecipeManager.Application.Common.Interfaces.Messaging;
 
 namespace RecipeManager.Application.Commands.Recipes
 {
-    public record class UpdateRecipeCommand(
+    public record UpdateRecipeCommand(
         Guid Id,
         string Title,
         string Description,
@@ -11,5 +11,6 @@ namespace RecipeManager.Application.Commands.Recipes
         int CookingTime,
         int Servings,
         List<string> Ingredients,
-        List<string> Instructions) : IRequest<Result>;
+        List<string> Instructions
+    ) : ICommand<Result>;
 }
