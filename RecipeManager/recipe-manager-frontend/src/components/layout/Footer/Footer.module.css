@@ -116,7 +116,7 @@
 /* Responsive footer layout */
 @media (max-width: 480px) {
   .footer {
-    flex-direction: column;
+    flex-direction: row;
     gap: var(--spacing-sm);
   }
 }

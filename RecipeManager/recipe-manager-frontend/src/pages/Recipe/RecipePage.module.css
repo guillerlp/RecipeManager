@@ -1,0 +1,22 @@
+/* RecipePage.module.css */
+
+.heroSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    box-sizing: border-box;
+    height: 100%; 
+    overflow: hidden;
+}
+
+.searchSection{
+    width:min(680px, 100%); 
+}
+
+.recipeListSection {
+    flex: 1; 
+    min-height: 0;
+    overflow: hidden; 
+    width:min(680px, 100%); 
+}
