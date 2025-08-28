@@ -4,8 +4,8 @@ import Logo from '../../../../assets/mainPhoto.png';
 import styles from './RecipeCard.module.css';
 
 interface RecipeCardProps {
-  recipe: Recipe;
-  onClick?: (recipe: Recipe) => void;
+    recipe: Recipe;
+    onClick?: (recipe: Recipe) => void;
 }
 
 export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick}) => {
@@ -34,24 +34,15 @@ export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick}) => {
         }
     }
 
-    const handleKeyDown = (event: React.KeyboardEvent) => {
-        if(onClick && (event.key === 'Enter' || event.key === ' ')){
-            event.preventDefault();
-            onClick(recipe);
-        }
-    }
-
     const CardComponent = onClick ? 'button' : 'article';
     const cardProps = onClick ? {
         type: 'button' as const,
         onClick: handleClick,
-        onKeyDown: handleKeyDown,
         'aria-label': `View ${recipe.title} recipe`,
-        tabIndex: 0
     } : {};
 
     return (
-        <CardComponent className={`${styles.recipesList} ${onClick ? styles.clickable : ''}`}{...cardProps}> 
+        <CardComponent className={`${styles.recipesList} ${onClick ? styles.clickable : ''}`} {...cardProps}> 
             <div className={styles.imageBox}>
                 <img
                     src={recipe.image || Logo}

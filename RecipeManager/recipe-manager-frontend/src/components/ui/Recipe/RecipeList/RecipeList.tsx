@@ -75,7 +75,7 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
       (
         <>
           {searchQuery && (
-            <div className={styles.resultsCount}>
+            <div>
               Found {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} 
               {searchQuery && ` matching "${searchQuery}"`}
             </div>

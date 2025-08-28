@@ -16,22 +16,22 @@
 }
 
 /* Clickable state */
-.recipesList.clickable {
+.clickable {
     cursor: pointer;
 }
 
-.recipesList.clickable:hover {
+.clickable:hover {
     border-color: var(--color-primary);
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     transform: translateY(-1px);
 }
 
-.recipesList.clickable:focus {
+.clickable:focus {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
 }
 
-.recipesList.clickable:active {
+.clickable:active {
     transform: translateY(0);
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
