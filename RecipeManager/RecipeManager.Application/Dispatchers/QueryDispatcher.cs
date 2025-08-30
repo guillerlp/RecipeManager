@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using RecipeManager.Application.Common.Interfaces;
 using RecipeManager.Application.Common.Interfaces.Messaging;
 
 namespace RecipeManager.Application.Dispatchers;

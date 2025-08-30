@@ -1,6 +1,4 @@
-﻿using System.Windows.Input;
-
-namespace RecipeManager.Application.Common.Interfaces.Messaging;
+﻿namespace RecipeManager.Application.Common.Interfaces.Messaging;
 
 public interface ICommandDispatcher
 {

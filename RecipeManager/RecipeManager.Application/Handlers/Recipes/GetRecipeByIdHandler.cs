@@ -1,6 +1,5 @@
 ﻿using FluentResults;
 using Microsoft.Extensions.Logging;
-using RecipeManager.Application.Common.Interfaces;
 using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Mappings;
