@@ -1,8 +1,7 @@
 ﻿using FluentResults;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using RecipeManager.Application.Commands.Recipes;
-using RecipeManager.Application.Common;
+using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.Application.Handlers.Recipes

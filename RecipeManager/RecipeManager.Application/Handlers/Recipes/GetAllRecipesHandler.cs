@@ -1,5 +1,4 @@
-﻿using MediatR;
-using RecipeManager.Application.Common;
+﻿using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Mappings;
 using RecipeManager.Application.Queries.Recipes;

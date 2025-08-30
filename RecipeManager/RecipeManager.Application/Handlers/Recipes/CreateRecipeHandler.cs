@@ -1,7 +1,6 @@
 ﻿using FluentResults;
-using MediatR;
 using RecipeManager.Application.Commands.Recipes;
-using RecipeManager.Application.Common;
+using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Mappings;
 using RecipeManager.Domain.Entities;

@@ -1,7 +1,7 @@
 ﻿using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using RecipeManager.Application.Commands.Recipes;
-using RecipeManager.Application.Common;
+using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Queries.Recipes;
 
@@ -15,7 +15,8 @@ namespace RecipeManager.Api.Controllers
         private readonly ICommandDispatcher _commandDispatcher;
         private readonly ILogger<RecipesController> _logger;
 
-        public RecipesController(ILogger<RecipesController> logger, IQueryDispatcher queryDispatcher,
+        public RecipesController(ILogger<RecipesController> logger,
+            IQueryDispatcher queryDispatcher,
             ICommandDispatcher commandDispatcher)
         {
             _logger = logger;
@@ -28,20 +29,21 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation("Fetching all recipes...");
 
-            var query = new GetAllRecipesQuery();
-            var result =
+            GetAllRecipesQuery query = new();
+            IEnumerable<RecipeDto> recipes =
                 await _queryDispatcher.Dispatch<GetAllRecipesQuery, IEnumerable<RecipeDto>>(query, cancellationToken);
-            return Ok(result);
+
+            return Ok(recipes);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<IEnumerable<RecipeDto>>> Get([FromRoute] Guid id,
+        public async Task<ActionResult<RecipeDto>> Get([FromRoute] Guid id,
             CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Fetching recipe with ID {id}...");
 
-            var query = new GetRecipeByIdQuery(id);
-            var result =
+            GetRecipeByIdQuery query = new(id);
+            Result<RecipeDto> result =
                 await _queryDispatcher.Dispatch<GetRecipeByIdQuery, Result<RecipeDto>>(query, cancellationToken);
 
             if (result.IsSuccess)
@@ -49,7 +51,7 @@ namespace RecipeManager.Api.Controllers
                 return Ok(result.Value);
             }
 
-            var problemDetails = new ProblemDetails
+            ProblemDetails problemDetails = new ProblemDetails
             {
                 Title = "Error while obtaining recipe",
                 Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
@@ -64,10 +66,23 @@ namespace RecipeManager.Api.Controllers
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Creating recipe...");
+
             Result<RecipeDto> result =
                 await _commandDispatcher.Dispatch<CreateRecipeCommand, Result<RecipeDto>>(command, cancellationToken);
 
-            return Ok(result.Value);
+            if (result.IsSuccess)
+            {
+                return CreatedAtAction(nameof(Get), new { id = result.Value.Id }, result.Value);
+            }
+
+            ProblemDetails problemDetails = new ProblemDetails
+            {
+                Title = "Error while creating recipe",
+                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
+                Status = StatusCodes.Status400BadRequest
+            };
+
+            return BadRequest(problemDetails);
         }
 
         [HttpDelete("{id}")]
@@ -75,15 +90,15 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation($"Deleting recipe with ID {id}...");
 
-            var command = new DeleteRecipeCommand(id);
-            var result = await _commandDispatcher.Dispatch<DeleteRecipeCommand, Result>(command, cancellationToken);
+            DeleteRecipeCommand command = new(id);
+            Result result = await _commandDispatcher.Dispatch<DeleteRecipeCommand, Result>(command, cancellationToken);
 
             if (result.IsSuccess)
             {
                 return NoContent();
             }
 
-            var problemDetails = new ProblemDetails
+            ProblemDetails problemDetails = new ProblemDetails
             {
                 Title = "Error while deleting recipe",
                 Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
@@ -99,17 +114,17 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation($"Updating recipe with ID {id}...");
 
-            var command = new UpdateRecipeCommand(id, dto.Title, dto.Description, dto.PreparationTime, dto.CookingTime,
+            UpdateRecipeCommand command = new(id, dto.Title, dto.Description, dto.PreparationTime, dto.CookingTime,
                 dto.Servings, dto.Ingredients, dto.Instructions);
 
-            var result = await _commandDispatcher.Dispatch<UpdateRecipeCommand, Result>(command, cancellationToken);
+            Result result = await _commandDispatcher.Dispatch<UpdateRecipeCommand, Result>(command, cancellationToken);
 
             if (result.IsSuccess)
             {
                 return NoContent();
             }
 
-            var problemDetails = new ProblemDetails
+            ProblemDetails problemDetails = new ProblemDetails
             {
                 Title = "Error while updating recipe",
                 Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),

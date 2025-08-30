@@ -18,9 +18,10 @@ namespace RecipeManager.Domain.Entities
         {
             //Constructor needed for EFCore to work properly
         }
-#pragma warning restore CS8618 
+#pragma warning restore CS8618
 
-        private Recipe(string title, string description, int preparationTime, int cookingTime, int servings, IEnumerable<string> ingredients, IEnumerable<string> instructions)
+        private Recipe(string title, string description, int preparationTime, int cookingTime, int servings,
+            IEnumerable<string> ingredients, IEnumerable<string> instructions)
         {
             Id = Guid.NewGuid();
             Title = title;
@@ -32,14 +33,16 @@ namespace RecipeManager.Domain.Entities
             Instructions = instructions.ToList().AsReadOnly();
         }
 
-        public static Recipe Create(string title, string description, int preparationTime, int cookingTime, int servings, IEnumerable<string> ingredients, IEnumerable<string> instructions)
+        public static Recipe Create(string title, string description, int preparationTime, int cookingTime,
+            int servings, IEnumerable<string> ingredients, IEnumerable<string> instructions)
         {
             ValidateProperties(title, description, preparationTime, cookingTime, servings, ingredients, instructions);
 
             return new Recipe(title, description, preparationTime, cookingTime, servings, ingredients, instructions);
         }
 
-        public void Update(string title, string description, int preparationTime, int cookingTime, int servings, IEnumerable<string> ingredients, IEnumerable<string> instructions)
+        public void Update(string title, string description, int preparationTime, int cookingTime, int servings,
+            IEnumerable<string> ingredients, IEnumerable<string> instructions)
         {
             ValidateProperties(title, description, preparationTime, cookingTime, servings, ingredients, instructions);
 
@@ -52,7 +55,8 @@ namespace RecipeManager.Domain.Entities
             Instructions = instructions.ToList().AsReadOnly();
         }
 
-        private static void ValidateProperties(string title, string description, int preparationTime, int cookingTime, int servings, IEnumerable<string> ingredients, IEnumerable<string> instructions)
+        private static void ValidateProperties(string title, string description, int preparationTime, int cookingTime,
+            int servings, IEnumerable<string> ingredients, IEnumerable<string> instructions)
         {
             Guard.Against.NullOrWhiteSpace(title, nameof(title), "Title is required");
             Guard.Against.NullOrWhiteSpace(description, nameof(description), "Description is required");

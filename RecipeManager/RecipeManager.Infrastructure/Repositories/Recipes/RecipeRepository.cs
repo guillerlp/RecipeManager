@@ -3,9 +3,9 @@ using RecipeManager.Domain.Entities;
 using RecipeManager.Domain.Interfaces.Repositories;
 using RecipeManager.Infrastructure.Context;
 
-namespace RecipeManager.Infrastructure.Repositories
+namespace RecipeManager.Infrastructure.Repositories.Recipes
 {
-    public class RecipeRepository : IRecipeRepository
+    public sealed class RecipeRepository : IRecipeRepository
     {
         private readonly AppDbContext _context;
 
