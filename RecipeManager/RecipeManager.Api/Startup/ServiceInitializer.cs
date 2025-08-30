@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using RecipeManager.Api.Startup.CustomObjects;
 using RecipeManager.Application.Commands.Recipes;
-using RecipeManager.Application.Common.Interfaces;
 using RecipeManager.Application.Common.Interfaces.Caching;
 using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.Dispatchers;
@@ -16,7 +15,7 @@ using RecipeManager.Application.Queries.Recipes;
 using RecipeManager.Application.Validators.Recipes;
 using RecipeManager.Domain.Interfaces.Repositories;
 using RecipeManager.Infrastructure.Context;
-using RecipeManager.Infrastructure.Repositories;
+using RecipeManager.Infrastructure.Repositories.Recipes;
 using RecipeManager.Infrastructure.Services;
 
 namespace RecipeManager.Api.Startup
@@ -76,6 +75,7 @@ namespace RecipeManager.Api.Startup
         private static IServiceCollection RegisterRepositories(this IServiceCollection services)
         {
             services.AddScoped<IRecipeRepository, RecipeRepository>();
+            services.Decorate<IRecipeRepository, CachedRecipeRepository>();
             return services;
         }
 

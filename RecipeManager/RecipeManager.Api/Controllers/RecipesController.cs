@@ -1,8 +1,6 @@
 ﻿using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using RecipeManager.Application.Commands.Recipes;
-using RecipeManager.Application.Common.Constants;
-using RecipeManager.Application.Common.Interfaces.Caching;
 using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Queries.Recipes;
@@ -16,15 +14,14 @@ namespace RecipeManager.Api.Controllers
         private readonly IQueryDispatcher _queryDispatcher;
         private readonly ICommandDispatcher _commandDispatcher;
         private readonly ILogger<RecipesController> _logger;
-        private readonly ICacheService _cacheService;
-        
-        public RecipesController(ILogger<RecipesController> logger, IQueryDispatcher queryDispatcher,
-            ICommandDispatcher commandDispatcher, ICacheService cacheService)
+
+        public RecipesController(ILogger<RecipesController> logger,
+            IQueryDispatcher queryDispatcher,
+            ICommandDispatcher commandDispatcher)
         {
             _logger = logger;
             _queryDispatcher = queryDispatcher;
             _commandDispatcher = commandDispatcher;
-            _cacheService = cacheService;
         }
 
         [HttpGet]
@@ -32,17 +29,9 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation("Fetching all recipes...");
 
-            IEnumerable<RecipeDto>? cachedRecipes =
-                await _cacheService.GetAsync<IEnumerable<RecipeDto>>(CacheKeys.ALL_RECIPES, cancellationToken);
-            
-            if (cachedRecipes != null)
-                return Ok(cachedRecipes);
-            
-            GetAllRecipesQuery query = new ();
-            IEnumerable<RecipeDto> recipes = 
+            GetAllRecipesQuery query = new();
+            IEnumerable<RecipeDto> recipes =
                 await _queryDispatcher.Dispatch<GetAllRecipesQuery, IEnumerable<RecipeDto>>(query, cancellationToken);
-
-            await _cacheService.SetAsync(CacheKeys.ALL_RECIPES, recipes, TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(5), cancellationToken);
 
             return Ok(recipes);
         }
@@ -53,21 +42,12 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation($"Fetching recipe with ID {id}...");
 
-            string cacheKey = CacheKeys.GetRecipeKey(id);
-            RecipeDto? cachedRecipe = await _cacheService.GetAsync<RecipeDto>(cacheKey, cancellationToken);
-
-            if (cachedRecipe != null)
-            {
-                return Ok(cachedRecipe);
-            }
-            
-            GetRecipeByIdQuery query = new (id);
+            GetRecipeByIdQuery query = new(id);
             Result<RecipeDto> result =
                 await _queryDispatcher.Dispatch<GetRecipeByIdQuery, Result<RecipeDto>>(query, cancellationToken);
 
             if (result.IsSuccess)
             {
-                await _cacheService.SetAsync(cacheKey, result.Value, TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(15), cancellationToken);
                 return Ok(result.Value);
             }
 
@@ -86,19 +66,15 @@ namespace RecipeManager.Api.Controllers
             CancellationToken cancellationToken)
         {
             _logger.LogInformation("Creating recipe...");
-            
+
             Result<RecipeDto> result =
                 await _commandDispatcher.Dispatch<CreateRecipeCommand, Result<RecipeDto>>(command, cancellationToken);
-            
+
             if (result.IsSuccess)
             {
-                await _cacheService.RemoveAsync(CacheKeys.ALL_RECIPES, cancellationToken);
-                string newRecipeCacheKey =  CacheKeys.GetRecipeKey(result.Value.Id);
-                await _cacheService.SetAsync(newRecipeCacheKey, result.Value, TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(15), cancellationToken);
-                
                 return CreatedAtAction(nameof(Get), new { id = result.Value.Id }, result.Value);
             }
-            
+
             ProblemDetails problemDetails = new ProblemDetails
             {
                 Title = "Error while creating recipe",
@@ -114,14 +90,11 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation($"Deleting recipe with ID {id}...");
 
-            DeleteRecipeCommand command = new (id);
+            DeleteRecipeCommand command = new(id);
             Result result = await _commandDispatcher.Dispatch<DeleteRecipeCommand, Result>(command, cancellationToken);
 
             if (result.IsSuccess)
             {
-                await _cacheService.RemoveAsync(CacheKeys.ALL_RECIPES, cancellationToken);
-                await _cacheService.RemoveAsync(CacheKeys.GetRecipeKey(id), cancellationToken);
-
                 return NoContent();
             }
 
@@ -141,16 +114,13 @@ namespace RecipeManager.Api.Controllers
         {
             _logger.LogInformation($"Updating recipe with ID {id}...");
 
-            UpdateRecipeCommand command = new (id, dto.Title, dto.Description, dto.PreparationTime, dto.CookingTime,
+            UpdateRecipeCommand command = new(id, dto.Title, dto.Description, dto.PreparationTime, dto.CookingTime,
                 dto.Servings, dto.Ingredients, dto.Instructions);
 
             Result result = await _commandDispatcher.Dispatch<UpdateRecipeCommand, Result>(command, cancellationToken);
-            
+
             if (result.IsSuccess)
             {
-                await _cacheService.RemoveAsync(CacheKeys.ALL_RECIPES, cancellationToken);
-                await _cacheService.RemoveAsync(CacheKeys.GetRecipeKey(id), cancellationToken);
-
                 return NoContent();
             }
 

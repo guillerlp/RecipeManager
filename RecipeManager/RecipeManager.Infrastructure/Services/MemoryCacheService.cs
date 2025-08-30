@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
 using RecipeManager.Application.Common.Interfaces.Caching;
 
@@ -22,10 +21,10 @@ public class MemoryCacheService : ICacheService
         return Task.FromResult(value);
     }
 
-    public Task SetAsync<T>(string key, T value,
-        TimeSpan? expiration = null, TimeSpan? sliding = null, CancellationToken token = default)
+    public Task SetAsync<T>(string key, T value, TimeSpan? expiration = null, TimeSpan? sliding = null,
+        CancellationToken token = default)
     {
-        MemoryCacheEntryOptions options = new ()
+        MemoryCacheEntryOptions options = new()
         {
             AbsoluteExpirationRelativeToNow = expiration ?? TimeSpan.FromMinutes(30),
             SlidingExpiration = sliding ?? TimeSpan.FromMinutes(10)
@@ -33,12 +32,15 @@ public class MemoryCacheService : ICacheService
 
         options.RegisterPostEvictionCallback((k, v, reason, state) =>
         {
-            _cacheKeys.Remove(k.ToString()!, out _);
+            if (k is string keyString)
+            {  
+                _cacheKeys.TryRemove(keyString, out _);
+            }
         });
-        
+
         _memoryCache.Set(key, value, options);
         _cacheKeys.TryAdd(key, true);
-        
+
         return Task.CompletedTask;
     }
 
@@ -46,21 +48,7 @@ public class MemoryCacheService : ICacheService
     {
         _memoryCache.Remove(key);
         _cacheKeys.TryRemove(key, out _);
-        
-        return Task.CompletedTask;
-    }
 
-    public Task RemoveByPatternAsync(string pattern, CancellationToken token = default)
-    {
-        Regex regex = new (pattern, RegexOptions.IgnoreCase);
-        List<string> keysToRemove = _cacheKeys.Keys.Where(key => regex.IsMatch(key)).ToList();
-        
-        foreach (string key in keysToRemove)
-        {
-            _memoryCache.Remove(key);
-            _cacheKeys.TryRemove(key, out _);
-        }
-        
         return Task.CompletedTask;
     }
 }
