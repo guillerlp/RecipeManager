@@ -19,14 +19,12 @@ namespace RecipeManager.Api.Startup
 
         public static WebApplication ConfigurePipeline(this WebApplication app)
         {
-            app.UseErrorHandler();
             app.UseCors("AllowReactApp");
             app.UseHttpsRedirection();
             app.UseRouting();
-            app.UseAuthorization();
-
             app.MapControllers();
-
+            app.UseErrorHandler();
+            app.UseAuthorization();
             return app;
         }
 

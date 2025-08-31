@@ -85,7 +85,7 @@ namespace RecipeManager.Api.Controllers
             return BadRequest(problemDetails);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Deleting recipe with ID {id}...");
@@ -108,7 +108,7 @@ namespace RecipeManager.Api.Controllers
             return BadRequest(problemDetails);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRecipeDto dto,
             CancellationToken cancellationToken)
         {
