@@ -31,13 +31,11 @@ namespace RecipeManager.Infrastructure.Repositories.Recipes
             return await _context.Recipes.AsNoTracking().ToListAsync(cancellationToken);
         }
 
-        public async Task<Recipe> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+        public async Task<Recipe?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
-            var recipe = await _context.Recipes.Where(r => r.Id == id).FirstOrDefaultAsync(cancellationToken);
-            if (recipe is null)
-                throw new KeyNotFoundException($"Recipe with Id '{id}' not found.");
-
-            return recipe;
+            return await _context.Recipes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
         }
 
         public async Task UpdateAsync(Recipe recipe, CancellationToken cancellationToken)

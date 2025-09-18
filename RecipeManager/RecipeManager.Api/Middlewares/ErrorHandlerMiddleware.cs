@@ -1,9 +1,10 @@
 ﻿using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 
 namespace RecipeManager.Api.Middlewares
 {
-    public class ErrorHandlerMiddleware
+    public sealed class ErrorHandlerMiddleware
     {
         private readonly ILogger<ErrorHandlerMiddleware> _logger;
         private readonly RequestDelegate _next;
@@ -22,29 +23,27 @@ namespace RecipeManager.Api.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
+                _logger.LogError(ex, "Unhandled exception occurred. RequestPath: {RequestPath}, Method: {Method}", 
+                    context.Request.Path, context.Request.Method);
                 await HandleExceptionAsync(context, ex);
             }
         }
 
         private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            var statusCode = exception switch
+            context.Response.StatusCode = exception switch
             {
-                KeyNotFoundException => HttpStatusCode.NotFound,
-                _ => HttpStatusCode.InternalServerError
+                KeyNotFoundException => StatusCodes.Status404NotFound,
+                _ => StatusCodes.Status500InternalServerError
             };
-
-            var payload = new
-            {
-                error = exception.Message,
-                stackTrace =  exception.StackTrace
-            };
-
-            string exceptionResult = JsonSerializer.Serialize(payload);
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)statusCode;
-            await context.Response.WriteAsync(exceptionResult);
+            
+            await context.Response.WriteAsJsonAsync(
+                new ProblemDetails
+                {
+                    Type = exception.GetType().Name,
+                    Title = "An error occurred while processing your request.",
+                    Detail = exception.Message,
+                });
         }
     }
 }

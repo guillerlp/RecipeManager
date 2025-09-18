@@ -1,4 +1,5 @@
-﻿using Ardalis.GuardClauses;
+﻿using FluentResults;
+using RecipeManager.Domain.Errors;
 using RecipeManager.Domain.Shared;
 
 namespace RecipeManager.Domain.Entities
@@ -33,19 +34,28 @@ namespace RecipeManager.Domain.Entities
             Instructions = instructions.ToList().AsReadOnly();
         }
 
-        public static Recipe Create(string title, string description, int preparationTime, int cookingTime,
+        public static Result<Recipe> Create(string title, string description, int preparationTime, int cookingTime,
             int servings, IEnumerable<string> ingredients, IEnumerable<string> instructions)
         {
-            ValidateProperties(title, description, preparationTime, cookingTime, servings, ingredients, instructions);
+            Result validate = ValidateProperties(title, description, preparationTime, cookingTime, servings,
+                ingredients, instructions);
 
-            return new Recipe(title, description, preparationTime, cookingTime, servings, ingredients, instructions);
+            if (validate.IsFailed)
+                return Result.Fail<Recipe>(validate.Errors);
+
+            return Result.Ok(new Recipe(title, description, preparationTime, cookingTime, servings, ingredients,
+                instructions));
         }
 
-        public void Update(string title, string description, int preparationTime, int cookingTime, int servings,
+        public Result Update(string title, string description, int preparationTime, int cookingTime, int servings,
             IEnumerable<string> ingredients, IEnumerable<string> instructions)
         {
-            ValidateProperties(title, description, preparationTime, cookingTime, servings, ingredients, instructions);
-
+            Result validate = ValidateProperties(title, description, preparationTime, cookingTime, servings,
+                ingredients, instructions);
+            
+            if (validate.IsFailed)
+                return validate;
+            
             Title = title;
             Description = description;
             PreparationTime = preparationTime;
@@ -53,18 +63,58 @@ namespace RecipeManager.Domain.Entities
             Servings = servings;
             Ingredients = ingredients.ToList().AsReadOnly();
             Instructions = instructions.ToList().AsReadOnly();
+            
+            return Result.Ok();
         }
 
-        private static void ValidateProperties(string title, string description, int preparationTime, int cookingTime,
-            int servings, IEnumerable<string> ingredients, IEnumerable<string> instructions)
+        private static Result ValidateProperties(string title, string description, int preparationTime,
+            int cookingTime, int servings, IEnumerable<string>? ingredients, IEnumerable<string>? instructions)
         {
-            Guard.Against.NullOrWhiteSpace(title, nameof(title), "Title is required");
-            Guard.Against.NullOrWhiteSpace(description, nameof(description), "Description is required");
-            Guard.Against.Negative(preparationTime, nameof(preparationTime), "Preparation time must be at least 0");
-            Guard.Against.Negative(cookingTime, nameof(cookingTime), "Cooking time must be at least 0");
-            Guard.Against.NegativeOrZero(servings, nameof(servings), "Servings must be superior to 0");
-            Guard.Against.NullOrEmpty(ingredients, nameof(ingredients), "At least one ingredient is required");
-            Guard.Against.NullOrEmpty(instructions, nameof(instructions), "At least one instruction is required");
+            var errors = new List<IError>();
+
+            if (string.IsNullOrWhiteSpace(title))
+                errors.Add(RecipeErrors.TitleRequired());
+
+            if (string.IsNullOrWhiteSpace(description))
+                errors.Add(RecipeErrors.DescriptionRequired());
+
+            if (preparationTime < 0)
+                errors.Add(RecipeErrors.PreparationTimeNegative());
+
+            if (cookingTime < 0)
+                errors.Add(RecipeErrors.CookingTimeNegative());
+
+            if (preparationTime == 0 && cookingTime == 0)
+                errors.Add(RecipeErrors.BothTimesZero());
+
+            if (servings < 1)
+                errors.Add(RecipeErrors.ServingsOutOfRange(1));
+
+            var ingList = ingredients?.ToList() ?? new List<string>();
+            if (ingList.Count == 0)
+            {
+                errors.Add(RecipeErrors.IngredientsRequired());
+            }
+            else
+            {
+                if (ingList.Any(s => string.IsNullOrWhiteSpace(s)))
+                    errors.Add(RecipeErrors.IngredientEmpty());
+            }
+
+            var steps = instructions?.ToList() ?? new List<string>();
+            if (steps.Count == 0)
+            {
+                errors.Add(RecipeErrors.InstructionsRequired());
+            }
+            else
+            {
+                if (steps.Any(s => string.IsNullOrWhiteSpace(s)))
+                    errors.Add(RecipeErrors.InstructionEmpty());
+            }
+
+            return errors.Count == 0
+                ? Result.Ok()
+                : Result.Fail(errors);
         }
     }
 }

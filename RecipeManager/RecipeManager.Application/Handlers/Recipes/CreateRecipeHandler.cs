@@ -19,13 +19,14 @@ namespace RecipeManager.Application.Handlers.Recipes
 
         public async Task<Result<RecipeDto>> Handle(CreateRecipeCommand request, CancellationToken cancellationToken)
         {
-            var recipe = Recipe.Create(request.Title, request.Description, request.PreparationTime, request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
+            Result<Recipe> recipe = Recipe.Create(request.Title, request.Description, request.PreparationTime,
+                request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
 
-            await _recipeRepository.AddAsync(recipe, cancellationToken);
+            if (recipe.IsFailed)
+                return Result.Fail<RecipeDto>(recipe.Errors);
 
-            var recipeDto = recipe.MapToRecipeDto();
-
-            return Result.Ok(recipeDto);
+            await _recipeRepository.AddAsync(recipe.Value, cancellationToken);
+            return Result.Ok(recipe.Value.MapToRecipeDto());
         }
     }
 }
