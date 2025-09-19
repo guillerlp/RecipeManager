@@ -21,9 +21,9 @@ namespace RecipeManager.Api.Startup
         {
             app.UseCors("AllowReactApp");
             app.UseHttpsRedirection();
+            app.UseErrorHandler();
             app.UseRouting();
             app.MapControllers();
-            app.UseErrorHandler();
             app.UseAuthorization();
             return app;
         }

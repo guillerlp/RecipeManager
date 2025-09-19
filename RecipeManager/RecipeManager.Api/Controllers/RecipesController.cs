@@ -59,7 +59,7 @@ namespace RecipeManager.Api.Controllers
             Result<RecipeDto> result =
                 await _commandDispatcher.Dispatch<CreateRecipeCommand, Result<RecipeDto>>(command, cancellationToken);
 
-            return result.ToCreatedAtActionResult(nameof(Get), new { id = result.IsSuccess ? result.Value.Id : (Guid?)null });
+            return result.ToCreatedAtActionResult(nameof(Get), new { id = result.ValueOrDefault?.Id });
 
         }
 
