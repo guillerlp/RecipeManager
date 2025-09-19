@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging;
 using RecipeManager.Application.Commands.Recipes;
 using RecipeManager.Application.Common.Interfaces.Messaging;
+using RecipeManager.Domain.Entities;
+using RecipeManager.Domain.Errors;
 using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.Application.Handlers.Recipes
@@ -19,26 +21,22 @@ namespace RecipeManager.Application.Handlers.Recipes
 
         public async Task<Result> Handle(UpdateRecipeCommand request, CancellationToken cancellationToken)
         {
-            try
-            {
-                var recipeToUpdate = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
+            Recipe? recipeToUpdate = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
 
-                recipeToUpdate.Update(request.Title, request.Description, request.PreparationTime, request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
+            if (recipeToUpdate is null)
+                return Result.Fail(RecipeErrors.RecipeNotFound(request.Id));
 
-                await _recipeRepository.UpdateAsync(recipeToUpdate, cancellationToken);
+            Result updateResult = recipeToUpdate.Update(request.Title, request.Description, request.PreparationTime,
+                request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
 
-                return Result.Ok();
-            }
-            catch (KeyNotFoundException knf)
+            if (updateResult.IsFailed)
             {
-                _logger.LogWarning(knf, "Tried to update missing recipe {RecipeId}", request.Id);
-                return Result.Fail(knf.Message);
+                return updateResult;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating recipe {RecipeId}", request.Id);
-                return Result.Fail("Error while updating the recipe").WithError(ex.Message);
-            }
+
+            await _recipeRepository.UpdateAsync(recipeToUpdate, cancellationToken);
+
+            return Result.Ok();
         }
     }
 }

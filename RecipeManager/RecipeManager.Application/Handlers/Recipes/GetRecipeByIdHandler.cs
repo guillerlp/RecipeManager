@@ -4,6 +4,7 @@ using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Mappings;
 using RecipeManager.Application.Queries.Recipes;
+using RecipeManager.Domain.Errors;
 using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.Application.Handlers.Recipes
@@ -21,24 +22,12 @@ namespace RecipeManager.Application.Handlers.Recipes
 
         public async Task<Result<RecipeDto>> Handle(GetRecipeByIdQuery request, CancellationToken cancellationToken)
         {
-            try
-            {
-                var recipe = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
+            var recipe = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
 
-                var recipeDto = recipe.MapToRecipeDto();
+            if (recipe is null)
+                return Result.Fail<RecipeDto>(RecipeErrors.RecipeNotFound(request.Id));
 
-                return Result.Ok(recipeDto);
-            }
-            catch (KeyNotFoundException knf)
-            {
-                _logger.LogWarning(knf, "Tried to obtain missing recipe {RecipeId}", request.Id);
-                return Result.Fail<RecipeDto>(knf.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error obtaining recipe {RecipeId}", request.Id);
-                return Result.Fail<RecipeDto>("Error while obtaining recipe by Id").WithError(ex.Message);
-            }
+            return Result.Ok(recipe.MapToRecipeDto());
         }
     }
 }

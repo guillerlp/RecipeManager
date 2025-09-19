@@ -1,9 +1,10 @@
 ﻿using System.Net;
 using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 
 namespace RecipeManager.Api.Middlewares
 {
-    public class ErrorHandlerMiddleware
+    public sealed class ErrorHandlerMiddleware
     {
         private readonly ILogger<ErrorHandlerMiddleware> _logger;
         private readonly RequestDelegate _next;
@@ -22,29 +23,32 @@ namespace RecipeManager.Api.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
+                _logger.LogError(ex, "Unhandled exception occurred. RequestPath: {RequestPath}, Method: {Method}", 
+                    context.Request.Path, context.Request.Method);
                 await HandleExceptionAsync(context, ex);
             }
         }
 
         private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            var statusCode = exception switch
+            var (statusCode, title) = exception switch
             {
-                KeyNotFoundException => HttpStatusCode.NotFound,
-                _ => HttpStatusCode.InternalServerError
+                KeyNotFoundException => (StatusCodes.Status404NotFound, "Resource not found"),
+                ArgumentException => (StatusCodes.Status400BadRequest, "Bad request"),
+                UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
+                _ => (StatusCodes.Status500InternalServerError, "Internal server error")
             };
-
-            var payload = new
-            {
-                error = exception.Message,
-                stackTrace =  exception.StackTrace
-            };
-
-            string exceptionResult = JsonSerializer.Serialize(payload);
-            context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)statusCode;
-            await context.Response.WriteAsync(exceptionResult);
+    
+            context.Response.StatusCode = statusCode;
+            
+            await context.Response.WriteAsJsonAsync(
+                new ProblemDetails
+                {
+                    Type = exception.GetType().Name,
+                    Title = title,
+                    Detail = exception.Message,
+                    Status = statusCode
+                });
         }
     }
 }

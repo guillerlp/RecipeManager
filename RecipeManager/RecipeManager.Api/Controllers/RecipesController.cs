@@ -1,5 +1,6 @@
 ﻿using FluentResults;
 using Microsoft.AspNetCore.Mvc;
+using RecipeManager.Api.Extensions;
 using RecipeManager.Application.Commands.Recipes;
 using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.DTO.Recipes;
@@ -46,19 +47,7 @@ namespace RecipeManager.Api.Controllers
             Result<RecipeDto> result =
                 await _queryDispatcher.Dispatch<GetRecipeByIdQuery, Result<RecipeDto>>(query, cancellationToken);
 
-            if (result.IsSuccess)
-            {
-                return Ok(result.Value);
-            }
-
-            ProblemDetails problemDetails = new ProblemDetails
-            {
-                Title = "Error while obtaining recipe",
-                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
-                Status = StatusCodes.Status400BadRequest
-            };
-
-            return BadRequest(problemDetails);
+            return result.ToActionResult();
         }
 
         [HttpPost]
@@ -70,22 +59,11 @@ namespace RecipeManager.Api.Controllers
             Result<RecipeDto> result =
                 await _commandDispatcher.Dispatch<CreateRecipeCommand, Result<RecipeDto>>(command, cancellationToken);
 
-            if (result.IsSuccess)
-            {
-                return CreatedAtAction(nameof(Get), new { id = result.Value.Id }, result.Value);
-            }
+            return result.ToCreatedAtActionResult(nameof(Get), new { id = result.ValueOrDefault?.Id });
 
-            ProblemDetails problemDetails = new ProblemDetails
-            {
-                Title = "Error while creating recipe",
-                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
-                Status = StatusCodes.Status400BadRequest
-            };
-
-            return BadRequest(problemDetails);
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken cancellationToken)
         {
             _logger.LogInformation($"Deleting recipe with ID {id}...");
@@ -93,22 +71,10 @@ namespace RecipeManager.Api.Controllers
             DeleteRecipeCommand command = new(id);
             Result result = await _commandDispatcher.Dispatch<DeleteRecipeCommand, Result>(command, cancellationToken);
 
-            if (result.IsSuccess)
-            {
-                return NoContent();
-            }
-
-            ProblemDetails problemDetails = new ProblemDetails
-            {
-                Title = "Error while deleting recipe",
-                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
-                Status = StatusCodes.Status400BadRequest
-            };
-
-            return BadRequest(problemDetails);
+            return result.ToActionResult();
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRecipeDto dto,
             CancellationToken cancellationToken)
         {
@@ -119,19 +85,7 @@ namespace RecipeManager.Api.Controllers
 
             Result result = await _commandDispatcher.Dispatch<UpdateRecipeCommand, Result>(command, cancellationToken);
 
-            if (result.IsSuccess)
-            {
-                return NoContent();
-            }
-
-            ProblemDetails problemDetails = new ProblemDetails
-            {
-                Title = "Error while updating recipe",
-                Detail = result.Reasons.Select(r => r.Message).FirstOrDefault(),
-                Status = StatusCodes.Status400BadRequest
-            };
-
-            return BadRequest(problemDetails);
+            return result.ToActionResult();
         }
     }
 }

@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging;
 using RecipeManager.Application.Commands.Recipes;
 using RecipeManager.Application.Common.Interfaces.Messaging;
+using RecipeManager.Domain.Entities;
+using RecipeManager.Domain.Errors;
 using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.Application.Handlers.Recipes
@@ -21,16 +23,14 @@ namespace RecipeManager.Application.Handlers.Recipes
         {
             try
             {
-                var recipeToDelete = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
-
+                Recipe? recipeToDelete = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
+                
+                if(recipeToDelete is null)
+                    return Result.Fail(RecipeErrors.RecipeNotFound(request.Id));
+                
                 await _recipeRepository.DeleteAsync(recipeToDelete, cancellationToken);
 
                 return Result.Ok();
-            }
-            catch (KeyNotFoundException knf)
-            {
-                _logger.LogWarning(knf, "Tried to delete missing recipe {RecipeId}", request.Id);
-                return Result.Fail(knf.Message);
             }
             catch (Exception ex)
             {
