@@ -31,18 +31,23 @@ namespace RecipeManager.Api.Middlewares
 
         private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
-            context.Response.StatusCode = exception switch
+            var (statusCode, title) = exception switch
             {
-                KeyNotFoundException => StatusCodes.Status404NotFound,
-                _ => StatusCodes.Status500InternalServerError
+                KeyNotFoundException => (StatusCodes.Status404NotFound, "Resource not found"),
+                ArgumentException => (StatusCodes.Status400BadRequest, "Bad request"),
+                UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
+                _ => (StatusCodes.Status500InternalServerError, "Internal server error")
             };
+    
+            context.Response.StatusCode = statusCode;
             
             await context.Response.WriteAsJsonAsync(
                 new ProblemDetails
                 {
                     Type = exception.GetType().Name,
-                    Title = "An error occurred while processing your request.",
+                    Title = title,
                     Detail = exception.Message,
+                    Status = statusCode
                 });
         }
     }
