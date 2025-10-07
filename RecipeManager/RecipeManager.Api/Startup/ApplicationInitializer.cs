@@ -23,8 +23,8 @@ namespace RecipeManager.Api.Startup
             app.UseHttpsRedirection();
             app.UseErrorHandler();
             app.UseRouting();
-            app.MapControllers();
             app.UseAuthorization();
+            app.MapControllers();
             return app;
         }
 
