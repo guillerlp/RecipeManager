@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecipeManager.Infrastructur
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecipeManager.Domain", "RecipeManager.Domain\RecipeManager.Domain.csproj", "{57E24C71-E4B7-4A79-A4D8-53C312C91BAA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecipeManager.UnitTests", "RecipeManager.UnitTests\RecipeManager.UnitTests.csproj", "{279D71E0-5483-41FF-9C8C-616A4E78C98B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RecipeManager.IntegrationTests", "RecipeManager.IntegrationTests\RecipeManager.IntegrationTests.csproj", "{7E038636-C1A0-44E0-9B33-C91AFAD7B4CE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{57E24C71-E4B7-4A79-A4D8-53C312C91BAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{57E24C71-E4B7-4A79-A4D8-53C312C91BAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{57E24C71-E4B7-4A79-A4D8-53C312C91BAA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{279D71E0-5483-41FF-9C8C-616A4E78C98B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{279D71E0-5483-41FF-9C8C-616A4E78C98B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{279D71E0-5483-41FF-9C8C-616A4E78C98B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{279D71E0-5483-41FF-9C8C-616A4E78C98B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E038636-C1A0-44E0-9B33-C91AFAD7B4CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E038636-C1A0-44E0-9B33-C91AFAD7B4CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E038636-C1A0-44E0-9B33-C91AFAD7B4CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E038636-C1A0-44E0-9B33-C91AFAD7B4CE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

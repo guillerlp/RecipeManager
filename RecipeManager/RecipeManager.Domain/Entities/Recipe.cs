@@ -52,10 +52,10 @@ namespace RecipeManager.Domain.Entities
         {
             Result validate = ValidateProperties(title, description, preparationTime, cookingTime, servings,
                 ingredients, instructions);
-            
+
             if (validate.IsFailed)
                 return validate;
-            
+
             Title = title;
             Description = description;
             PreparationTime = preparationTime;
@@ -63,7 +63,7 @@ namespace RecipeManager.Domain.Entities
             Servings = servings;
             Ingredients = ingredients.ToList().AsReadOnly();
             Instructions = instructions.ToList().AsReadOnly();
-            
+
             return Result.Ok();
         }
 
