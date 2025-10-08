@@ -36,7 +36,7 @@ public sealed class CachedRecipeRepository : IRecipeRepository
         return recipes;
     }
 
-    public async Task<Recipe> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<Recipe?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         string cacheKey = CacheKeys.GetRecipeKey(id);
         Recipe? cachedRecipe = await _cacheService.GetAsync<Recipe>(cacheKey, cancellationToken);
@@ -44,7 +44,7 @@ public sealed class CachedRecipeRepository : IRecipeRepository
         if (cachedRecipe is not null)
             return cachedRecipe;
 
-        Recipe recipe = await _recipeRepository.GetByIdAsync(id, cancellationToken);
+        Recipe? recipe = await _recipeRepository.GetByIdAsync(id, cancellationToken);
         await SetCache(cacheKey, recipe, CacheDuration.DefaultExpiration,
             CacheDuration.DefaultSliding, cancellationToken);
 
