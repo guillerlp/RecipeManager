@@ -11,7 +11,18 @@ namespace RecipeManager.Api
 
             // Skip database registration for integration tests
             // Integration tests will register their own InMemory database
-            if (builder.Environment.EnvironmentName != "IntegrationTest")
+            // SECURITY: IntegrationTest environment is only allowed in DEBUG builds
+            if (builder.Environment.EnvironmentName == "IntegrationTest")
+            {
+#if DEBUG
+                // Integration test environment - DbContext will be registered by test infrastructure
+#else
+                throw new InvalidOperationException(
+                    "IntegrationTest environment is not allowed in RELEASE builds. " +
+                    "This environment is reserved for automated testing only.");
+#endif
+            }
+            else
             {
                 var dbContextConfiguration = builder.Configuration
                     .GetSection("ConnectionStrings")

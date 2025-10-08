@@ -14,9 +14,12 @@ public class IntegrationTestBase : IDisposable
     protected readonly WebApplicationFactory<Program> Factory;
     protected readonly IServiceScope Scope;
     protected readonly AppDbContext DbContext;
+    private readonly string _testDbName;
 
     public IntegrationTestBase()
     {
+        _testDbName = $"TestDb_{Guid.NewGuid()}";
+
         Factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
@@ -24,12 +27,9 @@ public class IntegrationTestBase : IDisposable
 
                 builder.ConfigureTestServices(services =>
                 {
-                    // IMPORTANT: Use a FIXED database name per test instance
-                    // This ensures the seeded data is visible to the API
-                    var testDbName = $"TestDb_{Guid.NewGuid()}";
                     services.AddDbContext<AppDbContext>(options =>
                     {
-                        options.UseInMemoryDatabase(testDbName);
+                        options.UseInMemoryDatabase(_testDbName);
                     });
                 });
             });
