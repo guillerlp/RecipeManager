@@ -36,7 +36,7 @@ public sealed class CachedRecipeRepository : IRecipeRepository
         return recipes;
     }
 
-    public async Task<Recipe> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<Recipe?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         string cacheKey = CacheKeys.GetRecipeKey(id);
         Recipe? cachedRecipe = await _cacheService.GetAsync<Recipe>(cacheKey, cancellationToken);
@@ -44,9 +44,13 @@ public sealed class CachedRecipeRepository : IRecipeRepository
         if (cachedRecipe is not null)
             return cachedRecipe;
 
-        Recipe recipe = await _recipeRepository.GetByIdAsync(id, cancellationToken);
-        await SetCache(cacheKey, recipe, CacheDuration.DefaultExpiration,
-            CacheDuration.DefaultSliding, cancellationToken);
+        Recipe? recipe = await _recipeRepository.GetByIdAsync(id, cancellationToken);
+
+        if (recipe is not null)
+        {
+            await SetCache(cacheKey, recipe, CacheDuration.DefaultExpiration,
+                CacheDuration.DefaultSliding, cancellationToken);
+        }
 
         return recipe;
     }
@@ -55,7 +59,7 @@ public sealed class CachedRecipeRepository : IRecipeRepository
     {
         await _recipeRepository.AddAsync(recipe, cancellationToken);
         await RemoveCache(CacheKeys.AllRecipes, cancellationToken);
-        await SetCache(CacheKeys.GetRecipeKey(recipe.Id), recipe,CacheDuration.LongExpiration,
+        await SetCache(CacheKeys.GetRecipeKey(recipe.Id), recipe, CacheDuration.LongExpiration,
             CacheDuration.LongSliding, cancellationToken);
     }
 
@@ -95,7 +99,7 @@ public sealed class CachedRecipeRepository : IRecipeRepository
             _logger.LogWarning(ex, "Failed to remove {Key}", key);
         }
     }
-    
+
     private async Task InvalidateRecipeRelatedCaches(Guid recipeId, CancellationToken cancellationToken)
     {
         var tasks = new[]
@@ -103,7 +107,7 @@ public sealed class CachedRecipeRepository : IRecipeRepository
             RemoveCache(CacheKeys.AllRecipes, cancellationToken),
             RemoveCache(CacheKeys.GetRecipeKey(recipeId), cancellationToken)
         };
-    
+
         await Task.WhenAll(tasks);
     }
 }
