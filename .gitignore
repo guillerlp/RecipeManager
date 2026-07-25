@@ -55,3 +55,6 @@ nunit-*.xml
 
 .vs/
 RecipeManager/.idea
+
+# JetBrains Rider per-user settings
+*.DotSettings.user
