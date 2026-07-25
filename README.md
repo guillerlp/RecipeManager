@@ -1,6 +1,6 @@
 # RecipeManager
 
-Clean-architecture recipe API (ASP.NET Core 8 + EF Core + SQL Server) with a React 19 / Vite frontend.
+Clean-architecture recipe API (ASP.NET Core 10 + EF Core + PostgreSQL) with a React 19 / Vite frontend.
 
 ```
 RecipeManager/
