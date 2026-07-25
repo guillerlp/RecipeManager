@@ -3,7 +3,7 @@ using FluentResults;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using RecipeManager.Api.Startup.CustomObjects;
 using RecipeManager.Application.Commands.Recipes;
 using RecipeManager.Application.Common.Interfaces.Caching;
@@ -26,7 +26,7 @@ namespace RecipeManager.Api.Startup
             DatabaseConnectionConfiguration databaseContextConfiguration)
         {
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(databaseContextConfiguration.DefaultConnection));
+                options.UseNpgsql(databaseContextConfiguration.DefaultConnection));
             return services;
         }
 
