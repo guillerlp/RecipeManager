@@ -28,7 +28,7 @@ Not needed for: pure logic changes in a hook, or a component whose visuals do no
 
 ## The design system as it exists
 
-### Tokens — `src/styles/themes/`
+### Tokens — `recipe-manager-frontend/src/styles/themes/`
 
 `variables.css` (`:root`, theme-independent):
 
@@ -158,7 +158,7 @@ Additional requirements for new work:
 - The spec from `00-leader` and the contract delta from `08-api-contract` (which fields actually exist).
 - [../domain-model.md](../domain-model.md) — field meanings, units, and validation limits to surface in the UI.
 - [../conventions.md](../conventions.md#frontend-react--typescript).
-- The current token files under `src/styles/themes/`.
+- The current token files under `recipe-manager-frontend/src/styles/themes/`.
 
 ## Expected outputs
 

@@ -46,7 +46,7 @@ build config.
 
 ### State
 
-- [ ] Server data ⇒ a TanStack Query hook in `src/hooks/`, exported from `hooks/index.ts`. Never call
+- [ ] Server data ⇒ a TanStack Query hook in `recipe-manager-frontend/src/hooks/`, exported from `recipe-manager-frontend/src/hooks/index.ts`. Never call
       `useQuery` inline in a component.
 - [ ] Query keys are arrays: `['recipes']`, `['recipes', id]`.
 - [ ] Cross-cutting UI state ⇒ React Context + a guard hook that throws when the provider is missing (copy
@@ -60,7 +60,7 @@ build config.
 
 - [ ] All HTTP goes through `services/recipeService.ts`. Components and hooks never import `axios`.
 - [ ] Service methods return `Promise<AxiosResponse<T>>`; the hook unwraps `.data`.
-- [ ] **Mutations do not exist yet.** The first one establishes the pattern: `useMutation` in `src/hooks/`, and
+- [ ] **Mutations do not exist yet.** The first one establishes the pattern: `useMutation` in `recipe-manager-frontend/src/hooks/`, and
       on success `queryClient.invalidateQueries({ queryKey: ['recipes'] })`. Without that the list stays stale —
       `useRecipes` sets `refetchOnMount: false` and `refetchOnWindowFocus: false`, so nothing else will refresh it.
 - [ ] Every fetching component handles all four states: loading, error, empty, populated. `RecipeList` is the
@@ -87,7 +87,7 @@ There is **no form in the codebase today** and no form library installed. When b
 
 ### TypeScript
 
-- [ ] No `any` — there is none in `src/` today.
+- [ ] No `any` — there is none in `recipe-manager-frontend/src/` today.
 - [ ] `strict`, `noUnusedLocals`, `noUnusedParameters` are on; unused imports break the build.
 - [ ] Domain types come from `@/types`. If the shape is wrong, that is an `08-api-contract` issue — do not
       patch around it locally with a cast.

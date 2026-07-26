@@ -57,7 +57,7 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `@vitejs/plugin-react` | 4.6 | Babel-based Fast Refresh |
 | `typescript` | 5.9 | `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` all on |
 | `@mui/material` + `@mui/icons-material` | 7.x | used sparingly: `Box` for layout, icons (`Search`, `Sunny`, `Bedtime`, `BlenderOutlined`). **No MUI ThemeProvider** — visual styling is CSS Modules |
-| `@emotion/react` / `@emotion/styled` | 11.x | MUI peer dependency only; no direct `styled` usage in `src/` |
+| `@emotion/react` / `@emotion/styled` | 11.x | MUI peer dependency only; no direct `styled` usage in `recipe-manager-frontend/src/` |
 | `@tanstack/react-query` | 5.85 | server state (`useRecipes`); client configured in `main.tsx` |
 | `@tanstack/react-query-devtools` | 5.85 | mounted when `process.env.NODE_ENV === 'development'` |
 | `axios` | 1.10 | single `AxiosInstance` in `services/recipeService.ts` |

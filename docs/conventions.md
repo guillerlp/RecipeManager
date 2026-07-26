@@ -102,7 +102,7 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
 - `AppDbContext` has no `OnModelCreating`; mapping is entirely convention-based.
   **⚠ Target:** convention-based mapping is why every string column is unbounded `text` (`SEC-08`). New
   constraints — max lengths, indexes, required-ness beyond nullability — belong in an
-  `IEntityTypeConfiguration<T>` under `RecipeManager.Infrastructure/Context/Configurations/`, applied via
+  `IEntityTypeConfiguration<T>` in a new `RecipeManager.Infrastructure/Context/Configurations/` folder, applied via
   `modelBuilder.ApplyConfigurationsFromAssembly(...)`. Introducing the first one is a small architecture change:
   clear it with `01-architect`.
 - Reads use `.AsNoTracking()`. Writes call `SaveChangesAsync(cancellationToken)` inside the repository method.
@@ -141,7 +141,7 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
 ### Folder structure
 
 ```
-src/
+recipe-manager-frontend/src/
   components/
     common/    cross-cutting widgets (SearchBar)
     layout/    AppLayout, Header, Footer
@@ -179,13 +179,13 @@ adding/updating its `index.ts`.
 
 | Kind of state | Mechanism |
 | --- | --- |
-| Server data | TanStack Query — a hook in `src/hooks/` (see `useRecipes`) |
+| Server data | TanStack Query — a hook in `recipe-manager-frontend/src/hooks/` (see `useRecipes`) |
 | Cross-cutting UI state | React Context (`ThemeContext` + `useTheme` guard hook) |
 | Local UI state | `useState` in the page/component (`searchQuery` in `RecipePage`) |
 
 **No Redux, no Zustand.** Do not add a global store; add a query hook or a context.
 
-- Query hooks live in `src/hooks/`, return the `useQuery` result unchanged, and set their own
+- Query hooks live in `recipe-manager-frontend/src/hooks/`, return the `useQuery` result unchanged, and set their own
   `staleTime`/`gcTime`/`retry`. The `queryKey` is an array (`['recipes']`, `['recipes', id]`).
 - **Mutations must invalidate the queries they affect**:
   `queryClient.invalidateQueries({ queryKey: ['recipes'] })` in `onSuccess`. `useRecipes` disables
@@ -207,7 +207,7 @@ adding/updating its `index.ts`.
 
 - Domain-ish types in `src/types/`, re-exported from `recipe-manager-frontend/src/types/index.ts`, imported as `@/types`.
 - `strict` TS with `noUnusedLocals` and `noUnusedParameters` — unused imports break the build. `any` is not used
-  anywhere in `src/`; keep it that way.
+  anywhere in `recipe-manager-frontend/src/`; keep it that way.
 
 ### Accessibility (already established, keep it up)
 

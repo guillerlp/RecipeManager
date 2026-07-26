@@ -558,7 +558,7 @@ defeats structured logging: the value is baked into the message string and canno
 ### QUAL-02
 **`Console.WriteLine` for startup logging — Low**
 
-`RecipeManager.Api/Startup/ApplicationInitializer.MigrateDatabase` writes migration progress with `Console.WriteLine`,
+`MigrateDatabase` in `RecipeManager.Api/Startup/ApplicationInitializer.cs` writes migration progress with `Console.WriteLine`,
 bypassing the logging pipeline, log levels, and any structured sink.
 
 ### QUAL-03

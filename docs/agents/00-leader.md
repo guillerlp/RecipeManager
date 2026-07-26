@@ -75,9 +75,13 @@ assumption in the spec.
 - Security vs. UX → `05-security-reviewer` wins on data handling; `07-ux-ui` proposes an alternative flow.
 - Code reviewer blocks vs. author disagrees → the reviewer's block stands until the checklist item is met or the
   leader documents an explicit exception in the PR.
-- Two agents both claim a file → the layer owns it: backend files are `02-senior-csharp`'s,
-  `recipe-manager-frontend/src/types/recipe.ts` and `recipe-manager-frontend/src/services/recipeService.ts` are `08-api-contract`'s, everything else under
-  `src/` is `03-senior-react`'s.
+- Two agents both claim a file → the layer owns it:
+  - everything under `RecipeManager.Domain/`, `RecipeManager.Application/`, `RecipeManager.Infrastructure/`,
+    `RecipeManager.Api/`, `RecipeManager.UnitTests/`, `RecipeManager.IntegrationTests/` → `02-senior-csharp`
+  - `recipe-manager-frontend/src/types/recipe.ts` and
+    `recipe-manager-frontend/src/services/recipeService.ts` → `08-api-contract` (these two files *are* the
+    API contract)
+  - everything else under `recipe-manager-frontend/src/` → `03-senior-react`
 
 ### Definition of done
 

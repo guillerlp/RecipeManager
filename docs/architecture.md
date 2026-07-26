@@ -37,8 +37,12 @@ Verified project references:
 
 ### Domain (`RecipeManager.Domain`)
 
-- `RecipeManager.Domain/Shared/Entity.cs` — abstract base with `Guid Id { get; protected init; }` plus `Equals`/`GetHashCode` by
-  concrete type + id.
+- `RecipeManager.Domain/Shared/Entity.cs` — abstract base with `Guid Id { get; protected init; }`.
+  `Equals` compares **concrete type and id** (`GetType() == other.GetType() && Id == other.Id`);
+  `GetHashCode` hashes **the id alone** (`Id.GetHashCode()`). That asymmetry is deliberate and contract-valid —
+  equal objects always produce equal hashes — but it means two entities of *different* types sharing an id
+  collide in a hash bucket while comparing unequal. Harmless with `Guid` keys; keep it in mind before adding an
+  entity type whose ids are drawn from the same sequence as another's.
 - `RecipeManager.Domain/Entities/Recipe.cs` — the only aggregate. Private setters, private constructors, static factory
   `Create(...)` returning `Result<Recipe>`, instance `Update(...)` returning `Result`. All invariants live in
   the private `ValidateProperties`.

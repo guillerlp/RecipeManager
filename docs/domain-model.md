@@ -10,13 +10,18 @@ Some of that is deliberate; some is a shortcut with a decided replacement. The
 before designing anything that touches ingredients, ownership, or listing behaviour.
 
 ```
-Entity (abstract, Shared/Entity.cs)
-  Guid Id                     protected init
-  Equals / GetHashCode        by concrete type + Id
+Entity (abstract, RecipeManager.Domain/Shared/Entity.cs)
+  Guid Id            protected init
+  Equals             concrete type + Id
+  GetHashCode        Id only
     ▲
     │
-  Recipe (sealed, Entities/Recipe.cs)   ← the only aggregate root
+  Recipe (sealed, RecipeManager.Domain/Entities/Recipe.cs)   ← the only aggregate root
 ```
+
+`Equals` and `GetHashCode` deliberately use different inputs. This satisfies the equality contract — objects
+that are equal always hash the same — but two entities of different types sharing an id hash identically while
+comparing unequal.
 
 ## `Recipe`
 

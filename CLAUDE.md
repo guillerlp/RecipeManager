@@ -74,17 +74,25 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
 
 ### Path convention in these documents
 
-**Every source path is written relative to the solution folder `RecipeManager/`** — the folder holding
-`RecipeManager.sln`, and the folder all `dotnet` commands run from. Paths therefore always start with the
-project folder:
+**Any path that points at something you could open is written relative to the solution folder
+`RecipeManager/`** — the folder holding `RecipeManager.sln`, and the folder all `dotnet` commands run from.
+Such paths always start with the project folder:
 
 - `RecipeManager.Api/Startup/ServiceInitializer.cs` — **not** `Api/Startup/...` or `Startup/...`
 - `RecipeManager.Domain/Entities/Recipe.cs` — **not** `Domain/Entities/...` or `Entities/...`
 - `RecipeManager.UnitTests/Domain/Entities/RecipeTests.cs` — test files carry their test project's name
 - `recipe-manager-frontend/src/types/recipe.ts` — frontend files carry the frontend folder
+- `recipe-manager-frontend/src/hooks/` — directories too, when naming a location
 
-Prepend `RecipeManager/` to resolve any of them from the git root. Markdown links between documents are
-ordinary relative links and follow their own file's location, as usual.
+Prepend `RecipeManager/` to resolve any of them from the git root.
+
+The one exception, used deliberately: a bare folder name may stand for a **category** rather than a location,
+where the surrounding section has already fixed the scope — "put presentational components in `components/ui/`",
+or "folders are grouped by technical role (`Commands/`, `Handlers/`, `Validators/`)". If a reader could
+reasonably try to `cd` into it, it needs the full prefix.
+
+Markdown links between documents are ordinary relative links and resolve from their own file's location, as
+usual.
 
 ---
 

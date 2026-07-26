@@ -25,7 +25,7 @@ Rules:
    interchangeably; prefer `kebab-case` going forward, prefixed by intent:
    `feat/<topic>`, `fix/<topic>`, `chore/<topic>`, `docs/<topic>`.
 3. One topic per branch. The `dotnet10-postgresql` branch is the upper bound of acceptable scope — a coordinated
-   runtime + provider upgrade — and it still kept frontend `src/` untouched.
+   runtime + provider upgrade — and it still kept frontend `recipe-manager-frontend/src/` untouched.
 4. Delete the branch after the merge.
 
 ## Commit messages — observed convention
