@@ -40,11 +40,11 @@ items in [Known limitations](../domain-model.md#known-limitations).
 
 ## 4. Application — `02-senior-csharp`
 
-1. `Commands/Recipes/` or `Queries/Recipes/`: a positional `record` implementing `ICommand<TResult>` /
+1. `RecipeManager.Application/Commands/Recipes/` or `.../Queries/Recipes/`: a positional `record` implementing `ICommand<TResult>` /
    `IQuery<TResult>`.
-2. `Handlers/Recipes/`: one handler, constructor-injected `IRecipeRepository`, `CancellationToken` last.
-3. `DTO/Recipes/` if the response shape changes; extend `RecipeMappingExtensions.MapToRecipeDto`.
-4. `Validators/Recipes/`: a validator for the type the controller **binds**, reusing/extending
+2. `RecipeManager.Application/Handlers/Recipes/`: one handler, constructor-injected `IRecipeRepository`, `CancellationToken` last.
+3. `RecipeManager.Application/DTO/Recipes/` if the response shape changes; extend `RecipeMappingExtensions.MapToRecipeDto`.
+4. `RecipeManager.Application/Validators/Recipes/`: a validator for the type the controller **binds**, reusing/extending
    `RecipeValidationRules`.
 5. **Register the handler in `ServiceInitializer.RegisterCqrsHandlers()`** — a missed registration only fails at
    runtime.
@@ -57,7 +57,7 @@ Only if persistence changes.
 1. Add the method to `IRecipeRepository` (in **Domain**), implement it in `RecipeRepository` with
    `AsNoTracking()` for reads and `SaveChangesAsync(ct)` for writes.
 2. Implement it in `CachedRecipeRepository` too — the decorator must satisfy the whole interface. Decide the
-   cache key (`Constants/CacheKeys.cs`), duration (`Constants/CacheDuration.cs`), and **which keys a write
+   cache key (`RecipeManager.Infrastructure/Constants/CacheKeys.cs`), duration (`RecipeManager.Infrastructure/Constants/CacheDuration.cs`), and **which keys a write
    invalidates**.
 3. Schema change ⇒ new migration:
    ```bash

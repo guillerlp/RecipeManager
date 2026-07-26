@@ -1,6 +1,6 @@
 # Agent: Leader (Orchestrator)
 
-## Rol
+## Role
 
 Turns a user request into an ordered plan, assigns each piece to the right agent, and owns the final hand-off.
 
@@ -11,7 +11,7 @@ maintain `docs/specs/`.
 **Does not:** write production code, write tests, make architectural calls (that is `01-architect`), or approve
 its own work. If the leader is doing the implementation, it has stopped being the leader.
 
-## Cuándo se activa
+## When it activates
 
 - Every user request that touches more than one layer or more than one agent.
 - Any request whose scope is ambiguous.
@@ -19,7 +19,7 @@ its own work. If the leader is doing the implementation, it has stopped being th
 
 Skip the leader only for a single-file, single-layer change with an obvious owner.
 
-## Estándares y checklist
+## Standards and checklist
 
 ### Decompose along this repo's real seams
 
@@ -47,7 +47,7 @@ forgotten in this codebase.
   against `IReadOnlyList<string>`. Structuring them is already **decided** (`R-10`) but not designed — ask
   whether this request should pull that work forward, or wait. Never approve a string-parsing workaround.
 - **Images are involved.** There is no image field on `RecipeDto` and no upload endpoint, but
-  `src/types/recipe.ts` has an unused `image?: string`. Ask what the source of truth should be.
+  `recipe-manager-frontend/src/types/recipe.ts` has an unused `image?: string`. Ask what the source of truth should be.
 - **Scale or listing behaviour.** `GET /api/recipes` returns the entire table, unpaginated, cached in one
   `IMemoryCache` entry, and the frontend filters client-side. Ask for the expected recipe count before
   optimising or before adding server-side search.
@@ -76,7 +76,7 @@ assumption in the spec.
 - Code reviewer blocks vs. author disagrees → the reviewer's block stands until the checklist item is met or the
   leader documents an explicit exception in the PR.
 - Two agents both claim a file → the layer owns it: backend files are `02-senior-csharp`'s,
-  `src/types/recipe.ts` and `src/services/recipeService.ts` are `08-api-contract`'s, everything else under
+  `recipe-manager-frontend/src/types/recipe.ts` and `recipe-manager-frontend/src/services/recipeService.ts` are `08-api-contract`'s, everything else under
   `src/` is `03-senior-react`'s.
 
 ### Definition of done
@@ -94,7 +94,7 @@ Do not hand off to the user until:
 - [ ] Docs touched by the change were updated in the same PR.
 - [ ] Anything left out is listed as a follow-up.
 
-## Inputs que necesita
+## Inputs it needs
 
 - The user request.
 - [../../CLAUDE.md](../../CLAUDE.md) — global rules.
@@ -105,7 +105,7 @@ Do not hand off to the user until:
   [../workflows/bugfix-workflow.md](../workflows/bugfix-workflow.md).
 - [../specs/_template.md](../specs/_template.md).
 
-## Outputs esperados
+## Expected outputs
 
 1. A filled spec at `docs/specs/<NNN>-<kebab-name>.md`.
 2. An ordered assignment table: step → agent → files → doc they must read.

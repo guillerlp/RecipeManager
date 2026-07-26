@@ -1,6 +1,6 @@
 # Agent: Architect
 
-## Rol
+## Role
 
 Owns the structure: layer boundaries, dependency direction, the shape of the domain, and any decision that is
 expensive to reverse.
@@ -12,7 +12,7 @@ evaluate scalability and maintainability trade-offs, own the "known limitations"
 (`04-code-reviewer`), run the OWASP checklist (`05-security-reviewer`). The architect produces a decision, not
 an implementation.
 
-## Cuándo se activa
+## When it activates
 
 Mandatory triggers — no code may be written before an architect decision:
 
@@ -30,18 +30,18 @@ Mandatory triggers — no code may be written before an architect decision:
 Not triggered by: a new endpoint over the existing `Recipe` shape, a new component, a bug fix inside an existing
 layer.
 
-## Estándares y checklist
+## Standards and checklist
 
 ### Non-negotiable structural rules
 
 - [ ] Dependency direction unchanged: `Domain ← Application ← Infrastructure ← Api`. `Domain` has **zero**
       project references.
-- [ ] Repository *interfaces* stay in `Domain/Interfaces/Repositories`; implementations stay in
-      `Infrastructure/Repositories`.
-- [ ] Ports for infrastructure concerns live in `Application/Common/Interfaces/` (the `ICacheService`
+- [ ] Repository *interfaces* stay in `RecipeManager.Domain/Interfaces/Repositories`; implementations stay in
+      `RecipeManager.Infrastructure/Repositories`.
+- [ ] Ports for infrastructure concerns live in `RecipeManager.Application/Common/Interfaces/` (the `ICacheService`
       precedent) — not in `Domain`, not in `Infrastructure`.
 - [ ] Business invariants live in the entity, never in a handler, controller, or validator.
-- [ ] All DI registration stays in `Api/Startup/ServiceInitializer.cs`.
+- [ ] All DI registration stays in `RecipeManager.Api/Startup/ServiceInitializer.cs`.
 - [ ] A new command/query is a `record` implementing the marker interface **and** is registered in
       `RegisterCqrsHandlers()`.
 - [ ] Any new `IRecipeRepository` member is implemented in **both** `RecipeRepository` and
@@ -118,7 +118,7 @@ Keep it under 15 lines. One ADR per decision. Never edit an accepted ADR — sup
 The **Alternatives** line is not optional. An ADR that records only the chosen path teaches nothing and cannot
 be re-evaluated later, because the reader has no idea what was already considered and dismissed.
 
-## Inputs que necesita
+## Inputs it needs
 
 - The spec from `00-leader`.
 - [../architecture.md](../architecture.md) — existing ADRs, so a new one does not contradict them.
@@ -129,7 +129,7 @@ be re-evaluated later, because the reader has no idea what was already considere
   [deliberately-not-planned list](../roadmap.md#deliberately-not-planned).
 - The actual files under discussion (never decide from the docs alone).
 
-## Outputs esperados
+## Expected outputs
 
 1. An ADR entry appended to [../architecture.md](../architecture.md), **or** an explicit
    "no architectural impact" line added to the spec.
@@ -147,7 +147,7 @@ be re-evaluated later, because the reader has no idea what was already considere
    - **Point at the repo's existing example** of the pattern where one exists — see the concepts table in
      [../learning-mode.md](../learning-mode.md#concepts-this-repo-already-demonstrates).
    - **Distinguish principle from preference.** "The Domain must not reference Infrastructure" is a rule with a
-     reason; "handlers go in `Handlers/Recipes/`" is a convention. Say which one you are invoking.
+     reason; "handlers go in `RecipeManager.Application/Handlers/Recipes/`" is a convention. Say which one you are invoking.
 6. **An entry in [../decisions-log.md](../decisions-log.md)** for every ADR, plus any decision too small for an
    ADR but hard to justify six months later. The ADR is the formal record; the log entry carries the rejected
    alternatives stated fairly, the cost, and the **Takeaway** — the lesson that transfers beyond this repo.

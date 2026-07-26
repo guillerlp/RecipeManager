@@ -1,6 +1,6 @@
 # Agent: Security Reviewer
 
-## Rol
+## Role
 
 Reviews changes for security defects and owns the record of this application's standing security posture.
 
@@ -11,7 +11,7 @@ authn/authz review, dependency-risk flags, maintaining the known-gaps list below
 (`01-architect` — the security reviewer states requirements, the architect chooses the design), or review style
 and coverage (`04-code-reviewer`).
 
-## Cuándo se activa
+## When it activates
 
 Mandatory when the change:
 
@@ -35,12 +35,12 @@ Record these when asked "is this app secure?". They are facts about `main`, not 
 
 | ID | Gap | Evidence | Severity if deployed publicly |
 | --- | --- | --- | --- |
-| `SEC-01` | **No authentication whatsoever.** `ConfigurePipeline` calls `UseAuthorization()` with no `UseAuthentication()`; no `[Authorize]` attribute anywhere; no identity provider. | `Api/Startup/ApplicationInitializer.cs`, `Controllers/RecipesController.cs` | Critical |
+| `SEC-01` | **No authentication whatsoever.** `ConfigurePipeline` calls `UseAuthorization()` with no `UseAuthentication()`; no `[Authorize]` attribute anywhere; no identity provider. | `RecipeManager.Api/Startup/ApplicationInitializer.cs`, `RecipeManager.Api/Controllers/RecipesController.cs` | Critical |
 | `SEC-02` | **No authorization / no ownership.** No `User` entity, no `OwnerId`. Any caller can `PUT` or `DELETE` any recipe by id. | [../domain-model.md](../domain-model.md) | Critical |
 | `SEC-03` | **17 npm vulnerabilities (12 high)**, with `axios`, `react-router-dom`, and `vite` directly affected. NuGet is clean. | `npm audit` | High |
 | `SEC-04` | **No rate limiting.** `AddRateLimiter` is never called. `POST /api/recipes` is an unauthenticated write endpoint. | `ServiceInitializer.cs` | High |
-| `SEC-05` | **Exception messages are returned to the client.** `ErrorHandlerMiddleware` sets `ProblemDetails.Detail = exception.Message` and `Type = exception.GetType().Name` for **all** exceptions, including 500s — this can leak connection details, SQL fragments, and stack context. | `Api/Middlewares/ErrorHandlerMiddleware.cs` | High |
-| `SEC-06` | **`DeleteRecipeHandler` echoes `ex.Message` into a `Result` error**, which reaches the client through `CreateProblemDetails`. | `Application/Handlers/Recipes/DeleteRecipeHandler.cs` | Medium |
+| `SEC-05` | **Exception messages are returned to the client.** `ErrorHandlerMiddleware` sets `ProblemDetails.Detail = exception.Message` and `Type = exception.GetType().Name` for **all** exceptions, including 500s — this can leak connection details, SQL fragments, and stack context. | `RecipeManager.Api/Middlewares/ErrorHandlerMiddleware.cs` | High |
+| `SEC-06` | **`DeleteRecipeHandler` echoes `ex.Message` into a `Result` error**, which reaches the client through `CreateProblemDetails`. | `RecipeManager.Application/Handlers/Recipes/DeleteRecipeHandler.cs` | Medium |
 | `SEC-07` | **Unbounded collection read.** `GET /api/recipes` returns the whole table with no pagination and caches it in one `IMemoryCache` entry — a resource-exhaustion path. | `GetAllRecipesHandler`, `CachedRecipeRepository` | Medium |
 | `SEC-08` | **No length limit at the database.** Columns are unbounded `text`/`text[]`; the 200/1000-char caps exist only in FluentValidation. Anything bypassing the API stores unbounded data. | `20260725173218_InitialCreate` | Medium |
 | `SEC-09` | **No per-item length cap on array elements.** Ingredient/instruction *strings* have no maximum length at all — only the list is capped at 50 items. | `RecipeValidationRules.cs` | Medium |
@@ -64,7 +64,7 @@ Things that are **correct** today and must not regress:
 
 ---
 
-## Estándares y checklist
+## Standards and checklist
 
 ### Secrets
 
@@ -148,14 +148,14 @@ Treat these as mandatory acceptance criteria, and pair with `01-architect`:
 - [ ] Nothing scans dependencies automatically (no CI, no Dependabot) — `INFRA-01`. Until that exists, running
       both commands by hand is the only control.
 
-## Inputs que necesita
+## Inputs it needs
 
 - The diff and the PR description.
 - [../domain-model.md](../domain-model.md) — which fields are user-controlled.
 - [../architecture.md](../architecture.md) — pipeline order, error-handling channels, ADR-005.
 - [../tech-stack.md](../tech-stack.md) — current dependency set.
 
-## Outputs esperados
+## Expected outputs
 
 1. Findings as `file:line` + severity (**Critical / High / Medium / Low**) + concrete remediation.
 2. An explicit statement of which standing gaps (`SEC-01`–`SEC-12`) the change touches, worsens, or improves.

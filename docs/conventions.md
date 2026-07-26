@@ -79,7 +79,7 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
 
 - The validator must target the type the controller **binds**: `CreateRecipeCommand` for POST (the command is
   the request body), `UpdateRecipeDto` for PUT (the DTO is the body, the id comes from the route).
-- Shared rules go in `Validators/Recipes/RecipeValidationRules.cs` as `IRuleBuilder` extension methods
+- Shared rules go in `RecipeManager.Application/Validators/Recipes/RecipeValidationRules.cs` as `IRuleBuilder` extension methods
   (`ValidateTitle`, `ValidateServings`, …) so create and update stay identical.
 - Validators are auto-discovered via `AddValidatorsFromAssembly` — no per-validator registration needed.
 
@@ -102,7 +102,7 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
 - `AppDbContext` has no `OnModelCreating`; mapping is entirely convention-based.
   **⚠ Target:** convention-based mapping is why every string column is unbounded `text` (`SEC-08`). New
   constraints — max lengths, indexes, required-ness beyond nullability — belong in an
-  `IEntityTypeConfiguration<T>` under `Infrastructure/Context/Configurations/`, applied via
+  `IEntityTypeConfiguration<T>` under `RecipeManager.Infrastructure/Context/Configurations/`, applied via
   `modelBuilder.ApplyConfigurationsFromAssembly(...)`. Introducing the first one is a small architecture change:
   clear it with `01-architect`.
 - Reads use `.AsNoTracking()`. Writes call `SaveChangesAsync(cancellationToken)` inside the repository method.
@@ -197,7 +197,7 @@ adding/updating its `index.ts`.
 
 ### API access
 
-- All HTTP goes through `src/services/recipeService.ts`; components and hooks never call `axios` directly.
+- All HTTP goes through `recipe-manager-frontend/src/services/recipeService.ts`; components and hooks never call `axios` directly.
 - One shared `AxiosInstance` with `baseURL` from `import.meta.env.VITE_API_URL`, trailing slashes stripped,
   falling back to `/api`.
 - Service methods return `Promise<AxiosResponse<T>>`; the calling hook unwraps `.data`.
@@ -205,7 +205,7 @@ adding/updating its `index.ts`.
 
 ### Types
 
-- Domain-ish types in `src/types/`, re-exported from `src/types/index.ts`, imported as `@/types`.
+- Domain-ish types in `src/types/`, re-exported from `recipe-manager-frontend/src/types/index.ts`, imported as `@/types`.
 - `strict` TS with `noUnusedLocals` and `noUnusedParameters` — unused imports break the build. `any` is not used
   anywhere in `src/`; keep it that way.
 

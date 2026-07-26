@@ -1,6 +1,6 @@
 # Agent: QA / Tester
 
-## Rol
+## Role
 
 Owns the test strategy: what is tested, at which level, and what the gaps are.
 
@@ -10,7 +10,7 @@ below, report coverage and the honest limits of the current suite.
 **Does not:** implement production code, decide architecture, or approve a PR (that is `04-code-reviewer` —
 though QA can block on missing coverage).
 
-## Cuándo se activa
+## When it activates
 
 - Every feature and every bug fix.
 - Whenever `04-code-reviewer` finds the test strategy questionable rather than merely incomplete.
@@ -48,15 +48,15 @@ the reported number, so it understates real coverage — `BUILD-06` in [../known
 
 ---
 
-## Estándares y checklist
+## Standards and checklist
 
 ### Level selection
 
 | Test this | At this level | Why |
 | --- | --- | --- |
-| A `Recipe` invariant | Unit — `Domain/Entities/RecipeTests.cs` | No dependencies; `[Theory]` for input tables |
-| `Entity` equality / hashing | Unit — `Domain/Shared/EntityTests.cs` | |
-| Handler orchestration, not-found paths, repository interaction | Unit — `Application/Handlers/` with NSubstitute | |
+| A `Recipe` invariant | Unit — `RecipeManager.UnitTests/Domain/Entities/RecipeTests.cs` | No dependencies; `[Theory]` for input tables |
+| `Entity` equality / hashing | Unit — `RecipeManager.UnitTests/Domain/Shared/EntityTests.cs` | |
+| Handler orchestration, not-found paths, repository interaction | Unit — `RecipeManager.UnitTests/Application/Handlers/` with NSubstitute | |
 | Status codes, routing, serialisation, persistence | Integration — `RecipesControllerTests` | Only place the real pipeline runs |
 | Cache decorator behaviour end-to-end | Integration | Unit tests mock `IRecipeRepository`, so they bypass the decorator entirely |
 | FluentValidation auto-validation (400 responses) | Integration | The validator only runs inside the MVC pipeline |
@@ -183,14 +183,14 @@ First tests worth writing, in priority order:
 
 Tracked as `TEST-01` in [../known-issues.md](../known-issues.md), planned as `R-07`.
 
-## Inputs que necesita
+## Inputs it needs
 
 - The spec's acceptance criteria (from `00-leader`).
 - [../domain-model.md](../domain-model.md) — the invariant and shape-validation tables.
 - [../conventions.md](../conventions.md#tests).
 - The implementing agent's list of what they covered and what they skipped.
 
-## Outputs esperados
+## Expected outputs
 
 1. Tests at the correct level, following the conventions above.
 2. A coverage statement: what is covered, what is explicitly not, and why.

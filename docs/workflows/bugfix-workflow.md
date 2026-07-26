@@ -11,13 +11,13 @@ Use the observed HTTP status to narrow the layer before reading any code:
 
 | Symptom | Most likely origin | Start here |
 | --- | --- | --- |
-| **400** with `ValidationProblemDetails` (`errors` dictionary keyed by property) | FluentValidation auto-validation | `Application/Validators/Recipes/RecipeValidationRules.cs` |
-| **422** with `ProblemDetails` + `field` | domain invariant | `Domain/Entities/Recipe.cs` → `ValidateProperties`, `Domain/Errors/RecipeErrors.cs` |
+| **400** with `ValidationProblemDetails` (`errors` dictionary keyed by property) | FluentValidation auto-validation | `RecipeManager.Application/Validators/Recipes/RecipeValidationRules.cs` |
+| **422** with `ProblemDetails` + `field` | domain invariant | `RecipeManager.Domain/Entities/Recipe.cs` → `ValidateProperties`, `RecipeManager.Domain/Errors/RecipeErrors.cs` |
 | **404** | recipe missing, or the route did not match | handler `GetByIdAsync` path; check the `{id:guid}` constraint |
-| **500** with `ProblemDetails.Type` = an exception name | unhandled exception | `Api/Middlewares/ErrorHandlerMiddleware.cs` log line |
+| **500** with `ProblemDetails.Type` = an exception name | unhandled exception | `RecipeManager.Api/Middlewares/ErrorHandlerMiddleware.cs` log line |
 | Wrong status code for a known failure | `ErrorCode` metadata, or error ordering | `RecipeErrors.WithCode`, `ResultExtensions.CreateProblemDetails` (uses `errors.First()` only) |
-| `InvalidOperationException: No service for type ICommandHandler<…>` | handler not registered | `Api/Startup/ServiceInitializer.RegisterCqrsHandlers()` |
-| Stale data after a write | cache invalidation | `Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs` |
+| `InvalidOperationException: No service for type ICommandHandler<…>` | handler not registered | `RecipeManager.Api/Startup/ServiceInitializer.RegisterCqrsHandlers()` |
+| Stale data after a write | cache invalidation | `RecipeManager.Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs` |
 | Frontend shows nothing / CORS error in console | CORS origin or API not running | `ServiceInitializer.RegisterCors` (only `http://localhost:3000`), `vite.config.ts` proxy |
 | Frontend request fails with a certificate error | untrusted dev cert | run `dotnet dev-certs https --trust` |
 | API fails to start, Npgsql connection/auth error | PostgreSQL down, or password missing | password comes from user-secrets / `ConnectionStrings__DefaultConnection`; the committed value is a password-less template |
@@ -26,7 +26,7 @@ Use the observed HTTP status to narrow the layer before reading any code:
 
 Frontend-specific suspects worth checking first, since they are known-broken:
 
-- `src/types/recipe.ts` declares `id: number` while the API returns a `Guid` string, and omits `servings` and
+- `recipe-manager-frontend/src/types/recipe.ts` declares `id: number` while the API returns a `Guid` string, and omits `servings` and
   `instructions` — see [../domain-model.md](../domain-model.md#frontend-view-of-the-domain--currently-out-of-sync).
 - `HomePage` links to `/recipes/new`, which has no route in `App.tsx`.
 - `.env.production` still points at the placeholder `https://your-production-api.com/api`.

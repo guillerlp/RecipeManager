@@ -37,53 +37,53 @@ Verified project references:
 
 ### Domain (`RecipeManager.Domain`)
 
-- `Shared/Entity.cs` — abstract base with `Guid Id { get; protected init; }` plus `Equals`/`GetHashCode` by
+- `RecipeManager.Domain/Shared/Entity.cs` — abstract base with `Guid Id { get; protected init; }` plus `Equals`/`GetHashCode` by
   concrete type + id.
-- `Entities/Recipe.cs` — the only aggregate. Private setters, private constructors, static factory
+- `RecipeManager.Domain/Entities/Recipe.cs` — the only aggregate. Private setters, private constructors, static factory
   `Create(...)` returning `Result<Recipe>`, instance `Update(...)` returning `Result`. All invariants live in
   the private `ValidateProperties`.
-- `Errors/RecipeErrors.cs` — every domain error as a static factory returning a `FluentResults.Error` carrying
+- `RecipeManager.Domain/Errors/RecipeErrors.cs` — every domain error as a static factory returning a `FluentResults.Error` carrying
   `ErrorCode` (HTTP status) and `field` metadata.
-- `Interfaces/Repositories/IRecipeRepository.cs` — the persistence port. **Repository interfaces live in
+- `RecipeManager.Domain/Interfaces/Repositories/IRecipeRepository.cs` — the persistence port. **Repository interfaces live in
   Domain, implementations in Infrastructure.**
 
 ### Application (`RecipeManager.Application`)
 
-- `Common/Interfaces/Messaging/` — `ICommand<TResult>`, `IQuery<TResult>` (empty marker interfaces),
+- `RecipeManager.Application/Common/Interfaces/Messaging/` — `ICommand<TResult>`, `IQuery<TResult>` (empty marker interfaces),
   `ICommandHandler<,>`, `IQueryHandler<,>`, `ICommandDispatcher`, `IQueryDispatcher`.
-- `Dispatchers/` — `CommandDispatcher` / `QueryDispatcher` resolve the handler from `IServiceProvider` via
+- `RecipeManager.Application/Dispatchers/` — `CommandDispatcher` / `QueryDispatcher` resolve the handler from `IServiceProvider` via
   `GetRequiredService` and call `Handle`. No pipeline behaviours, no decorators.
   **⚠ Target:** handlers will be discovered by Scrutor assembly scanning instead of the current manual
   registration list — `R-01` in [roadmap.md](roadmap.md), ADR-008.
-- `Commands/`, `Queries/` — positional `record` types implementing the marker interfaces.
-- `Handlers/Recipes/` — one class per command/query; constructor-injected `IRecipeRepository` (+ `ILogger`
+- `RecipeManager.Application/Commands/`, `.../Queries/` — positional `record` types implementing the marker interfaces.
+- `RecipeManager.Application/Handlers/Recipes/` — one class per command/query; constructor-injected `IRecipeRepository` (+ `ILogger`
   where used).
-- `DTO/Recipes/` — `RecipeDto`, `UpdateRecipeDto` (records).
-- `Mappings/RecipeMappingExtensions.cs` — hand-written `MapToRecipeDto()` extension. **No AutoMapper.**
-- `Validators/Recipes/` — FluentValidation validators over the *bound request type*, plus shared rule
+- `RecipeManager.Application/DTO/Recipes/` — `RecipeDto`, `UpdateRecipeDto` (records).
+- `RecipeManager.Application/Mappings/RecipeMappingExtensions.cs` — hand-written `MapToRecipeDto()` extension. **No AutoMapper.**
+- `RecipeManager.Application/Validators/Recipes/` — FluentValidation validators over the *bound request type*, plus shared rule
   extensions in `RecipeValidationRules`.
-- `Common/Interfaces/Caching/ICacheService.cs` — the caching port (implementation lives in Infrastructure).
+- `RecipeManager.Application/Common/Interfaces/Caching/ICacheService.cs` — the caching port (implementation lives in Infrastructure).
 
 ### Infrastructure (`RecipeManager.Infrastructure`)
 
-- `Context/AppDbContext.cs` — a single `DbSet<Recipe>`; **no `OnModelCreating`, no `IEntityTypeConfiguration`**.
+- `RecipeManager.Infrastructure/Context/AppDbContext.cs` — a single `DbSet<Recipe>`; **no `OnModelCreating`, no `IEntityTypeConfiguration`**.
   EF Core 10 + Npgsql map `IReadOnlyList<string>` to a native PostgreSQL `text[]` column.
-- `Repositories/Recipes/RecipeRepository.cs` — EF implementation. Reads use `AsNoTracking()`; every write calls
+- `RecipeManager.Infrastructure/Repositories/Recipes/RecipeRepository.cs` — EF implementation. Reads use `AsNoTracking()`; every write calls
   `SaveChangesAsync` immediately (no unit-of-work abstraction).
-- `Repositories/Recipes/CachedRecipeRepository.cs` — decorator implementing the same interface.
-- `Services/MemoryCacheService.cs` — `IMemoryCache` adapter, plus a `ConcurrentDictionary` key registry.
-- `Constants/CacheKeys.cs`, `Constants/CacheDuration.cs`.
-- `Migrations/` — one migration, `20260725173218_InitialCreate`.
+- `RecipeManager.Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs` — decorator implementing the same interface.
+- `RecipeManager.Infrastructure/Services/MemoryCacheService.cs` — `IMemoryCache` adapter, plus a `ConcurrentDictionary` key registry.
+- `RecipeManager.Infrastructure/Constants/CacheKeys.cs`, `RecipeManager.Infrastructure/Constants/CacheDuration.cs`.
+- `RecipeManager.Infrastructure/Migrations/` — one migration, `20260725173218_InitialCreate`.
 
 ### Api (`RecipeManager.Api`)
 
-- `Controllers/RecipesController.cs` — the only controller. Builds a command/query, dispatches it, converts the
+- `RecipeManager.Api/Controllers/RecipesController.cs` — the only controller. Builds a command/query, dispatches it, converts the
   `Result` with `ToActionResult()` / `ToCreatedAtActionResult()`.
-- `Startup/ServiceInitializer.cs` — all DI registration, as chained `IServiceCollection` extensions.
-- `Startup/ApplicationInitializer.cs` — Swagger setup, pipeline order, startup migration.
-- `Startup/CustomObjects/DatabaseConnectionConfiguration.cs` — bound from the `ConnectionStrings` section.
-- `Extensions/ResultExtensions.cs` — `Result` → `ActionResult` + `ProblemDetails`.
-- `Middlewares/ErrorHandlerMiddleware.cs` — last-resort exception → `ProblemDetails`.
+- `RecipeManager.Api/Startup/ServiceInitializer.cs` — all DI registration, as chained `IServiceCollection` extensions.
+- `RecipeManager.Api/Startup/ApplicationInitializer.cs` — Swagger setup, pipeline order, startup migration.
+- `RecipeManager.Api/Startup/CustomObjects/DatabaseConnectionConfiguration.cs` — bound from the `ConnectionStrings` section.
+- `RecipeManager.Api/Extensions/ResultExtensions.cs` — `Result` → `ActionResult` + `ProblemDetails`.
+- `RecipeManager.Api/Middlewares/ErrorHandlerMiddleware.cs` — last-resort exception → `ProblemDetails`.
 
 ## Request flow (`PUT /api/recipes/{id}`)
 

@@ -72,6 +72,20 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
 
+### Path convention in these documents
+
+**Every source path is written relative to the solution folder `RecipeManager/`** — the folder holding
+`RecipeManager.sln`, and the folder all `dotnet` commands run from. Paths therefore always start with the
+project folder:
+
+- `RecipeManager.Api/Startup/ServiceInitializer.cs` — **not** `Api/Startup/...` or `Startup/...`
+- `RecipeManager.Domain/Entities/Recipe.cs` — **not** `Domain/Entities/...` or `Entities/...`
+- `RecipeManager.UnitTests/Domain/Entities/RecipeTests.cs` — test files carry their test project's name
+- `recipe-manager-frontend/src/types/recipe.ts` — frontend files carry the frontend folder
+
+Prepend `RecipeManager/` to resolve any of them from the git root. Markdown links between documents are
+ordinary relative links and follow their own file's location, as usual.
+
 ---
 
 ## Running locally
@@ -183,10 +197,10 @@ API first; there is no mock backend.
 ### Agent roster rationale
 
 - **`07-ux-ui` kept** even though there is no separate designer: the frontend has a real token system
-  (`src/styles/themes/variables.css` + `light.css`/`dark.css`), a light/dark switch, and deliberate a11y work
+  (`recipe-manager-frontend/src/styles/themes/variables.css` + `light.css`/`dark.css`), a light/dark switch, and deliberate a11y work
   (`role="switch"`, `aria-checked`, `aria-current`, `<time dateTime>`), so screen work needs an owner.
 - **`08-api-contract` added** (not in the standard roster) because the frontend and backend contracts have
-  already drifted in a way that is verifiable in the code: `src/types/recipe.ts` declares `id: number` while the
+  already drifted in a way that is verifiable in the code: `recipe-manager-frontend/src/types/recipe.ts` declares `id: number` while the
   API returns a `Guid`, and the TS type is missing `servings` and `instructions`. This seam needs an owner.
   See [docs/agents/08-api-contract.md](docs/agents/08-api-contract.md).
 - **No DevOps/CI agent**: there is no `.github/` directory, no pipeline, and no compose file. Deployment
@@ -214,7 +228,7 @@ API first; there is no mock backend.
    Exceptions are for genuinely exceptional failures and are caught by `ErrorHandlerMiddleware`.
 7. **English only** in code, comments, tests, and docs.
 8. **No invented facts in docs.** If something cannot be verified in the code, say so plainly and add an entry
-   to [docs/known-issues.md](docs/known-issues.md) instead of guessing. **Do not scatter `TODO(...)` markers
+   to [docs/known-issues.md](docs/known-issues.md) instead of guessing. **Do not scatter inline TODO markers
    through the docs or the code** — every open item belongs in that one file, with an ID.
 9. **Do not widen scope.** Fix or build what was asked; file anything else as a follow-up note in the PR
    description.

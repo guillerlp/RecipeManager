@@ -153,7 +153,7 @@
 ## 15. Follow-ups
 
 > Deliberately out of scope. Anything that outlives this spec goes into
-> [../known-issues.md](../known-issues.md) with its own ID — do not leave `TODO(...)` markers behind.
+> [../known-issues.md](../known-issues.md) with its own ID — do not leave inline TODO markers behind.
 
 -
 

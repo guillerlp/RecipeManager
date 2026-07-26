@@ -216,7 +216,7 @@ here even before `R-10`.
 ### R-12
 **Recipe images** · `01-architect` + `05-security-reviewer` (both required) → full stack · ~1 day
 
-`RecipeDto` has no image field, but `src/types/recipe.ts` declares an unused `image?: string` and every card
+`RecipeDto` has no image field, but `recipe-manager-frontend/src/types/recipe.ts` declares an unused `image?: string` and every card
 falls back to a 2.1 MB bundled placeholder (`BUG-04`, `BUILD-05`).
 
 **Do not start without the security requirements** in

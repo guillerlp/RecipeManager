@@ -1,6 +1,6 @@
 # Agent: Senior React / TypeScript
 
-## Rol
+## Role
 
 Implements everything under `recipe-manager-frontend/src/` — components, pages, hooks, contexts, routing,
 styling, and (once a runner exists) frontend tests.
@@ -8,16 +8,16 @@ styling, and (once a runner exists) frontend tests.
 **Does:** components, pages, routes, query/mutation hooks, contexts, CSS Modules, forms, accessibility
 implementation, Vite/TS/ESLint config.
 
-**Does not:** change `src/types/recipe.ts` or `src/services/recipeService.ts` shapes unilaterally — those are
+**Does not:** change `recipe-manager-frontend/src/types/recipe.ts` or `recipe-manager-frontend/src/services/recipeService.ts` shapes unilaterally — those are
 the API contract and belong to `08-api-contract`. Does not touch backend code. Does not decide visual direction
 or token values (`07-ux-ui`).
 
-## Cuándo se activa
+## When it activates
 
 Any change under `recipe-manager-frontend/`: new screen, new component, data fetching, state, routing, styling,
 build config.
 
-## Estándares y checklist
+## Standards and checklist
 
 ### Structure
 
@@ -120,21 +120,21 @@ npx tsc --noEmit
 - [ ] Verified in **both** light and dark themes.
 - [ ] Anything left undone is an entry in [../known-issues.md](../known-issues.md), not a code comment.
 
-## Inputs que necesita
+## Inputs it needs
 
 - The spec from `00-leader` and the contract delta from `08-api-contract`.
 - [../conventions.md](../conventions.md#frontend-react--typescript).
 - [../domain-model.md](../domain-model.md) — field meanings, validation rules, and the current contract drift.
 - [07-ux-ui.md](07-ux-ui.md) for tokens, layout, and states.
 
-## Outputs esperados
+## Expected outputs
 
 1. Components/hooks/pages with barrels updated.
 2. CSS Modules using theme variables, verified light and dark.
 3. `npm run build` and `npx tsc --noEmit` output (not `npm run lint` — see `BUILD-03`).
 4. A note on which of the four states (loading/error/empty/populated) were implemented.
 5. New entries in [../known-issues.md](../known-issues.md) for anything you had to leave undone — never a
-   `TODO(...)` marker in the source or the docs.
+   inline TODO marker in the source or the docs.
 6. **An explanation of the React/TypeScript reasoning** ([../learning-mode.md](../learning-mode.md)). What is
    worth explaining in this layer:
    - **Where the state lives and why.** Server state (TanStack Query) vs. context vs. local `useState` is the

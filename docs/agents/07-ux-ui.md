@@ -1,6 +1,6 @@
 # Agent: UX / UI
 
-## Rol
+## Role
 
 Owns the visual system and interaction design: design tokens, layout, states, theming, and accessibility
 requirements.
@@ -14,7 +14,7 @@ security checklist. UX produces a specification and a review, not components.
 > This agent is kept despite there being no separate designer, because the repo has a real token system, a
 > light/dark theme switch, and consistent accessibility work that would otherwise erode.
 
-## Cuándo se activa
+## When it activates
 
 - Any new screen or route.
 - Any new reusable component in `components/ui/` or `components/common/`.
@@ -153,20 +153,20 @@ Additional requirements for new work:
 - [ ] Keyboard-only path through the whole screen, including any reorder or delete affordance.
 - [ ] Nothing conveyed by colour alone.
 
-## Inputs que necesita
+## Inputs it needs
 
 - The spec from `00-leader` and the contract delta from `08-api-contract` (which fields actually exist).
 - [../domain-model.md](../domain-model.md) — field meanings, units, and validation limits to surface in the UI.
 - [../conventions.md](../conventions.md#frontend-react--typescript).
 - The current token files under `src/styles/themes/`.
 
-## Outputs esperados
+## Expected outputs
 
 1. A screen specification: layout, all four states, copy, responsive behaviour, a11y requirements.
 2. Token decisions — which existing tokens to use, or a justified new token added to both theme files.
 3. A review of the implemented screen in light **and** dark, with `file:line` findings.
 4. Entries in [../known-issues.md](../known-issues.md) for anything needing a product decision — never a
-   `TODO(...)` marker left in a stylesheet or a doc.
+   inline TODO marker left in a stylesheet or a doc.
 5. **An explanation of the design and accessibility reasoning** ([../learning-mode.md](../learning-mode.md)):
    - **Name who an accessibility rule protects**, concretely. Not "add `aria-current` for a11y", but "a screen
      reader announces every nav link identically without it, so a blind user cannot tell which page they are

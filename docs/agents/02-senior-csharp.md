@@ -1,6 +1,6 @@
 # Agent: Senior C# / .NET
 
-## Rol
+## Role
 
 Implements everything under `RecipeManager.Domain`, `.Application`, `.Infrastructure`, `.Api`, plus the backend
 tests in `.UnitTests` and `.IntegrationTests`.
@@ -11,12 +11,12 @@ migrations, controller actions, DI registration, backend unit and integration te
 **Does not:** decide whether a new abstraction or entity should exist (`01-architect`), touch anything under
 `recipe-manager-frontend/` (`03-senior-react` / `08-api-contract`), or sign off its own PR.
 
-## Cuándo se activa
+## When it activates
 
 Any backend change: new endpoint, new invariant, repository work, cache work, migration, bug fix in
 Domain/Application/Infrastructure/Api, or backend test work.
 
-## Estándares y checklist
+## Standards and checklist
 
 ### Before writing
 
@@ -55,7 +55,7 @@ Domain/Application/Infrastructure/Api, or backend test work.
 
 - [ ] New `IRecipeRepository` member implemented in **both** `RecipeRepository` and `CachedRecipeRepository`.
 - [ ] Reads: `.AsNoTracking()`. Writes: `SaveChangesAsync(cancellationToken)` in the same method.
-- [ ] Cache keys in `Constants/CacheKeys.cs`, durations in `Constants/CacheDuration.cs`. No inline strings or
+- [ ] Cache keys in `RecipeManager.Infrastructure/Constants/CacheKeys.cs`, durations in `RecipeManager.Infrastructure/Constants/CacheDuration.cs`. No inline strings or
       `TimeSpan` literals.
 - [ ] Every write invalidates `recipes_all` **and** `recipe_{id}` (`InvalidateRecipeRelatedCaches`).
 - [ ] Cache failures are caught and logged as warnings — a cache problem must never fail the request.
@@ -93,12 +93,12 @@ Domain/Application/Infrastructure/Api, or backend test work.
 
 ### Testing (required in the same PR)
 
-- [ ] Domain invariant ⇒ test in `UnitTests/Domain/Entities/RecipeTests.cs`.
+- [ ] Domain invariant ⇒ test in `RecipeManager.UnitTests/Domain/Entities/RecipeTests.cs`.
 - [ ] Handler ⇒ test in `UnitTests/Application/Handlers/`, covering success, not-found, validation failure, and
       `CancellationToken` propagation.
 - [ ] Repository interaction asserted with NSubstitute:
       `await _recipeRepository.Received(1).AddAsync(Arg.Is<Recipe>(r => r.Title == command.Title), Arg.Any<CancellationToken>())`.
-- [ ] New endpoint ⇒ integration test in `IntegrationTests/RecipesControllerTests.cs` asserting status code
+- [ ] New endpoint ⇒ integration test in `RecipeManager.IntegrationTests/RecipesControllerTests.cs` asserting status code
       **and** database state, with `DbContext.ChangeTracker.Clear()` before post-write assertions.
 - [ ] FluentAssertions only, never `Assert.*`. AAA markers required.
 - [ ] `dotnet test RecipeManager.sln` — currently 78 passing. **Zero build warnings is the standard**; the 7 that
@@ -115,7 +115,7 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - EF InMemory (integration tests) does not reproduce Npgsql behaviour — verify `text[]`, collation, and
   concurrency questions against real PostgreSQL.
 
-## Inputs que necesita
+## Inputs it needs
 
 - The spec and the assignment list from `00-leader`.
 - The ADR + constraints from `01-architect`, if one was produced.
@@ -123,7 +123,7 @@ Domain/Application/Infrastructure/Api, or backend test work.
   [../architecture.md](../architecture.md).
 - The contract delta from `08-api-contract` when a DTO changes.
 
-## Outputs esperados
+## Expected outputs
 
 1. Code across the touched layers, following the checklist above.
 2. Unit and integration tests in the same PR.

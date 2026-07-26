@@ -6,7 +6,7 @@ Every **defect and gap in what already exists**. Planned work that does not exis
 Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code.
 
 > **Rules for agents**
-> - Do not leave `TODO(...)` markers scattered in the docs or the code. Add an entry here instead.
+> - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
 > - When you fix something, delete its entry in the same PR and update whichever `docs/` file described it.
 > - Add new findings with the next free ID in the relevant category. Never reuse an ID.
 > - "Severity" assumes the app is exposed publicly. This project is practice-with-deployment-intent
@@ -146,11 +146,14 @@ Error: The 'jiti' library is required for loading TypeScript configuration files
 
 **Cause.** The ESLint config is `eslint.config.ts` (TypeScript). ESLint 9 needs `jiti` to load a TS config, and
 `jiti` is **not** in `devDependencies` and is not pulled in transitively. Reproduced from a clean
-`npm install`.
+`npm install` on `main` @ `edfd057` (2026-07-26).
 
-**Impact.** Linting has never worked from a fresh checkout. Every ESLint rule the project configured —
-including `@typescript-eslint/no-unused-vars`, `react-hooks`, and the type-checked rule sets — is effectively
-unenforced. This is why [BUG-08](#bug-08) survived.
+**When it broke.** The config was `eslint.config.js` until commit `3474a8b` (2025-08-08, "Convert from
+javascript to typescript"), which renamed it to `.ts` without adding `jiti`. `git log -S'jiti'` shows the
+package has never appeared in `package.json`, so lint has been unable to start since that commit.
+
+**Impact.** Every ESLint rule the project configured — `@typescript-eslint/no-unused-vars`, `react-hooks`, and
+the type-checked rule sets — has been unenforced since then. This is why [BUG-08](#bug-08) survived.
 
 **Fix.** Either add `jiti` to `devDependencies`, or rename the config to `eslint.config.js`/`.mjs`. Adding
 `jiti` preserves the type-checked config and is the smaller change. Then run `npm run lint` and fix whatever it
@@ -279,7 +282,7 @@ and each write invalidates the cache — so a write flood also degrades read per
 ### SEC-05
 **Exception messages returned to the client — High**
 
-`Api/Middlewares/ErrorHandlerMiddleware.cs` sets, for **every** unhandled exception including 500s:
+`RecipeManager.Api/Middlewares/ErrorHandlerMiddleware.cs` sets, for **every** unhandled exception including 500s:
 
 ```csharp
 Type   = exception.GetType().Name,
@@ -525,7 +528,7 @@ by hand through Swagger. Integration tests seed only against EF InMemory. A Deve
 ### QUAL-01
 **`ILogger` called with interpolated strings — Low**
 
-`Api/Controllers/RecipesController.cs` uses `_logger.LogInformation($"Fetching recipe with ID {id}...")`. This
+`RecipeManager.Api/Controllers/RecipesController.cs` uses `_logger.LogInformation($"Fetching recipe with ID {id}...")`. This
 defeats structured logging: the value is baked into the message string and cannot be queried as a field.
 
 **Fix.** Message templates: `_logger.LogInformation("Fetching recipe {RecipeId}", id)`. Other files
@@ -534,7 +537,7 @@ defeats structured logging: the value is baked into the message string and canno
 ### QUAL-02
 **`Console.WriteLine` for startup logging — Low**
 
-`Api/Startup/ApplicationInitializer.MigrateDatabase` writes migration progress with `Console.WriteLine`,
+`RecipeManager.Api/Startup/ApplicationInitializer.MigrateDatabase` writes migration progress with `Console.WriteLine`,
 bypassing the logging pipeline, log levels, and any structured sink.
 
 ### QUAL-03

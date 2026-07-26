@@ -1,9 +1,9 @@
 # Agent: API Contract
 
-## Rol
+## Role
 
 Owns the seam between the C# API and the TypeScript client: `RecipeDto` / `UpdateRecipeDto` and route
-signatures on one side, `src/types/recipe.ts` and `src/services/recipeService.ts` on the other.
+signatures on one side, `recipe-manager-frontend/src/types/recipe.ts` and `recipe-manager-frontend/src/services/recipeService.ts` on the other.
 
 **Does:** keep the two representations in sync, produce a "contract delta" for every backend change that is
 visible to the client, own the two frontend files above, verify status-code handling on the client.
@@ -16,7 +16,7 @@ components (`03-senior-react`).
 > the same failure mode: the C# side ships, the TS side silently diverges, and the bug surfaces at runtime in
 > the browser.
 
-## Cuándo se activa
+## When it activates
 
 - Any change to `RecipeDto`, `UpdateRecipeDto`, a route, an HTTP verb, or a status code.
 - Any new endpoint.
@@ -28,7 +28,7 @@ components (`03-senior-react`).
 
 ## Current drift — open defects
 
-Verified against `RecipeDto` (`Application/DTO/Recipes/RecipeDto.cs`) and `src/types/recipe.ts`.
+Verified against `RecipeDto` (`RecipeManager.Application/DTO/Recipes/RecipeDto.cs`) and `recipe-manager-frontend/src/types/recipe.ts`.
 
 | # | Server truth | Client declaration | Consequence |
 | --- | --- | --- | --- |
@@ -69,7 +69,7 @@ prerequisite for any recipe detail or edit screen.
 
 ---
 
-## Estándares y checklist
+## Standards and checklist
 
 ### Mapping rules
 
@@ -84,9 +84,9 @@ prerequisite for any recipe detail or edit screen.
 
 ### On every contract change
 
-- [ ] `src/types/recipe.ts` matches `RecipeDto` field-for-field — no extra fields, no missing fields, no
+- [ ] `recipe-manager-frontend/src/types/recipe.ts` matches `RecipeDto` field-for-field — no extra fields, no missing fields, no
       optional markers the server does not justify.
-- [ ] `src/services/recipeService.ts` method signatures match the route: verb, path, id type, request body type,
+- [ ] `recipe-manager-frontend/src/services/recipeService.ts` method signatures match the route: verb, path, id type, request body type,
       response body type.
 - [ ] Route paths match the controller. The controller is `/api/recipes` (case-insensitive matching); the
       service calls `/Recipes` — consistent today, but keep them aligned when adding endpoints.
@@ -113,16 +113,16 @@ prerequisite for any recipe detail or edit screen.
 Nothing detects drift automatically — that is exactly how `BUG-01`–`BUG-04` accumulated. Generating the TS types
 from the OpenAPI document is the structural fix, planned as `R-09` in [../roadmap.md](../roadmap.md).
 
-## Inputs que necesita
+## Inputs it needs
 
 - The backend diff from `02-senior-csharp`.
-- `Application/DTO/Recipes/*.cs` and `Controllers/RecipesController.cs` — the source of truth.
-- `Api/Extensions/ResultExtensions.cs` and `Domain/Errors/RecipeErrors.cs` — status codes and error shape.
+- `RecipeManager.Application/DTO/Recipes/*.cs` and `RecipeManager.Api/Controllers/RecipesController.cs` — the source of truth.
+- `RecipeManager.Api/Extensions/ResultExtensions.cs` and `RecipeManager.Domain/Errors/RecipeErrors.cs` — status codes and error shape.
 - [../domain-model.md](../domain-model.md#http-surface).
 
-## Outputs esperados
+## Expected outputs
 
-1. Updated `src/types/recipe.ts` and `src/services/recipeService.ts`.
+1. Updated `recipe-manager-frontend/src/types/recipe.ts` and `recipe-manager-frontend/src/services/recipeService.ts`.
 2. A **contract delta** note for `03-senior-react`:
    ```md
    ## Contract delta

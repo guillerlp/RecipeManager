@@ -114,14 +114,14 @@ of these, point at the file.
 
 | Concept | Where it lives | What to notice |
 | --- | --- | --- |
-| **Aggregate root with enforced invariants** | `Domain/Entities/Recipe.cs` | Private setters and private constructors mean an invalid `Recipe` cannot be constructed at all. Contrast with a class of public setters validated by the caller. |
+| **Aggregate root with enforced invariants** | `RecipeManager.Domain/Entities/Recipe.cs` | Private setters and private constructors mean an invalid `Recipe` cannot be constructed at all. Contrast with a class of public setters validated by the caller. |
 | **Static factory method** | `Recipe.Create` | Returns `Result<Recipe>` instead of throwing. A constructor cannot fail gracefully; a factory can. |
-| **Result / railway-oriented error handling** | `FluentResults` throughout, `Domain/Errors/RecipeErrors.cs` | Expected failures are values, not exceptions. Note that only *unexpected* failures reach `ErrorHandlerMiddleware`. |
+| **Result / railway-oriented error handling** | `FluentResults` throughout, `RecipeManager.Domain/Errors/RecipeErrors.cs` | Expected failures are values, not exceptions. Note that only *unexpected* failures reach `ErrorHandlerMiddleware`. |
 | **Port and adapter (dependency inversion)** | `IRecipeRepository` in **Domain**, implementation in **Infrastructure** | The interface lives with the code that *needs* it, not with the code that implements it. This is what lets Domain reference nothing. |
 | **Decorator pattern** | `CachedRecipeRepository` wrapping `RecipeRepository`, wired by `services.Decorate(...)` | Same interface, added behaviour, handlers unaware. Compare with putting `if (cached)` inside the handler. |
-| **CQRS without a mediator library** | `Common/Interfaces/Messaging/`, `Dispatchers/` | Commands mutate, queries read, each with one handler. See ADR-001 for why MediatR was rejected. |
+| **CQRS without a mediator library** | `RecipeManager.Application/Common/Interfaces/Messaging/`, `.../Dispatchers/` | Commands mutate, queries read, each with one handler. See ADR-001 for why MediatR was rejected. |
 | **Validation in two layers** | `RecipeValidationRules` vs. `Recipe.ValidateProperties` | Shape (null, length, bounds) vs. business rules. `Title = ""` passing one and failing the other is the clearest example. |
-| **Entity equality by identity** | `Domain/Shared/Entity.cs` | Two `Recipe` objects are equal if their ids match, regardless of field values — the opposite of a value object. |
+| **Entity equality by identity** | `RecipeManager.Domain/Shared/Entity.cs` | Two `Recipe` objects are equal if their ids match, regardless of field values — the opposite of a value object. |
 | **EF Core primitive collections** | `Recipe.Ingredients` → `text[]` | EF 9+ maps `IReadOnlyList<string>` to a native PostgreSQL array with no configuration. |
 | **Test doubles and interaction testing** | `RecipeManager.UnitTests`, NSubstitute | `Received(1)` asserts an interaction happened; contrast with asserting only the return value. |
 | **Integration testing an ASP.NET app in-process** | `IntegrationTestBase`, `WebApplicationFactory<Program>` | The real pipeline runs — routing, model binding, filters, DI — with only the database swapped. |
@@ -156,4 +156,4 @@ The kind of answer this project wants, for a change as small as adding a cache t
 > `TEST-02` (no cache-invalidation test) is rated High.
 >
 > **Pattern / read more:** cache-aside with explicit invalidation, implemented as a decorator —
-> `Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs`, ADR-003.
+> `RecipeManager.Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs`, ADR-003.

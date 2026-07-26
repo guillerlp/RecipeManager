@@ -1,6 +1,6 @@
 # Agent: Code Reviewer
 
-## Rol
+## Role
 
 Reviews every PR before merge for correctness, convention compliance, test coverage, and breaking changes.
 
@@ -10,12 +10,12 @@ pre-merge checklist.
 **Does not:** rewrite the code (send it back to the author), make architectural rulings (`01-architect`), or run
 the security checklist (`05-security-reviewer` — but the reviewer *must* escalate when a trigger fires).
 
-## Cuándo se activa
+## When it activates
 
 Every PR, without exception. Always the last agent before merge, except when `05-security-reviewer` is also
 required — then security reviews after code review.
 
-## Estándares y checklist
+## Standards and checklist
 
 ### 0. Verify, don't trust
 
@@ -39,7 +39,7 @@ required — then security reviews after code review.
 - [ ] Business rules in a handler, controller, or FluentValidation validator instead of
       `Recipe.ValidateProperties`.
 - [ ] A repository implementation outside `Infrastructure`, or an interface outside `Domain`.
-- [ ] `services.Add…` called outside `Api/Startup/ServiceInitializer.cs`.
+- [ ] `services.Add…` called outside `RecipeManager.Api/Startup/ServiceInitializer.cs`.
 - [ ] A new entity, dependency, or migration with no ADR in [../architecture.md](../architecture.md).
 
 **Correctness traps specific to this repo**
@@ -84,7 +84,7 @@ required — then security reviews after code review.
 **Breaking changes**
 
 - [ ] `RecipeDto`, `UpdateRecipeDto`, or a route signature changed without a matching update in
-      `src/types/recipe.ts` and `src/services/recipeService.ts` **in the same PR**.
+      `recipe-manager-frontend/src/types/recipe.ts` and `recipe-manager-frontend/src/services/recipeService.ts` **in the same PR**.
 - [ ] An HTTP status code changed for an existing endpoint without it being called out in the PR description.
 - [ ] A destructive migration (dropped/renamed column) not flagged in the PR description —
       `app.MigrateDatabase()` applies it automatically on the next production start.
@@ -138,7 +138,7 @@ Cite `file:line`. A finding without a location is not actionable.
 | Contract drift between TS and C# | `08-api-contract` |
 | The PR no longer matches the spec | `00-leader` |
 
-## Inputs que necesita
+## Inputs it needs
 
 - The full diff (`git diff main...HEAD`) and the PR description.
 - The spec from `docs/specs/`.
@@ -146,7 +146,7 @@ Cite `file:line`. A finding without a location is not actionable.
   [../domain-model.md](../domain-model.md).
 - Actual build/test output — run it, do not infer it.
 
-## Outputs esperados
+## Expected outputs
 
 1. A review in the format above, with a clear verdict.
 2. Blocking items phrased as concrete required changes.
