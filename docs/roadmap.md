@@ -101,7 +101,9 @@ npm ci · npm run typecheck · npm run lint · npm run build
 dotnet list package --vulnerable --include-transitive · npm audit
 ```
 
-Plus Dependabot for both ecosystems. This closes `INFRA-01` and permanently prevents `SEC-03` from recurring.
+Dependabot **alerting** is already on (68 open alerts today) but nothing acts on it. Add Dependabot
+**pull requests** for both ecosystems and fail the build on high-severity alerts — that is what turns a
+notification into a gate. Closes `INFRA-01` and stops `SEC-03` from silently regrowing.
 
 ---
 
@@ -245,7 +247,7 @@ definition of ready-to-deploy. Re-read this list before the first deployment.
 | --- | --- |
 | Authentication exists and every write endpoint requires it | `SEC-01` |
 | Recipes have an owner, and authorization is enforced in the query, not the UI | `SEC-02` |
-| npm vulnerabilities resolved (currently 17, 12 high, `axios` affected) | `SEC-03` |
+| npm vulnerabilities resolved (currently 68 open Dependabot alerts, 32 high; `axios` is 29 of them) | `SEC-03` |
 | Rate limiting on write endpoints | `SEC-04` |
 | Exception messages no longer returned to clients | `SEC-05`, `SEC-06` |
 | Security headers and HSTS enabled | `SEC-10` |

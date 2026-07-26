@@ -37,7 +37,7 @@ Record these when asked "is this app secure?". They are facts about `main`, not 
 | --- | --- | --- | --- |
 | `SEC-01` | **No authentication whatsoever.** `ConfigurePipeline` calls `UseAuthorization()` with no `UseAuthentication()`; no `[Authorize]` attribute anywhere; no identity provider. | `RecipeManager.Api/Startup/ApplicationInitializer.cs`, `RecipeManager.Api/Controllers/RecipesController.cs` | Critical |
 | `SEC-02` | **No authorization / no ownership.** No `User` entity, no `OwnerId`. Any caller can `PUT` or `DELETE` any recipe by id. | [../domain-model.md](../domain-model.md) | Critical |
-| `SEC-03` | **17 npm vulnerabilities (12 high)**, with `axios`, `react-router-dom`, and `vite` directly affected. NuGet is clean. | `npm audit` | High |
+| `SEC-03` | **68 open Dependabot alerts** across 14 npm packages (32 high, 32 medium, 4 low); 46 are runtime-scope. `axios` alone accounts for 29 and is a direct runtime dependency. NuGet is clean. | Dependabot API, `npm audit` | High |
 | `SEC-04` | **No rate limiting.** `AddRateLimiter` is never called. `POST /api/recipes` is an unauthenticated write endpoint. | `ServiceInitializer.cs` | High |
 | `SEC-05` | **Exception messages are returned to the client.** `ErrorHandlerMiddleware` sets `ProblemDetails.Detail = exception.Message` and `Type = exception.GetType().Name` for **all** exceptions, including 500s — this can leak connection details, SQL fragments, and stack context. | `RecipeManager.Api/Middlewares/ErrorHandlerMiddleware.cs` | High |
 | `SEC-06` | **`DeleteRecipeHandler` echoes `ex.Message` into a `Result` error**, which reaches the client through `CreateProblemDetails`. | `RecipeManager.Application/Handlers/Recipes/DeleteRecipeHandler.cs` | Medium |
@@ -143,10 +143,20 @@ Treat these as mandatory acceptance criteria, and pair with `01-architect`:
 - [ ] New package justified in the PR, from a known publisher, and recorded in
       [../tech-stack.md](../tech-stack.md).
 - [ ] `dotnet list package --vulnerable --include-transitive` and `npm audit` run when dependencies changed;
-      report the output. Current state: NuGet **clean**, npm has **17 vulnerabilities (12 high)** including
-      `axios` — `SEC-03` in [../known-issues.md](../known-issues.md).
-- [ ] Nothing scans dependencies automatically (no CI, no Dependabot) — `INFRA-01`. Until that exists, running
-      both commands by hand is the only control.
+      report the output. Current state: NuGet **clean**, npm has **68 open Dependabot alerts (32 high)**
+      including `axios` — `SEC-03` in [../known-issues.md](../known-issues.md).
+- [ ] **Dependabot alerting is enabled** on this repo and is the authoritative count. Read it without leaving
+      the terminal:
+
+      ```bash
+      gh api repos/guillerlp/RecipeManager/dependabot/alerts --paginate
+      ```
+
+      Filter with `-q '[.[] | select(.state=="open")] | length'` for a total, or group by
+      `.dependency.scope` to separate `runtime` (ships to users) from `development` (build-only). Note the
+      leading slash must be omitted on Git Bash, which otherwise rewrites the path.
+- [ ] Alerting is on, but **nothing blocks a merge** — there is no CI and no automated Dependabot *pull
+      requests* configured. A high-severity alert can sit open indefinitely. `INFRA-01` / `R-04`.
 
 ## Inputs it needs
 

@@ -76,8 +76,10 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 There is no `typecheck` script and no `test` script. Run `npx tsc --noEmit` manually until `BUILD-04` is fixed —
 it currently passes with 0 errors. See [known-issues.md](known-issues.md).
 
-`npm audit` reports **17 vulnerabilities** (12 high), with `axios`, `react-router-dom`, and `vite` directly
-affected — `SEC-03`. The NuGet side is clean.
+Dependabot reports **68 open alerts** across 14 npm packages (32 high, 32 medium, 4 low); `npm audit` describes
+the same set as **17 affected packages**, because it counts packages while Dependabot counts advisories.
+`axios` alone accounts for 29 alerts and is a direct runtime dependency — `SEC-03`. The NuGet side is clean by
+both tools.
 
 ### Styling
 

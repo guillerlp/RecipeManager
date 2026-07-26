@@ -25,7 +25,7 @@ Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain 
 | Frontend type-check | `npx tsc --noEmit` | **0 errors** |
 | Frontend build | `npm run build` | succeeds — but does **not** type-check ([BUILD-04](#build-04)) |
 | Frontend lint | `npm run lint` | **fails to start** on a clean install ([BUILD-03](#build-03)) |
-| npm vulnerabilities | `npm audit` | **17** — 12 high, 3 moderate, 2 low ([SEC-03](#sec-03)) |
+| npm vulnerabilities | `npm audit` · Dependabot API | **17 packages** (12 high) · **68 open alerts** — 32 high, 32 medium, 4 low ([SEC-03](#sec-03)) |
 | Frontend tests | — | **none exist**, no runner installed ([TEST-01](#test-01)) |
 
 **Goal: zero warnings across every project.** The seven backend warnings ([BUILD-01](#build-01),
@@ -47,7 +47,7 @@ in the .NET 10 migration — they were not present on the .NET 8 package set.
 | [BUILD-07](#build-07) | Low | Tooling | Node version not pinned |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
-| [SEC-03](#sec-03) | **High** | Security | 17 npm vulnerabilities; `axios`, `react-router-dom`, `vite` directly affected |
+| [SEC-03](#sec-03) | **High** | Security | 68 open Dependabot alerts across 14 npm packages; `axios` alone is 29 of them |
 | [SEC-04](#sec-04) | **High** | Security | No rate limiting on unauthenticated write endpoints |
 | [SEC-05](#sec-05) | **High** | Security | Exception messages returned to the client on 500s |
 | [SEC-06](#sec-06) | Medium | Security | `DeleteRecipeHandler` echoes `ex.Message` to the client |
@@ -247,27 +247,46 @@ Guid ids prevent enumeration but are not an access control.
 On the [deploy gate](roadmap.md#deploy-gate). Depends on [SEC-01](#sec-01); planned as `R-14`.
 
 ### SEC-03
-**17 npm vulnerabilities — High**
+**68 open Dependabot alerts across 14 npm packages — High**
 
-`npm audit`: 12 high, 3 moderate, 2 low. **Direct** dependencies affected:
+Two tools, two numbers, both correct — they count different things:
 
-| Package | Installed range | Severity | Notable advisory |
-| --- | --- | --- | --- |
-| `axios` | 1.0.0 – 1.17.0 | High | Credential theft & response hijacking via prototype pollution in config merge; full MitM via `config.proxy` |
-| `react-router-dom` | 7.0.0-pre.0 – 7.11.0 | High | — |
-| `vite` | 7.0.0 – 7.3.3 | High | — (dev-server surface) |
+| Source | Reports | Counts |
+| --- | --- | --- |
+| `npm audit` | **17 vulnerabilities** (12 high, 3 moderate, 2 low) | affected *packages* |
+| Dependabot (`gh api repos/guillerlp/RecipeManager/dependabot/alerts`) | **68 open alerts** — 32 high, 32 medium, 4 low | one alert per *advisory per package* |
 
-Transitive: `@babel/core`, `ajv`, `brace-expansion`, `diff`, `flatted`, `follow-redirects`, `form-data`,
-`js-yaml`, and others.
+Quote the Dependabot figure when talking about the repo, since that is what the GitHub UI shows. All 68 are
+**npm**, all in `RecipeManager/recipe-manager-frontend/package-lock.json`. A further 13 alerts are
+`auto_dismissed`.
 
-`axios` is the one that matters most — it is the app's only HTTP client and the advisory is exploitable through
-config merging.
+**Where the risk actually sits.** 46 of the 68 are `runtime`-scope — they ship to the browser. The remaining 22
+are `development`-scope, reachable only through the build toolchain:
 
-**Fix.** `npm audit fix` resolves all 17 according to npm. Do it as its own PR, then run
-`npm run build` and manually exercise the app, since `react-router-dom` and `vite` are majors-adjacent.
+| Package | Alerts | Severity | Scope | Direct? |
+| --- | --- | --- | --- | --- |
+| `axios` | **29** | high, medium, low | runtime | **direct** |
+| `react-router` | 14 | high, medium | runtime | transitive (via `react-router-dom`) |
+| `vite` | 7 | high, medium, low | development | **direct** |
+| `js-yaml`, `postcss` | 3 each | high, medium | development | transitive |
+| `brace-expansion`, `minimatch`, `picomatch` | 2 each | high / medium | development | transitive |
+| `follow-redirects`, `form-data`, `yaml` | 1 each | high / medium | runtime | transitive |
+| `@babel/core`, `flatted`, `rollup` | 1 each | low / high | development | transitive |
+
+**`axios` alone is 43% of the total** and is the app's only HTTP client, on a direct runtime dependency.
+Advisories include prototype-pollution gadgets enabling response hijacking and full MitM via `config.proxy`.
+
+**Why High and not Critical.** The headline `axios` advisory is credential theft — and this app has no
+authentication, so there are no credentials to steal (see [SEC-01](#sec-01)). The MitM and prototype-pollution
+paths remain real. If [SEC-01](#sec-01) is ever closed, **re-rate this to Critical**, because auth tokens would
+then be exactly what the advisory targets.
+
+**Fix.** `npm audit fix` claims to resolve them. Do it in its own PR, then `npm run build`, `npx tsc --noEmit`,
+and manually exercise the app — `react-router` and `vite` are majors-adjacent and this is the kind of upgrade
+that breaks routing silently.
 
 **Backend is clean:** `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages in
-any of the six projects.
+any of the six projects, and Dependabot opened zero NuGet alerts. Confirmed by both tools independently.
 
 **Owner:** `03-senior-react` + `05-security-reviewer` · **Effort:** ~1 h including verification
 
@@ -494,7 +513,9 @@ No `.github/` directory, no workflow, nothing. Every check in
 
 **Minimum useful pipeline:** `dotnet build` (warnings as errors once [BUILD-01](#build-01)/[BUILD-02](#build-02)
 are fixed), `dotnet test`, `npm ci`, `npm run typecheck`, `npm run lint`, `npm run build`. Add
-`dotnet list package --vulnerable` and `npm audit` to close [SEC-03](#sec-03) permanently, plus Dependabot.
+`dotnet list package --vulnerable` and `npm audit` so [SEC-03](#sec-03) cannot silently regrow. Dependabot
+*alerting* is already enabled and currently reports 68 open alerts, but nothing acts on it — enabling Dependabot
+**pull requests** and failing CI on high-severity alerts is what turns it from a notification into a control.
 
 ### INFRA-02
 **No versioning or tags — Medium**
