@@ -63,11 +63,12 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
   by design).
 - **All registration lives in `RecipeManager.Api/Startup/ServiceInitializer.cs`**, as `IServiceCollection`
   extension methods chained in `Program.cs`. Never call `services.Add…` from another layer.
-- New CQRS handler ⇒ **add a line to `RegisterCqrsHandlers()`**. A missed registration is a **runtime**
-  `InvalidOperationException`, not a compile error, so double-check it on every handler you add.
-  **⚠ Target:** this manual step is being removed — handlers will be discovered by Scrutor assembly scanning
-  (ADR-008, `R-01` in [roadmap.md](roadmap.md)). Until that ships the manual registration is mandatory; once it
-  ships, adding a registration by hand becomes wrong.
+- New CQRS handler ⇒ **no DI change at all**. Handlers are discovered by Scrutor assembly scanning in
+  `RegisterCqrsDispatchers()` (ADR-008): implement `ICommandHandler<,>`/`IQueryHandler<,>` in
+  `RecipeManager.Application` and it is registered scoped automatically. **Adding a manual
+  `services.AddScoped<ICommandHandler<…>, …>()` line is now wrong** — it duplicates the scan.
+  `RecipeManager.IntegrationTests/DependencyInjection/CqrsHandlerRegistrationTests.cs` asserts every handler
+  interface resolves, so a handler the container cannot build fails a test rather than a production request.
 - Everything is `AddScoped` except `AddMemoryCache()` (singleton by the framework).
 
 ### Validation — two layers, no duplication

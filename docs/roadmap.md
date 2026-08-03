@@ -32,30 +32,6 @@ that are *wrong* with what already exists.
 
 These are cheap, unblock everything else, and each one removes a whole class of future bug.
 
-### R-01
-**Auto-register CQRS handlers with Scrutor** · `02-senior-csharp` · ~1 h · **decided**
-
-Today every handler must be added by hand to `ServiceInitializer.RegisterCqrsHandlers()`. A forgotten line
-compiles fine and throws at runtime on `GetRequiredService`. This is the single most likely bug class in the
-backend and it grows with every new use case.
-
-Scrutor is **already a dependency** (7.0.0, currently used only for `Decorate`), so this costs nothing new:
-
-```csharp
-services.Scan(scan => scan
-    .FromAssemblyOf<CreateRecipeCommandValidator>()
-    .AddClasses(c => c.AssignableTo(typeof(ICommandHandler<,>)))
-        .AsImplementedInterfaces().WithScopedLifetime()
-    .AddClasses(c => c.AssignableTo(typeof(IQueryHandler<,>)))
-        .AsImplementedInterfaces().WithScopedLifetime());
-```
-
-**Acceptance:** `RegisterCqrsHandlers()` is deleted, all 78 tests still pass, and adding a handler with no DI
-change resolves correctly. Add an integration test that resolves every `ICommandHandler<,>`/`IQueryHandler<,>`
-from the container so a future regression fails the build rather than production.
-
-Until this ships, manual registration remains mandatory — see [conventions.md](conventions.md).
-
 ### R-02
 **Treat warnings as errors, centralise project properties** · `02-senior-csharp` · ~1 h
 
@@ -144,7 +120,7 @@ concurrency, so `TEST-06` is unfixable while it stays.
 **Target.** `Testcontainers.PostgreSql`, one container per test class, `RespawnDb` or a fresh database per
 class for isolation. Requires Docker locally and in CI, so it should land **after** `R-04`.
 
-Keep the existing 8 tests passing throughout — this is a swap of the base class, not a rewrite.
+Keep the existing 14 tests passing throughout — this is a swap of the base class, not a rewrite.
 
 ### R-07
 **Frontend test runner and first tests** · `06-qa-tester` + `03-senior-react` · ~4 h
@@ -161,7 +137,7 @@ Blocked by `R-03`.
 
 `TEST-02` — the largest gap in the backend suite. Unit tests mock `IRecipeRepository` and so bypass
 `CachedRecipeRepository` entirely; integration tests assert database state rather than re-reading through the
-API. A broken invalidation passes all 78 tests today.
+API. A broken invalidation passes all 84 tests today.
 
 Add integration tests that write and then **re-read through the HTTP client**: create → list contains it;
 update → detail shows new values; delete → detail returns 404.

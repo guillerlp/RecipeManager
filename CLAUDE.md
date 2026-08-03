@@ -67,7 +67,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Infrastructure/    AppDbContext, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
     RecipeManager.Api/               RecipesController, Startup/*, Middlewares/*, Extensions/*
     RecipeManager.UnitTests/         70 tests — xUnit + NSubstitute (Domain + Application handlers)
-    RecipeManager.IntegrationTests/  8 tests — xUnit + WebApplicationFactory (EF InMemory)
+    RecipeManager.IntegrationTests/  14 tests — xUnit + WebApplicationFactory (EF InMemory)
     recipe-manager-frontend/         React 19 + Vite SPA
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
@@ -111,8 +111,8 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **7 warnings** (all in `RecipeManager.UnitTests`) and **78 tests pass**
-(70 unit + 8 integration). **Those 7 warnings are known defects, not an acceptable baseline** — see
+Current state: build succeeds with **7 warnings** (all in `RecipeManager.UnitTests`) and **84 tests pass**
+(70 unit + 14 integration). **Those 7 warnings are known defects, not an acceptable baseline** — see
 `BUILD-01` and `BUILD-02` in [docs/known-issues.md](docs/known-issues.md). The target is zero warnings in every
 project. Never add a new one.
 

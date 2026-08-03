@@ -64,7 +64,7 @@ Run from `RecipeManager/`. Everything here is manual — nothing enforces it.
    ```bash
    dotnet test RecipeManager.sln
    ```
-   Currently **78 passing** — 70 unit + 8 integration.
+   Currently **84 passing** — 70 unit + 14 integration.
 
 3. **Frontend builds and type-checks.** From `recipe-manager-frontend/`:
    ```bash

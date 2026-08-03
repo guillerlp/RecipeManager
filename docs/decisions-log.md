@@ -120,11 +120,13 @@ actually cost me?" — and if you cannot answer, the rule may genuinely not appl
 
 ### 2026-07-26 — Auto-register handlers instead of listing them
 
-**Context.** Every CQRS handler must be added by hand to `ServiceInitializer.RegisterCqrsHandlers()`. A
-forgotten line compiles cleanly and throws `InvalidOperationException` at runtime, on the first request that
-dispatches that command.
+**Context.** Every CQRS handler had to be added by hand to `ServiceInitializer.RegisterCqrsHandlers()`. A
+forgotten line compiled cleanly and threw `InvalidOperationException` at runtime, on the first request that
+dispatched that command.
 
-**Decision.** Discover handlers by assembly scanning with Scrutor. ADR-008, `R-01`.
+**Decision.** Discover handlers by assembly scanning with Scrutor. ADR-008. **Implemented 2026-08-03** —
+`RegisterCqrsHandlers` deleted, the scan added to `RegisterCqrsDispatchers`, and
+`CqrsHandlerRegistrationTests` added as the resolution net.
 
 **Rejected.** *(a)* Keeping manual registration and relying on the review checklist — but a rule enforced only
 by attention fails eventually, and this one fails in production. *(b)* Adopting MediatR, which solves this and

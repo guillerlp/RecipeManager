@@ -20,7 +20,7 @@ Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain 
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **7 warnings** — all in `RecipeManager.UnitTests` |
-| Backend tests | `dotnet test RecipeManager.sln` | **78 passing** (70 unit + 8 integration), 0 failing |
+| Backend tests | `dotnet test RecipeManager.sln` | **84 passing** (70 unit + 14 integration), 0 failing |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npx tsc --noEmit` | **0 errors** |
 | Frontend build | `npm run build` | succeeds — but does **not** type-check ([BUILD-04](#build-04)) |
@@ -203,7 +203,7 @@ card fallback rather than reusing the hero image. Consider `srcset` for the hero
 ### BUILD-06
 **`run-coverage.ps1` measures only the unit-test project — Low**
 
-The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 8 integration tests
+The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 14 integration tests
 contribute nothing and the reported percentage understates real coverage — particularly for `Api` and
 `Infrastructure`, which unit tests never touch.
 
@@ -465,7 +465,7 @@ Needs `01-architect` sign-off for the dependency. First tests worth writing are 
 
 The largest gap in the backend suite. Unit tests mock `IRecipeRepository`, so they bypass `CachedRecipeRepository`
 entirely; the integration tests assert **database** state after a write rather than issuing a second request
-through the API. A broken invalidation in `CachedRecipeRepository` would pass all 78 tests.
+through the API. A broken invalidation in `CachedRecipeRepository` would pass all 84 tests.
 
 **Fix.** Integration tests that write, then re-read **through the HTTP client**: create → `GET /api/recipes`
 contains it; update → `GET /api/recipes/{id}` shows new values; delete → `GET /api/recipes/{id}` returns 404.
@@ -646,5 +646,5 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `DEC-02` — Development-only seeder? | **Yes**, gated on `IsDevelopment()`. | `R-13` |
 | `DEC-05` — generate TS types from OpenAPI? | **Yes**, after the contract defects are fixed by hand. | `R-09` |
 | Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. | `R-10` |
-| CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). | `R-01`, ADR-001 |
+| CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
 | Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL**, deferred until CI exists. | `R-06` |

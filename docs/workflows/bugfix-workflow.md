@@ -16,7 +16,7 @@ Use the observed HTTP status to narrow the layer before reading any code:
 | **404** | recipe missing, or the route did not match | handler `GetByIdAsync` path; check the `{id:guid}` constraint |
 | **500** with `ProblemDetails.Type` = an exception name | unhandled exception | `RecipeManager.Api/Middlewares/ErrorHandlerMiddleware.cs` log line |
 | Wrong status code for a known failure | `ErrorCode` metadata, or error ordering | `RecipeErrors.WithCode`, `ResultExtensions.CreateProblemDetails` (uses `errors.First()` only) |
-| `InvalidOperationException: No service for type ICommandHandler<…>` | handler not registered | `RecipeManager.Api/Startup/ServiceInitializer.RegisterCqrsHandlers()` |
+| `InvalidOperationException: No service for type ICommandHandler<…>` | handler not picked up by the Scrutor scan — check it is a public, non-abstract class in `RecipeManager.Application` implementing the handler interface | `RecipeManager.Api/Startup/ServiceInitializer.RegisterCqrsDispatchers()` |
 | Stale data after a write | cache invalidation | `RecipeManager.Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs` |
 | Frontend shows nothing / CORS error in console | CORS origin or API not running | `ServiceInitializer.RegisterCors` (only `http://localhost:3000`), `vite.config.ts` proxy |
 | Frontend request fails with a certificate error | untrusted dev cert | run `dotnet dev-certs https --trust` |
@@ -74,7 +74,7 @@ Escalate when the fix requires: a schema/migration change, a new project referen
 
 ## 5. Regression sweep — `06-qa-tester`
 
-- The new test passes; the whole suite still passes (currently 78 tests) and no new build warning appeared
+- The new test passes; the whole suite still passes (currently 84 tests) and no new build warning appeared
   (currently 7, target 0 — see [../known-issues.md](../known-issues.md)).
 - If the bug was a cache issue, add a test that performs write-then-read through the API — the integration tests
   exercise the real decorator chain.
