@@ -77,6 +77,7 @@ in the .NET 10 migration — they were not present on the .NET 8 package set.
 | [INFRA-03](#infra-03) | Medium | CI/CD | No rollback procedure |
 | [INFRA-04](#infra-04) | Medium | CI/CD | No frontend deployment target |
 | [INFRA-05](#infra-05) | Low | DX | No seed data |
+| [INFRA-06](#infra-06) | Medium | DX | Smart App Control blocks the integration tests after an Api change |
 | [QUAL-01](#qual-01) | Low | Quality | `ILogger` called with interpolated strings |
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
 | [QUAL-03](#qual-03) | Low | Quality | Deep relative imports for shared assets |

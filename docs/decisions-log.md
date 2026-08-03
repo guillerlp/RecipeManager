@@ -72,7 +72,7 @@ temporary" in the docs is what keeps it from silently becoming permanent.
 
 ### 2026-07-26 — EF InMemory is not a database
 
-**Context.** The 8 integration tests run against `Microsoft.EntityFrameworkCore.InMemory`. They pass. They also
+**Context.** The 14 integration tests run against `Microsoft.EntityFrameworkCore.InMemory`. They pass. They also
 cannot detect anything provider-specific: `text[]` behaviour, PostgreSQL identifier folding, real constraint
 violations, or concurrency.
 

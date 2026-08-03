@@ -249,8 +249,9 @@ query, and wiring auth through the SPA. Do not start it as a side effect of anot
 
 Recorded so they are not repeatedly re-proposed. Revisit only if the stated reason stops holding.
 
-- **MediatR.** The hand-rolled CQRS is intentional (ADR-001, commit `05656ed`). `R-01` removes its only real
-  drawback. Reconsider only if pipeline behaviours become genuinely necessary.
+- **MediatR.** The hand-rolled CQRS is intentional (ADR-001, commit `05656ed`). ADR-008 removed its only real
+  drawback by auto-registering handlers with Scrutor. Reconsider only if pipeline behaviours become genuinely
+  necessary.
 - **AutoMapper.** One hand-written mapping extension is clearer and faster than a mapping configuration.
 - **A global frontend store (Redux/Zustand).** TanStack Query owns server state and Context owns UI state;
   there is no client state that needs either.

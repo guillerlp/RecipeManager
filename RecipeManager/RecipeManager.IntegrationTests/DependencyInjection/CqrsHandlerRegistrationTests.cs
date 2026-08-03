@@ -19,7 +19,7 @@ public class CqrsHandlerRegistrationTests : IntegrationTestBase
     {
         var data = new TheoryData<Type>();
 
-        foreach (Type serviceType in GetHandlerServiceTypes())
+        foreach (Type serviceType in GetHandlerServiceTypes().Distinct())
         {
             data.Add(serviceType);
         }
@@ -55,13 +55,21 @@ public class CqrsHandlerRegistrationTests : IntegrationTestBase
         // ==================== ASSERT ====================
         serviceTypes.Should().NotBeEmpty();
         serviceTypes.Should().OnlyHaveUniqueItems(
-            "two handlers sharing one closed interface would make the container resolution ambiguous");
+            "two handlers implementing the same closed interface both get registered and the last one wins, "
+            + "so a dispatch would silently reach the wrong handler");
     }
 
     /// <summary>
     /// Every closed <c>ICommandHandler&lt;,&gt;</c> / <c>IQueryHandler&lt;,&gt;</c> interface implemented by a
     /// concrete class in the Application assembly. Reflection rather than a hard-coded list, so a new handler is
     /// covered without touching this file — the same reason the registration itself is no longer hand-written.
+    /// <para>
+    /// Deliberately broader than the Scrutor scan: <c>GetTypes()</c> returns non-public types too, so a handler
+    /// that the scan skips for being <c>internal</c> is still discovered here and fails as an unresolvable
+    /// service. The one blind spot the two <em>share</em> is assembly scope — a handler placed outside
+    /// `RecipeManager.Application` is invisible to both. Handlers belong in the Application layer; this test
+    /// does not enforce that.
+    /// </para>
     /// </summary>
     private static IEnumerable<Type> GetHandlerServiceTypes()
     {
@@ -71,7 +79,6 @@ public class CqrsHandlerRegistrationTests : IntegrationTestBase
             .SelectMany(type => type.GetInterfaces())
             .Where(@interface => @interface.IsGenericType
                                  && (@interface.GetGenericTypeDefinition() == typeof(ICommandHandler<,>)
-                                     || @interface.GetGenericTypeDefinition() == typeof(IQueryHandler<,>)))
-            .Distinct();
+                                     || @interface.GetGenericTypeDefinition() == typeof(IQueryHandler<,>)));
     }
 }
