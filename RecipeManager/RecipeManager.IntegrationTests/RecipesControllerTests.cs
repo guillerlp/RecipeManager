@@ -19,9 +19,8 @@ public class RecipesControllerTests : IntegrationTestBase
             PreparationTime: 20,
             CookingTime: 30,
             Servings: 8,
-            Ingredients: new List<string> { "Flour", "Sugar", "Cocoa powder", "Eggs" },
-            Instructions: new List<string>
-                { "Mix dry ingredients", "Add wet ingredients", "Bake at 350°F for 30 minutes" }
+            Ingredients: ["Flour", "Sugar", "Cocoa powder", "Eggs"],
+            Instructions: ["Mix dry ingredients", "Add wet ingredients", "Bake at 350°F for 30 minutes"]
         );
 
         // ==================== ACT ====================
@@ -33,7 +32,7 @@ public class RecipesControllerTests : IntegrationTestBase
         RecipeDto? createdRecipe = await response.Content.ReadFromJsonAsync<RecipeDto>();
 
         createdRecipe.Should().NotBeNull();
-        createdRecipe!.Id.Should().NotBeEmpty();
+        createdRecipe.Id.Should().NotBeEmpty();
         createdRecipe.Title.Should().Be(command.Title);
         createdRecipe.Description.Should().Be(command.Description);
         createdRecipe.PreparationTime.Should().Be(command.PreparationTime);
@@ -44,7 +43,7 @@ public class RecipesControllerTests : IntegrationTestBase
 
         Recipe? recipeInDb = await DbContext.Recipes.FindAsync(createdRecipe.Id);
         recipeInDb.Should().NotBeNull();
-        recipeInDb!.Title.Should().Be(command.Title);
+        recipeInDb.Title.Should().Be(command.Title);
     }
 
     [Fact]
@@ -57,8 +56,8 @@ public class RecipesControllerTests : IntegrationTestBase
             PreparationTime: 10,
             CookingTime: 20,
             Servings: 4,
-            Ingredients: new List<string> { "Ingredient 1" },
-            Instructions: new List<string> { "Step 1" }
+            Ingredients: ["Ingredient 1"],
+            Instructions: ["Step 1"]
         );
 
         // ==================== ACT ====================
@@ -96,7 +95,7 @@ public class RecipesControllerTests : IntegrationTestBase
 
         RecipeDto? retrievedRecipe = await response.Content.ReadFromJsonAsync<RecipeDto>();
         retrievedRecipe.Should().NotBeNull();
-        retrievedRecipe!.Id.Should().Be(existingRecipe.Id);
+        retrievedRecipe.Id.Should().Be(existingRecipe.Id);
         retrievedRecipe.Title.Should().Be(existingRecipe.Title);
         retrievedRecipe.Description.Should().Be(existingRecipe.Description);
     }
@@ -182,8 +181,8 @@ public class RecipesControllerTests : IntegrationTestBase
             20,
             20,
             6,
-            new List<string> { "Ingredient A1", "Ingredient B1" },
-            new List<string> { "Step 1B", "Step 2B" });
+            ["Ingredient A1", "Ingredient B1"],
+            ["Step 1B", "Step 2B"]);
 
         var currentId = currentRecipeResult.Value.Id;
 

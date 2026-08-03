@@ -26,7 +26,7 @@ Skip the leader only for a single-file, single-layer change with an obvious owne
 A full-stack recipe feature always decomposes into some subset of:
 
 1. Domain invariant (`Recipe.ValidateProperties` + `RecipeErrors`)
-2. Application command/query + handler + **DI registration in `RegisterCqrsHandlers()`**
+2. Application command/query + handler (**no DI step** — Scrutor scans for it, ADR-008)
 3. Validator on the *bound* request type
 4. Repository method (both `RecipeRepository` **and** `CachedRecipeRepository`) + cache invalidation
 5. EF migration
@@ -90,7 +90,7 @@ Do not hand off to the user until:
 - [ ] The spec in `docs/specs/` matches what was actually built.
 - [ ] Every decomposed item above was assigned and completed, or explicitly dropped with a reason.
 - [ ] `dotnet build` and `dotnet test` were run and the numbers reported (currently 7 warnings — target 0 —
-      and 78 passing).
+      and 84 passing).
 - [ ] [../known-issues.md](../known-issues.md) updated: fixed entries deleted, new findings added.
 - [ ] [../decisions-log.md](../decisions-log.md) has an entry if the work contained a decision worth
       remembering, a lesson from a bug, or a reversal of an earlier call.

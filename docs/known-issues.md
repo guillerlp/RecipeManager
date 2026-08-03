@@ -20,7 +20,7 @@ Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain 
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **7 warnings** — all in `RecipeManager.UnitTests` |
-| Backend tests | `dotnet test RecipeManager.sln` | **78 passing** (70 unit + 8 integration), 0 failing |
+| Backend tests | `dotnet test RecipeManager.sln` | **84 passing** (70 unit + 14 integration), 0 failing |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npx tsc --noEmit` | **0 errors** |
 | Frontend build | `npm run build` | succeeds — but does **not** type-check ([BUILD-04](#build-04)) |
@@ -77,6 +77,7 @@ in the .NET 10 migration — they were not present on the .NET 8 package set.
 | [INFRA-03](#infra-03) | Medium | CI/CD | No rollback procedure |
 | [INFRA-04](#infra-04) | Medium | CI/CD | No frontend deployment target |
 | [INFRA-05](#infra-05) | Low | DX | No seed data |
+| [INFRA-06](#infra-06) | Medium | DX | Smart App Control blocks the integration tests after an Api change |
 | [QUAL-01](#qual-01) | Low | Quality | `ILogger` called with interpolated strings |
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
 | [QUAL-03](#qual-03) | Low | Quality | Deep relative imports for shared assets |
@@ -203,7 +204,7 @@ card fallback rather than reusing the hero image. Consider `srcset` for the hero
 ### BUILD-06
 **`run-coverage.ps1` measures only the unit-test project — Low**
 
-The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 8 integration tests
+The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 14 integration tests
 contribute nothing and the reported percentage understates real coverage — particularly for `Api` and
 `Infrastructure`, which unit tests never touch.
 
@@ -465,7 +466,7 @@ Needs `01-architect` sign-off for the dependency. First tests worth writing are 
 
 The largest gap in the backend suite. Unit tests mock `IRecipeRepository`, so they bypass `CachedRecipeRepository`
 entirely; the integration tests assert **database** state after a write rather than issuing a second request
-through the API. A broken invalidation in `CachedRecipeRepository` would pass all 78 tests.
+through the API. A broken invalidation in `CachedRecipeRepository` would pass all 84 tests.
 
 **Fix.** Integration tests that write, then re-read **through the HTTP client**: create → `GET /api/recipes`
 contains it; update → `GET /api/recipes/{id}` shows new values; delete → `GET /api/recipes/{id}` returns 404.
@@ -541,6 +542,31 @@ production. See [SEC-12](#sec-12).
 
 The database starts empty and there is no seeder, so a fresh clone shows an empty app until recipes are created
 by hand through Swagger. Integration tests seed only against EF InMemory. A Development-only seeder is planned as `R-13`.
+
+### INFRA-06
+**Windows Smart App Control blocks the integration tests after any Api change — Medium**
+
+On a development machine with Windows **Smart App Control** enabled
+(`HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy` → `VerifiedAndReputablePolicyState = 1`), a freshly compiled,
+unsigned `RecipeManager.Api.dll` is untrusted, so `WebApplicationFactory<Program>` cannot load it:
+
+```
+System.IO.FileLoadException : Could not load file or assembly '…\RecipeManager.Api.dll'.
+An Application Control policy has blocked this file. (0x800711C7)
+```
+
+This fails **every one of the 14 integration tests**, not one of them — they all construct
+`IntegrationTestBase`, which loads the Api assembly. The trigger is a *changed* `Api.dll`, so the tests fail
+exactly when a backend change most needs verifying, and pass again once the binary has been evaluated or
+reverted. It is an environment constraint, not a defect in the tests, so **the tests are not skipped or
+marked** — hiding the gate would be worse than the gap.
+
+**Consequence today:** on such a machine, integration tests cannot be trusted locally straight after an Api
+change, and a negative test (deliberately breaking something to confirm a test catches it) cannot be run at all.
+
+**Resolution:** [INFRA-01](#infra-01) / `R-04` — CI runs the suite on a clean Linux runner where the policy does
+not apply. Until then the workarounds are to disable Smart App Control (**irreversible without reinstalling
+Windows**, so it is a deliberate choice, not a default) or to run `dotnet test` under WSL2.
 
 ---
 
@@ -646,5 +672,5 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `DEC-02` — Development-only seeder? | **Yes**, gated on `IsDevelopment()`. | `R-13` |
 | `DEC-05` — generate TS types from OpenAPI? | **Yes**, after the contract defects are fixed by hand. | `R-09` |
 | Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. | `R-10` |
-| CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). | `R-01`, ADR-001 |
+| CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
 | Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL**, deferred until CI exists. | `R-06` |

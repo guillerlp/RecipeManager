@@ -42,8 +42,8 @@ layer.
       precedent) — not in `Domain`, not in `Infrastructure`.
 - [ ] Business invariants live in the entity, never in a handler, controller, or validator.
 - [ ] All DI registration stays in `RecipeManager.Api/Startup/ServiceInitializer.cs`.
-- [ ] A new command/query is a `record` implementing the marker interface **and** is registered in
-      `RegisterCqrsHandlers()`.
+- [ ] A new command/query is a `record` implementing the marker interface; its handler needs no registration
+      (Scrutor assembly scan, ADR-008).
 - [ ] Any new `IRecipeRepository` member is implemented in **both** `RecipeRepository` and
       `CachedRecipeRepository`, with an explicit cache-invalidation decision.
 
@@ -54,7 +54,7 @@ These were settled on 2026-07-26. Implement towards them; do not re-litigate the
 | Decision | Outcome | Item |
 | --- | --- | --- |
 | Project stance | Practice project **with deployment intent** — production-grade bar, security sequenced behind the [deploy gate](../roadmap.md#deploy-gate), never waived | [roadmap.md](../roadmap.md) |
-| CQRS | Keep hand-rolled; auto-register handlers with Scrutor | ADR-008, `R-01` |
+| CQRS | Keep hand-rolled; handlers auto-registered with Scrutor (**shipped**) | ADR-008 |
 | Domain error codes | Move HTTP status out of the Domain layer into a semantic error kind | ADR-009, `R-05` |
 | Ingredients | Structure them — the `string[]` shape is an acknowledged temporary shortcut | `R-10` |
 | Integration tests | Testcontainers with real PostgreSQL, deferred until CI exists | `R-06` |

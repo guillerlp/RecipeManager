@@ -56,9 +56,8 @@ Verified project references:
 - `RecipeManager.Application/Common/Interfaces/Messaging/` — `ICommand<TResult>`, `IQuery<TResult>` (empty marker interfaces),
   `ICommandHandler<,>`, `IQueryHandler<,>`, `ICommandDispatcher`, `IQueryDispatcher`.
 - `RecipeManager.Application/Dispatchers/` — `CommandDispatcher` / `QueryDispatcher` resolve the handler from `IServiceProvider` via
-  `GetRequiredService` and call `Handle`. No pipeline behaviours, no decorators.
-  **⚠ Target:** handlers will be discovered by Scrutor assembly scanning instead of the current manual
-  registration list — `R-01` in [roadmap.md](roadmap.md), ADR-008.
+  `GetRequiredService` and call `Handle`. No pipeline behaviours, no decorators. Handlers are discovered by
+  Scrutor assembly scanning, not listed by hand (ADR-008).
 - `RecipeManager.Application/Commands/`, `.../Queries/` — positional `record` types implementing the marker interfaces.
 - `RecipeManager.Application/Handlers/Recipes/` — one class per command/query; constructor-injected `IRecipeRepository` (+ `ILogger`
   where used).
@@ -174,7 +173,7 @@ endpoint is anonymous and every recipe is world-writable. See
   pipeline behaviours, so cross-cutting logic (logging, validation, transactions) must be added by decorating
   handlers — Scrutor's `Decorate` already does this for the repository, so the pattern exists.
 - **Confirmed 2026-07-26.** The decision stands; its one real drawback (manual handler registration failing at
-  runtime rather than compile time) is removed by ADR-008 rather than by adopting MediatR.
+  runtime rather than compile time) was removed by ADR-008 rather than by adopting MediatR.
 
 ### ADR-002 — `FluentResults` for expected failures
 
@@ -237,15 +236,18 @@ endpoint is anonymous and every recipe is world-writable. See
 
 ### ADR-008 — Auto-register CQRS handlers with Scrutor
 
-- **Status:** accepted 2026-07-26, **not yet implemented** (`R-01` in [roadmap.md](roadmap.md)).
-- **Context:** ADR-001's hand-rolled CQRS requires every handler to be listed in
-  `ServiceInitializer.RegisterCqrsHandlers`. A missing line compiles cleanly and throws at runtime on
-  `GetRequiredService`. This is the most likely bug class in the backend and it scales with every new use case.
+- **Status:** accepted 2026-07-26, **implemented 2026-08-03**.
+- **Context:** ADR-001's hand-rolled CQRS required every handler to be listed in
+  `ServiceInitializer.RegisterCqrsHandlers`. A missing line compiled cleanly and threw at runtime on
+  `GetRequiredService`. This was the most likely bug class in the backend and it scaled with every new use case.
 - **Decision:** discover `ICommandHandler<,>` and `IQueryHandler<,>` implementations by assembly scanning with
-  Scrutor — **already a dependency**, currently used only for `Decorate`. Delete `RegisterCqrsHandlers`.
+  Scrutor — **already a dependency**, previously used only for `Decorate`. `RegisterCqrsHandlers` was deleted
+  and the scan lives in `ServiceInitializer.RegisterCqrsDispatchers`.
 - **Consequences:** new handlers need no DI change, removing the failure mode entirely, at no dependency cost.
-  Registration becomes implicit, so a container-resolution test is required to keep it verifiable. Explicitly
-  chosen over adopting MediatR, which would add a commercially-licensed dependency to solve the same problem.
+  Registration is implicit, so `RecipeManager.IntegrationTests/DependencyInjection/CqrsHandlerRegistrationTests.cs`
+  resolves every closed handler interface found in the Application assembly — that test is what keeps the
+  registration verifiable, and it is not optional. Explicitly chosen over adopting MediatR, which would add a
+  commercially-licensed dependency to solve the same problem.
 
 ### ADR-009 — Domain errors carry a semantic kind, not an HTTP status
 

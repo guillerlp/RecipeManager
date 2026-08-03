@@ -46,8 +46,8 @@ items in [Known limitations](../domain-model.md#known-limitations).
 3. `RecipeManager.Application/DTO/Recipes/` if the response shape changes; extend `RecipeMappingExtensions.MapToRecipeDto`.
 4. `RecipeManager.Application/Validators/Recipes/`: a validator for the type the controller **binds**, reusing/extending
    `RecipeValidationRules`.
-5. **Register the handler in `ServiceInitializer.RegisterCqrsHandlers()`** — a missed registration only fails at
-   runtime.
+5. **No DI registration step** — Scrutor discovers the handler by assembly scan (ADR-008). Never add a manual
+   `AddScoped` line for it.
 6. Unit-test the handler with NSubstitute in `RecipeManager.UnitTests/Application/Handlers/`.
 
 ## 5. Infrastructure — `02-senior-csharp`
@@ -105,7 +105,7 @@ Only if persistence changes.
   interaction (`Received(1)`).
 - Integration test in `RecipesControllerTests` for each new endpoint: status code + database state, with
   `DbContext.ChangeTracker.Clear()` before asserting after a write.
-- Run and compare against the current numbers — 78 passing, 7 build warnings (target 0, see
+- Run and compare against the current numbers — 84 passing, 7 build warnings (target 0, see
   [../known-issues.md](../known-issues.md)):
   ```bash
   dotnet test RecipeManager.sln

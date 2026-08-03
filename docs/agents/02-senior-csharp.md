@@ -39,10 +39,10 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - [ ] Command/query is a positional `record` implementing `ICommand<TResult>` / `IQuery<TResult>`.
 - [ ] Handler implements `ICommandHandler<,>` / `IQueryHandler<,>`; single `Handle(request, cancellationToken)`.
 - [ ] Dependencies are `private readonly` fields set by constructor injection.
-- [ ] **Registered in `ServiceInitializer.RegisterCqrsHandlers()`.** The single most-forgotten step — omission
-      fails at runtime, not compile time. Once `R-01` (Scrutor assembly scanning, ADR-008) ships this step
-      disappears and adding a manual registration becomes wrong; check
-      [../roadmap.md](../roadmap.md) if unsure which world you are in.
+- [ ] **No DI registration needed.** Scrutor scans the Application assembly for `ICommandHandler<,>` /
+      `IQueryHandler<,>` and registers them scoped (ADR-008). Adding a manual `services.AddScoped<…>` line for a
+      handler is **wrong** — delete it if you see one. Confirm the handler resolves by running
+      `CqrsHandlerRegistrationTests`, which enumerates every handler interface in the assembly.
 - [ ] Repository returning `null` ⇒ `Result.Fail(RecipeErrors.RecipeNotFound(id))`. Never throw, never
       null-forgive.
 - [ ] Entity → DTO via `RecipeMappingExtensions`; extend it rather than mapping inline.
@@ -101,7 +101,7 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - [ ] New endpoint ⇒ integration test in `RecipeManager.IntegrationTests/RecipesControllerTests.cs` asserting status code
       **and** database state, with `DbContext.ChangeTracker.Clear()` before post-write assertions.
 - [ ] FluentAssertions only, never `Assert.*`. AAA markers required.
-- [ ] `dotnet test RecipeManager.sln` — currently 78 passing. **Zero build warnings is the standard**; the 7 that
+- [ ] `dotnet test RecipeManager.sln` — currently 84 passing. **Zero build warnings is the standard**; the 7 that
       exist today are defects (`BUILD-01`, `BUILD-02` in [../known-issues.md](../known-issues.md)), so never add
       one and clear an existing one when you are already in that file.
 

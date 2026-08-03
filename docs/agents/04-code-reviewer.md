@@ -21,7 +21,7 @@ required — then security reviews after code review.
 
 - [ ] `dotnet build RecipeManager.sln` — currently **7 warnings** (`BUILD-01`, `BUILD-02`). **Zero is the
       standard**; any *new* warning is a Block, and a PR that clears an existing one is a win worth saying so.
-- [ ] `dotnet test RecipeManager.sln` — **78 passing** is the current count. Fewer than before with no
+- [ ] `dotnet test RecipeManager.sln` — **84 passing** is the current count. Fewer than before with no
       explanation is a Block.
 - [ ] Frontend touched ⇒ `npm run build` **and** `npx tsc --noEmit`. `npm run build` does not type-check
       (`BUILD-04`), and `npm run lint` cannot run at all on a clean install (`BUILD-03`) — do not accept
@@ -44,8 +44,10 @@ required — then security reviews after code review.
 
 **Correctness traps specific to this repo**
 
-- [ ] New handler **not registered** in `RegisterCqrsHandlers()` — runtime failure, invisible at compile time.
-      Check this on every PR that adds a handler.
+- [ ] A **manual** `services.AddScoped<ICommandHandler<…>, …>()` line for a new handler — Scrutor already
+      registers it (ADR-008), so the line is duplicate registration, not safety.
+- [ ] A new handler that the Scrutor scan cannot see (non-public, abstract, or outside `RecipeManager.Application`)
+      — `CqrsHandlerRegistrationTests` should catch it; confirm that test ran.
 - [ ] New `IRecipeRepository` member implemented in `RecipeRepository` but **not** in `CachedRecipeRepository`
       (or vice versa).
 - [ ] A write path that does not invalidate both `recipes_all` and `recipe_{id}`.

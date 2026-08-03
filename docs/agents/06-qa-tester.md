@@ -43,7 +43,7 @@ pwsh ./run-coverage.ps1
 ```
 
 `run-coverage.ps1` covers **only `RecipeManager.UnitTests`** and requires
-`dotnet tool install --global dotnet-reportgenerator-globaltool`. The 8 integration tests contribute nothing to
+`dotnet tool install --global dotnet-reportgenerator-globaltool`. The 14 integration tests contribute nothing to
 the reported number, so it understates real coverage — `BUILD-06` in [../known-issues.md](../known-issues.md).
 
 ---
@@ -144,7 +144,7 @@ Work from this list; tick what is covered, add tests for what is not.
 - `GET` twice: same payload, second served from cache.
 
 **None of these has a dedicated test today** — the existing integration tests assert database state rather than
-issuing a second request through the API, so a broken invalidation would pass all 78 tests. This is the largest
+issuing a second request through the API, so a broken invalidation would pass all 84 tests. This is the largest
 real gap in the suite: `TEST-02` in [../known-issues.md](../known-issues.md).
 
 ### Not reproducible in the current suite — state this in PRs
