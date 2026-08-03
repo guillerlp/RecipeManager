@@ -542,6 +542,31 @@ production. See [SEC-12](#sec-12).
 The database starts empty and there is no seeder, so a fresh clone shows an empty app until recipes are created
 by hand through Swagger. Integration tests seed only against EF InMemory. A Development-only seeder is planned as `R-13`.
 
+### INFRA-06
+**Windows Smart App Control blocks the integration tests after any Api change — Medium**
+
+On a development machine with Windows **Smart App Control** enabled
+(`HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy` → `VerifiedAndReputablePolicyState = 1`), a freshly compiled,
+unsigned `RecipeManager.Api.dll` is untrusted, so `WebApplicationFactory<Program>` cannot load it:
+
+```
+System.IO.FileLoadException : Could not load file or assembly '…\RecipeManager.Api.dll'.
+An Application Control policy has blocked this file. (0x800711C7)
+```
+
+This fails **every one of the 14 integration tests**, not one of them — they all construct
+`IntegrationTestBase`, which loads the Api assembly. The trigger is a *changed* `Api.dll`, so the tests fail
+exactly when a backend change most needs verifying, and pass again once the binary has been evaluated or
+reverted. It is an environment constraint, not a defect in the tests, so **the tests are not skipped or
+marked** — hiding the gate would be worse than the gap.
+
+**Consequence today:** on such a machine, integration tests cannot be trusted locally straight after an Api
+change, and a negative test (deliberately breaking something to confirm a test catches it) cannot be run at all.
+
+**Resolution:** [INFRA-01](#infra-01) / `R-04` — CI runs the suite on a clean Linux runner where the policy does
+not apply. Until then the workarounds are to disable Smart App Control (**irreversible without reinstalling
+Windows**, so it is a deliberate choice, not a default) or to run `dotnet test` under WSL2.
+
 ---
 
 ## Code quality

@@ -81,6 +81,10 @@ Dependabot **alerting** is already on (68 open alerts today) but nothing acts on
 **pull requests** for both ecosystems and fail the build on high-severity alerts — that is what turns a
 notification into a gate. Closes `INFRA-01` and stops `SEC-03` from silently regrowing.
 
+Also closes `INFRA-06`: on a Windows machine with Smart App Control enabled the 14 integration tests cannot load
+the freshly built `RecipeManager.Api.dll` at all, so they are unreliable locally right after a backend change. A
+Linux runner has no such policy, which makes CI the **only** trustworthy place to run them until then.
+
 ---
 
 ## Phase 2 — correctness and confidence
