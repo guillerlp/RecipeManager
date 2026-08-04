@@ -76,14 +76,14 @@ public class RecipeTests
     [InlineData(null)]
     [InlineData("")] 
     [InlineData("   ")] 
-    public void Create_WithInvalidTitle_ShouldReturnFailureResult(string invalidTitle)
+    public void Create_WithInvalidTitle_ShouldReturnFailureResult(string? invalidTitle)
     {
         // Arrange
         var ingredients = new List<string> { "Flour" };
         var instructions = new List<string> { "Mix" };
 
         // Act
-        Result<Recipe> result = Recipe.Create(invalidTitle, "Description",
+        Result<Recipe> result = Recipe.Create(invalidTitle!, "Description",
             10, 20, 2, ingredients, instructions);
 
         // Assert
@@ -96,14 +96,14 @@ public class RecipeTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void Create_WithInvalidDescription_ShouldReturnFailureResult(string invalidDescription)
+    public void Create_WithInvalidDescription_ShouldReturnFailureResult(string? invalidDescription)
     {
         // Arrange
         var ingredients = new List<string> { "Flour" };
         var instructions = new List<string> { "Mix" };
 
         // Act
-        Result<Recipe> result = Recipe.Create("Title", invalidDescription,
+        Result<Recipe> result = Recipe.Create("Title", invalidDescription!,
             10, 20, 2, ingredients, instructions);
 
         // Assert

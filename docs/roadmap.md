@@ -32,27 +32,6 @@ that are *wrong* with what already exists.
 
 These are cheap, unblock everything else, and each one removes a whole class of future bug.
 
-### R-02
-**Treat warnings as errors, centralise project properties** · `02-senior-csharp` · ~1 h
-
-`TargetFramework`, `Nullable`, and `ImplicitUsings` are duplicated across all six `.csproj` files, and nothing
-prevents a warning from being committed. Add `RecipeManager/Directory.Build.props`:
-
-```xml
-<Project>
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-  </PropertyGroup>
-</Project>
-```
-
-**Blocked by** `BUILD-01` and `BUILD-02` in [known-issues.md](known-issues.md) — fix those 7 warnings first,
-then turn this on so they can never come back.
-
 ### R-03
 **Fix the frontend toolchain** · `03-senior-react` · ~30 min
 
@@ -72,7 +51,7 @@ Nothing enforces any checklist today. `BUILD-03` is the proof: a check that nobo
 Minimum GitHub Actions workflow on every PR:
 
 ```
-dotnet build (warnings as errors after R-02) · dotnet test
+dotnet build (already warnings-as-errors, ADR-010) · dotnet test
 npm ci · npm run typecheck · npm run lint · npm run build
 dotnet list package --vulnerable --include-transitive · npm audit
 ```
@@ -80,6 +59,13 @@ dotnet list package --vulnerable --include-transitive · npm audit
 Dependabot **alerting** is already on (68 open alerts today) but nothing acts on it. Add Dependabot
 **pull requests** for both ecosystems and fail the build on high-severity alerts — that is what turns a
 notification into a gate. Closes `INFRA-01` and stops `SEC-03` from silently regrowing.
+
+**Decide NuGet lock files here, not before.** The frontend restores from a committed `package-lock.json`; the
+backend has no equivalent, so the transitive graph is resolved fresh on every restore and CI could legitimately
+get a different closure than a developer did. `<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>`
+in `Directory.Build.props` plus committed `packages.lock.json` files fixes that, and `--locked-mode` in CI makes
+an unexpected change fail rather than pass silently. It is deliberately deferred to this item because a lock
+file only earns its maintenance cost once something reproducible consumes it.
 
 Also closes `INFRA-06`: on a Windows machine with Smart App Control enabled the 14 integration tests cannot load
 the freshly built `RecipeManager.Api.dll` at all, so they are unreliable locally right after a backend change. A
@@ -155,6 +141,29 @@ Nothing detects contract drift, which is exactly how `BUG-01`–`BUG-05` accumul
 Add an `openapi-typescript` step producing a generated, committed types file, with a CI check that fails when
 the generated output differs from what is committed. Fix `BUG-01`–`BUG-05` first (they are defects, not
 roadmap), then make recurrence impossible.
+
+### R-15
+**Adopt an `.editorconfig`, or drop `EnforceCodeStyleInBuild`** · `01-architect` → `02-senior-csharp` · ~2 h
+
+`Directory.Build.props` sets `EnforceCodeStyleInBuild` (ADR-010), but there is no `.editorconfig` anywhere in
+the repo, so IDE style rules sit at their default suggestion severity and **nothing is currently enforced**. The
+property is a latch, not a control: it does nothing until an `.editorconfig` exists, and then it does a great
+deal at once.
+
+That is the whole difficulty. With `TreatWarningsAsErrors` also on, any rule set to `warning` becomes a **build
+error in every file simultaneously**. This is the same shape as `UX-02` — a change that shifts every existing
+file and must therefore be one deliberate pass, never a side effect of another PR.
+
+**Decide in this order:**
+
+1. Which rule families are wanted (`IDE0055` formatting, `IDE0005` unused usings, naming rules, `var` preference)
+   — the repo's existing style is the reference, not a blog post's.
+2. What severity each gets. `suggestion` enforces nothing; `warning` is a build break under ADR-010. Starting
+   everything at `suggestion` and promoting deliberately is the low-risk path.
+3. Whether the one-off reformat lands as its own commit, so review can separate it from behaviour changes.
+
+Ending with "we do not want this" is a legitimate outcome — then **delete `EnforceCodeStyleInBuild`**, because a
+property that enforces nothing while looking like a gate is worse than no property at all.
 
 ---
 

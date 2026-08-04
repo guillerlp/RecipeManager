@@ -53,7 +53,7 @@ public class DeleteRecipeHandlerTests
         await _recipeRepository.Received(1).GetByIdAsync(recipeId, Arg.Any<CancellationToken>());
 
         await _recipeRepository.Received(1).DeleteAsync(
-            Arg.Is<Recipe>(r => r.Id == existingRecipe.Id),
+            Arg.Is<Recipe>(r => r != null && r.Id == existingRecipe.Id),
             Arg.Any<CancellationToken>());
     }
 

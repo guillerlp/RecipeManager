@@ -3,7 +3,8 @@
 Every **defect and gap in what already exists**. Planned work that does not exist yet lives in
 [roadmap.md](roadmap.md); the two files cross-reference each other.
 
-Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code.
+Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code. Build and
+test numbers re-measured on 2026-08-04 after `R-02`.
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -19,7 +20,7 @@ Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain 
 
 | Check | Command | Result |
 | --- | --- | --- |
-| Backend build | `dotnet build RecipeManager.sln` | 0 errors, **7 warnings** — all in `RecipeManager.UnitTests` |
+| Backend build | `dotnet build RecipeManager.sln` | 0 errors, **0 warnings** — enforced by `TreatWarningsAsErrors` (ADR-010) |
 | Backend tests | `dotnet test RecipeManager.sln` | **84 passing** (70 unit + 14 integration), 0 failing |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npx tsc --noEmit` | **0 errors** |
@@ -28,9 +29,13 @@ Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain 
 | npm vulnerabilities | `npm audit` · Dependabot API | **17 packages** (12 high) · **68 open alerts** — 32 high, 32 medium, 4 low ([SEC-03](#sec-03)) |
 | Frontend tests | — | **none exist**, no runner installed ([TEST-01](#test-01)) |
 
-**Goal: zero warnings across every project.** The seven backend warnings ([BUILD-01](#build-01),
-[BUILD-02](#build-02)) are all in test code, all trivially fixable, and all introduced by the package upgrades
-in the .NET 10 migration — they were not present on the .NET 8 package set.
+**Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
+`TreatWarningsAsErrors`, so a warning is a build failure rather than a note somebody may or may not read
+(ADR-010, `R-02`). The seven warnings that existed until then — introduced by the .NET 10 package upgrades, not
+present on the .NET 8 set — were `BUILD-01` and `BUILD-02`, both fixed in the same PR.
+
+The frontend has no equivalent gate: `npm run lint` still cannot start ([BUILD-03](#build-03)) and
+`npm run build` still does not type-check ([BUILD-04](#build-04)).
 
 ---
 
@@ -38,8 +43,6 @@ in the .NET 10 migration — they were not present on the .NET 8 package set.
 
 | ID | Severity | Area | Issue |
 | --- | --- | --- | --- |
-| [BUILD-01](#build-01) | Medium | Build | 5× `CS8602` in unit tests — NSubstitute 6 nullable `Arg.Is<T>` |
-| [BUILD-02](#build-02) | Medium | Build | 2× `xUnit1012` — `[InlineData(null)]` on a non-nullable `string` |
 | [BUILD-03](#build-03) | **High** | Tooling | `npm run lint` cannot run — `jiti` missing from `devDependencies` |
 | [BUILD-04](#build-04) | **High** | Tooling | `npm run build` does not type-check |
 | [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 5.7× the entire JS bundle |
@@ -95,48 +98,6 @@ Resolved decisions and items promoted to planned work are recorded in [Settled](
 ---
 
 ## Build & tooling
-
-### BUILD-01
-**5× `CS8602: Dereference of a possibly null reference` — Medium**
-
-| File | Line |
-| --- | --- |
-| `RecipeManager.UnitTests/Application/Handlers/CreateRecipeHandlerTests.cs` | 55 |
-| `RecipeManager.UnitTests/Application/Handlers/DeleteRecipeHandlerTests.cs` | 56 |
-| `RecipeManager.UnitTests/Application/Handlers/UpdateRecipeHandlerTest.cs` | 63, 233, 275 |
-
-**Cause.** All five are `Arg.Is<Recipe>(r => r.Title == …)` inside a `Received(1)` assertion. NSubstitute 6.0
-annotates the `Arg.Is<T>` predicate parameter as nullable, so `r` is `Recipe?` and every member access warns.
-Introduced by the NSubstitute 5.3 → 6.0 upgrade in the .NET 10 migration.
-
-**Fix.** Guard inside the predicate — this also makes the assertion honest:
-```csharp
-Arg.Is<Recipe>(r => r != null && r.Title == command.Title)
-```
-Do **not** silence it with `r!` or `#pragma warning disable`.
-
-**Owner:** `02-senior-csharp` · **Effort:** ~15 min
-
-### BUILD-02
-**2× `xUnit1012: Null should not be used for type parameter` — Medium**
-
-`RecipeManager.UnitTests/Domain/Entities/RecipeTests.cs:76` (`invalidTitle`) and `:96` (`invalidDescription`).
-
-**Cause.** `[InlineData(null)]` on a `[Theory]` whose parameter is a non-nullable `string`. The test is
-deliberately exercising the null case — the signature is what is wrong.
-
-**Fix.** Widen the parameter and pass it through:
-```csharp
-[Theory]
-[InlineData(null)]
-[InlineData("")]
-[InlineData("   ")]
-public void Create_WithInvalidTitle_ShouldReturnFailureResult(string? invalidTitle)
-```
-`Recipe.Create` already takes a non-nullable `string`, so the call site needs `invalidTitle!` — which is
-correct here, since passing null *is* the scenario under test.
-
-**Owner:** `02-senior-csharp` · **Effort:** ~10 min
 
 ### BUILD-03
 **`npm run lint` cannot run on a clean install — High**
@@ -512,8 +473,8 @@ No `.github/` directory, no workflow, nothing. Every check in
 [workflows/release-workflow.md](workflows/release-workflow.md) is manual and therefore skippable —
 [BUILD-03](#build-03) is direct evidence that an unenforced check silently rots.
 
-**Minimum useful pipeline:** `dotnet build` (warnings as errors once [BUILD-01](#build-01)/[BUILD-02](#build-02)
-are fixed), `dotnet test`, `npm ci`, `npm run typecheck`, `npm run lint`, `npm run build`. Add
+**Minimum useful pipeline:** `dotnet build` (already warnings-as-errors via `Directory.Build.props`, ADR-010),
+`dotnet test`, `npm ci`, `npm run typecheck`, `npm run lint`, `npm run build`. Add
 `dotnet list package --vulnerable` and `npm audit` so [SEC-03](#sec-03) cannot silently regrow. Dependabot
 *alerting* is already enabled and currently reports 68 open alerts, but nothing acts on it — enabling Dependabot
 **pull requests** and failing CI on high-severity alerts is what turns it from a notification into a control.
@@ -674,3 +635,8 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. | `R-10` |
 | CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
 | Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL**, deferred until CI exists. | `R-06` |
+| `BUILD-01`, `BUILD-02` — 7 backend build warnings | **Fixed**, and made unrepeatable by `TreatWarningsAsErrors` in `Directory.Build.props`. **Shipped 2026-08-04.** | ADR-010 |
+| Should warnings-as-errors be Release-only? | **No — every configuration.** There is no CI yet (`INFRA-01`), so a Release-only condition would enforce nothing. | ADR-010 |
+| Package versions duplicated across `.csproj` files | **Central package management.** Ten packages were versioned in two projects each; drift resolved nearest-wins with no diagnostic. **Shipped 2026-08-04.** | ADR-011 |
+| Should a NuGet advisory fail the local build? | **Yes, accepted.** `TreatWarningsAsErrors` elevates `NU1903`, delivering `R-04`'s vulnerability gate earlier. Escape hatch recorded in ADR-010 if it becomes obstructive. | ADR-010 |
+| `RecipeManager.Api.csproj.user` committed | **Untracked**, and `*.user` added to `.gitignore` — it carried one developer's debug profile. Fixed 2026-08-04. | — |

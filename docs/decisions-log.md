@@ -42,11 +42,52 @@ Jump to every entry touching a topic.
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Testing | [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
-| Tooling / infrastructure | [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Tooling / infrastructure | [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Enforcement vs. convention | [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 
 ---
 
 ## Entries
+
+### 2026-08-04 — A warning nobody has to fix is a warning that multiplies
+
+**Context.** Seven build warnings had sat in `RecipeManager.UnitTests` since the .NET 10 upgrade
+(`BUILD-01`, `BUILD-02`). Every one was a ~2-minute fix. They survived several PRs anyway, because a warning is
+a line of scrollback between "Build succeeded" and the prompt, and the correct number of those to read is zero.
+Meanwhile `TargetFramework`, `Nullable`, and `ImplicitUsings` were copy-pasted into all six `.csproj` files.
+
+**Decision.** Fix the seven, then add `RecipeManager/Directory.Build.props` owning those three properties plus
+`TreatWarningsAsErrors` and `EnforceCodeStyleInBuild` — **unconditionally, not Release-only**. ADR-010, `R-02`.
+
+**Rejected.** *(a)* Release-only enforcement, the common advice: it keeps local iteration frictionless and
+matches what CI would run. Wrong **here** specifically, because there is no CI (`INFRA-01`) — the local Debug
+build is the only gate that exists, so conditioning on Release would have enforced nothing while looking like a
+control. *(b)* Fixing the seven warnings and stopping there — the count is then free to grow straight back.
+*(c)* An explicit `WarningsAsErrors` rule list: surgical, but somebody has to maintain it and it cannot catch a
+new class of warning.
+
+**Cost.** Real and daily: an unused local while mid-refactor now fails the build. That friction *is* the
+mechanism — the whole point is that the fix cannot be deferred. `EnforceCodeStyleInBuild` also currently
+reports nothing (IDE rules default to suggestion severity with no `.editorconfig`); it is a latch that arms
+itself the day one is added, which is worth knowing so nobody assumes style is being checked today.
+
+**The step that mattered.** After adding the gate, a deliberate broken build — an unused local, `CS0219` —
+confirmed it actually fails. `BUILD-03` is this project's own proof of why: `npm run lint` had been unable to
+*start* for eleven months and nobody noticed, because an unrun check and a passing check look identical from
+outside.
+
+**Follow-on, same PR.** Having removed the duplicated *properties*, the obvious next question was what else was
+duplicated — and it was every package **version**: ten of them declared in two projects each. That one is worse,
+because bumping EF Core in `Infrastructure` and not `Api` produces no warning at all; NuGet resolves
+nearest-wins and the mismatch appears at runtime. Fixed with central package management (ADR-011), and verified
+the same way: putting a `Version` back into a `.csproj` now gives `error NU1008`.
+
+**Takeaway.** *Turn "should" into "cannot".* The gap between a documented standard and an enforced one is
+filled entirely by human attention, which is the least reliable component available — and the failure is silent
+by construction, since nothing reports the warnings you stopped reading. Then verify the enforcement by
+breaking it on purpose: a gate you have never seen reject anything is indistinguishable from no gate.
+
+---
 
 ### 2026-07-26 — Free-text ingredients are a shortcut with an expiry date
 

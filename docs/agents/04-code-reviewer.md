@@ -19,8 +19,9 @@ required — then security reviews after code review.
 
 ### 0. Verify, don't trust
 
-- [ ] `dotnet build RecipeManager.sln` — currently **7 warnings** (`BUILD-01`, `BUILD-02`). **Zero is the
-      standard**; any *new* warning is a Block, and a PR that clears an existing one is a win worth saying so.
+- [ ] `dotnet build RecipeManager.sln` — must be **0 warnings**, enforced by `TreatWarningsAsErrors` (ADR-010),
+      so a warning arrives as a build failure. A `#pragma warning disable` or a `NoWarn` entry added to get past
+      it is a **Block** unless the PR states why the warning is wrong.
 - [ ] `dotnet test RecipeManager.sln` — **84 passing** is the current count. Fewer than before with no
       explanation is a Block.
 - [ ] Frontend touched ⇒ `npm run build` **and** `npx tsc --noEmit`. `npm run build` does not type-check
@@ -106,7 +107,8 @@ required — then security reviews after code review.
 - `React.FC` vs. plain destructured props — both exist in the codebase.
 - A default export added alongside a named export on a new component.
 - Duplication that has appeared twice but not yet three times.
-- Opportunities to clear one of the 7 outstanding build warnings while already in that file.
+- A property re-declared in a `.csproj` that `Directory.Build.props` already owns (ADR-010). A package version
+  in a `.csproj` cannot slip past review — it fails the build (`NU1008`, ADR-011).
 - A finding worth recording that is out of scope for this PR — ask for an entry in
   [../known-issues.md](../known-issues.md) rather than a code comment.
 
@@ -114,7 +116,7 @@ required — then security reviews after code review.
 
 ```md
 ## Verification
-build: <N> warnings (7 today, target 0) · test: <N>/<N> (78 today) · npm build + tsc: pass | n/a
+build: <N> warnings (must be 0) · test: <N>/<N> (84 today) · npm build + tsc: pass | n/a
 known-issues: fixed <IDs> · added <IDs>
 
 ## Blocking

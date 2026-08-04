@@ -85,6 +85,15 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - [ ] Verify the resulting status code end-to-end: `ErrorCode` metadata drives it, and only `errors.First()`
       sets the response status.
 
+### Packages
+
+- [ ] A new package is **two** edits (ADR-011): `<PackageVersion Include="X" Version="N" />` in
+      `RecipeManager/Directory.Packages.props`, and `<PackageReference Include="X" />` — **no `Version`** — in
+      the project that needs it. A `Version` in a `.csproj` fails the build with `NU1008`.
+- [ ] Never re-declare `TargetFramework`, `Nullable`, `ImplicitUsings`, or the warning properties in a
+      `.csproj`; `Directory.Build.props` owns them (ADR-010).
+- [ ] A new dependency still needs `01-architect` sign-off — central versioning makes it *tidy*, not automatic.
+
 ### Async & nullability
 
 - [ ] `async Task` / `async Task<T>`; `CancellationToken` last and non-optional on new interface members.
@@ -101,9 +110,8 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - [ ] New endpoint ⇒ integration test in `RecipeManager.IntegrationTests/RecipesControllerTests.cs` asserting status code
       **and** database state, with `DbContext.ChangeTracker.Clear()` before post-write assertions.
 - [ ] FluentAssertions only, never `Assert.*`. AAA markers required.
-- [ ] `dotnet test RecipeManager.sln` — currently 84 passing. **Zero build warnings is the standard**; the 7 that
-      exist today are defects (`BUILD-01`, `BUILD-02` in [../known-issues.md](../known-issues.md)), so never add
-      one and clear an existing one when you are already in that file.
+- [ ] `dotnet test RecipeManager.sln` — currently 84 passing. **Zero build warnings, enforced** by
+      `TreatWarningsAsErrors` (ADR-010): a warning fails the build. Fix the cause; do not suppress it.
 
 ### Performance notes for this codebase
 

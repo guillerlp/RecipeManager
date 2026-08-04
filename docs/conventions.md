@@ -24,9 +24,15 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
   newer ones (`RecipeErrors`, `ResultExtensions`, `CachedRecipeRepository`, validators, dispatchers) are
   already file-scoped. Convert an old file only when you are already changing it substantially — never as a
   standalone reformat commit.
-- `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>` in every project.
-  **⚠ Target:** these are duplicated across all six `.csproj` files and should move to a single
-  `Directory.Build.props`, together with `TreatWarningsAsErrors` (`R-02` in [roadmap.md](roadmap.md)).
+- `TargetFramework`, `Nullable`, `ImplicitUsings`, `TreatWarningsAsErrors`, and `EnforceCodeStyleInBuild` live
+  in `RecipeManager/Directory.Build.props` and apply to every project (ADR-010). **Never re-declare them in a
+  `.csproj`** — a project file carries only what is specific to it (`UserSecretsId`, `IsTestProject`, package
+  and project references). A new project needs no boilerplate; it inherits the lot.
+- **Package versions live in `RecipeManager/Directory.Packages.props`, never in a `.csproj`** (ADR-011). Adding
+  a package is two edits: a `<PackageVersion Include="X" Version="N" />` there, and a bare
+  `<PackageReference Include="X" />` — **no `Version` attribute** — in the project that needs it. Per-project
+  metadata (`PrivateAssets`, `IncludeAssets`) stays on the `PackageReference`. A `Version` in a `.csproj` is
+  `error NU1008`, so this is enforced rather than remembered.
 
 ### Naming
 
@@ -246,11 +252,15 @@ on images.
 - Integration tests derive from `IntegrationTestBase`, get a fresh InMemory database per test
   (`TestDb_{Guid}`), seed via `SeedDatabase(...)`, and call `DbContext.ChangeTracker.Clear()` before asserting
   post-write state.
-- **Zero warnings is the standard.** The build currently emits 7, all in `RecipeManager.UnitTests`: five
-  `CS8602` from NSubstitute 6's nullable `Arg.Is<T>` predicate, and two `xUnit1012` from `[InlineData(null)]` on
-  a non-nullable `string` parameter. These are tracked as defects to fix (`BUILD-01`, `BUILD-02` in
-  [known-issues.md](known-issues.md)), **not** as an accepted baseline. Never add a new warning, and prefer
-  clearing an existing one when you are already editing that file.
+- **Zero warnings, enforced.** `TreatWarningsAsErrors` is on for every project (ADR-010), so a warning fails the
+  build rather than accumulating. Two idioms exist because of this, both from the NSubstitute 6 / xUnit analyser
+  set:
+  - Null-guard inside an `Arg.Is<T>` predicate — `Arg.Is<Recipe>(r => r != null && r.Title == command.Title)` —
+    because NSubstitute 6 annotates the predicate parameter as nullable. Do not use `r!` or
+    `#pragma warning disable`; the guard also makes the assertion honest.
+  - A `[Theory]` with `[InlineData(null)]` takes a **nullable** parameter (`string? invalidTitle`) and
+    null-forgives at the call site (`Recipe.Create(invalidTitle!, …)`). `!` is correct there and only there:
+    passing null *is* the scenario under test.
 
 ### Frontend
 

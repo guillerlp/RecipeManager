@@ -1,12 +1,14 @@
 # Tech stack
 
-Versions read from `*.csproj`, `global.json`, and `recipe-manager-frontend/package.json` on `main` @ `edfd057`.
+Backend versions are all declared in `RecipeManager/Directory.Packages.props` (central package management,
+ADR-011) — that file is the single source of truth, not the `.csproj` files. SDK from `global.json`, frontend
+from `recipe-manager-frontend/package.json`.
 
 ## Runtimes
 
 | Runtime | Version | Pinned in |
 | --- | --- | --- |
-| .NET | `net10.0` (all six projects) | each `.csproj` `<TargetFramework>` |
+| .NET | `net10.0` (all six projects) | `Directory.Build.props` `<TargetFramework>` (ADR-010) |
 | .NET SDK | `10.0.302`, `rollForward: latestFeature` | `RecipeManager/global.json` |
 | Node.js | not pinned | no `engines` field, no `.nvmrc` |
 | PostgreSQL | 16+ recommended by `README.md` | not enforced anywhere |

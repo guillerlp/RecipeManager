@@ -29,10 +29,10 @@ though QA can block on missing coverage).
 Unit-test breakdown: `RecipeTests` 18, `CreateRecipeHandlerTests` 11, `GetAllRecipesHandlerTests` 8,
 `EntityTests` 8, `DeleteRecipeHandlerTests` 7, `GetRecipeByIdHandlerTests` 7, `UpdateRecipeHandlerTest` 6.
 
-Build: **7 warnings**, all in `RecipeManager.UnitTests` — five `CS8602` from NSubstitute 6's nullable
-`Arg.Is<T>` predicate and two `xUnit1012` from `[InlineData(null)]` on a non-nullable `string` parameter.
-**These are defects to fix, not a baseline to preserve** (`BUILD-01`, `BUILD-02` in
-[../known-issues.md](../known-issues.md)); the target is a warning-free build.
+Build: **0 warnings**, enforced — `TreatWarningsAsErrors` in `Directory.Build.props` (ADR-010). Test code is
+where warnings historically accumulated, so two idioms exist to keep it clean: null-guard inside an
+`Arg.Is<T>` predicate (`r => r != null && r.Title == …`), and a nullable parameter on any `[Theory]` carrying
+`[InlineData(null)]`. See [../conventions.md](../conventions.md#tests).
 
 ```bash
 dotnet test RecipeManager.sln
@@ -83,7 +83,7 @@ the reported number, so it understates real coverage — `BUILD-06` in [../known
       repository interaction.
 - [ ] Every new or changed endpoint: an integration test asserting status code **and** database state.
 - [ ] Every bug fix: a test that fails without the fix.
-- [ ] No new build warnings, and ideally one fewer.
+- [ ] Build is warning-free — it fails otherwise, so never reach for `#pragma warning disable` to get green.
 
 No numeric coverage threshold has ever been agreed — `TEST-05` in [../known-issues.md](../known-issues.md).
 
