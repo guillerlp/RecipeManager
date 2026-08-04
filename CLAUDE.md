@@ -62,6 +62,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
   RecipeManager/                     solution root — run all dotnet commands from here
     RecipeManager.sln
     global.json                      pins SDK 10.0.302, rollForward: latestFeature
+    Directory.Build.props            TargetFramework/Nullable/ImplicitUsings + TreatWarningsAsErrors, all projects
     RecipeManager.Domain/            Recipe entity, Entity base, RecipeErrors, IRecipeRepository
     RecipeManager.Application/       Commands, Queries, Handlers, Dispatchers, DTOs, Validators, Mappings
     RecipeManager.Infrastructure/    AppDbContext, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
@@ -111,10 +112,10 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **7 warnings** (all in `RecipeManager.UnitTests`) and **84 tests pass**
-(70 unit + 14 integration). **Those 7 warnings are known defects, not an acceptable baseline** — see
-`BUILD-01` and `BUILD-02` in [docs/known-issues.md](docs/known-issues.md). The target is zero warnings in every
-project. Never add a new one.
+Current state: build succeeds with **0 warnings** and **84 tests pass** (70 unit + 14 integration).
+`RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
+a **build failure**, not a note — and `TargetFramework`, `Nullable`, and `ImplicitUsings` live there too. Never
+re-declare those in a `.csproj`.
 
 Frontend checks are in worse shape than they look: `npm run lint` **cannot run at all** on a clean install, and
 `npm run build` does not type-check (`BUILD-03`, `BUILD-04`). Read those entries before trusting a green
@@ -225,8 +226,9 @@ API first; there is no mock backend.
 2. **Never commit secrets.** No connection-string passwords, API keys, or tokens in `appsettings*.json`,
    `.env*`, or source. Use `dotnet user-secrets` or environment variables. The committed connection string is a
    deliberately password-free template — keep it that way.
-3. **Tests must pass and warnings must not grow before a PR.** `dotnet test RecipeManager.sln` from
-   `RecipeManager/`. Zero warnings is the target; adding one is a blocking review finding. There is no frontend
+3. **Tests must pass and the build must stay warning-free before a PR.** `dotnet test RecipeManager.sln` from
+   `RecipeManager/`. Warnings are errors (ADR-010), so a new one breaks the build rather than merely being a
+   blocking review finding. Suppressing one to get moving needs a stated reason. There is no frontend
    test runner yet — see [docs/agents/06-qa-tester.md](docs/agents/06-qa-tester.md).
 4. **Respect the dependency direction.** `Domain ← Application ← Infrastructure ← Api`. Domain references no
    project. Any deviation is an architecture decision, not an implementation detail.

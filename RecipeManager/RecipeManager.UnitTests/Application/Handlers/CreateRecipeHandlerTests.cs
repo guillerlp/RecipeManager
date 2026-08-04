@@ -52,7 +52,7 @@ public class CreateRecipeHandlerTests
         result.Value.Id.Should().NotBeEmpty();
 
         await _recipeRepository.Received(1).AddAsync(
-            Arg.Is<Recipe>(r => r.Title == command.Title),
+            Arg.Is<Recipe>(r => r != null && r.Title == command.Title),
             Arg.Any<CancellationToken>());
     }
 

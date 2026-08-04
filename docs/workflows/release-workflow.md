@@ -56,9 +56,8 @@ Run from `RecipeManager/`. Everything here is manual — nothing enforces it.
    ```bash
    dotnet build RecipeManager.sln
    ```
-   **Zero warnings is the standard.** Currently 7, all in `RecipeManager.UnitTests` (5× `CS8602`,
-   2× `xUnit1012`) — tracked as `BUILD-01`/`BUILD-02` in [../known-issues.md](../known-issues.md), not accepted
-   as a baseline. A *new* warning blocks the merge.
+   **Zero warnings, and it is enforced** — `TreatWarningsAsErrors` in `Directory.Build.props` (ADR-010) means a
+   new warning fails the build outright, so this step cannot be passed while one exists.
 
 2. **All tests pass.**
    ```bash
@@ -111,8 +110,8 @@ None | <MigrationName> — describe the schema change and whether it is destruct
 None | RecipeDto changed: <fields> — frontend updated in this PR (08-api-contract)
 
 ## Verification
-- dotnet build: <N> warnings (currently 7, target 0)
-- dotnet test: <N>/<N> passing (currently 78)
+- dotnet build: <N> warnings (must be 0 — warnings are errors)
+- dotnet test: <N>/<N> passing (currently 84)
 - npm run build + npx tsc --noEmit: pass | n/a
 - Manual check against a real PostgreSQL: <what you did> | n/a
 

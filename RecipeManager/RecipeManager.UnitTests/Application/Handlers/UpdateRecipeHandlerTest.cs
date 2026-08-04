@@ -60,6 +60,7 @@ public class UpdateRecipeHandlerTest
 
         await _recipeRepository.Received(1).UpdateAsync(
             Arg.Is<Recipe>(r =>
+                r != null &&
                 r.Title == command.Title &&
                 r.Description == command.Description &&
                 r.PreparationTime == command.PreparationTime &&
@@ -230,6 +231,7 @@ public class UpdateRecipeHandlerTest
 
         await _recipeRepository.Received(1).UpdateAsync(
             Arg.Is<Recipe>(r =>
+                r != null &&
                 r.PreparationTime == command.PreparationTime &&
                 r.CookingTime == 0),
             Arg.Any<CancellationToken>());
@@ -272,6 +274,7 @@ public class UpdateRecipeHandlerTest
 
         await _recipeRepository.Received(1).UpdateAsync(
             Arg.Is<Recipe>(r =>
+                r != null &&
                 r.PreparationTime == 0 &&
                 r.CookingTime == command.CookingTime),
             Arg.Any<CancellationToken>());

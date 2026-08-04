@@ -32,27 +32,6 @@ that are *wrong* with what already exists.
 
 These are cheap, unblock everything else, and each one removes a whole class of future bug.
 
-### R-02
-**Treat warnings as errors, centralise project properties** · `02-senior-csharp` · ~1 h
-
-`TargetFramework`, `Nullable`, and `ImplicitUsings` are duplicated across all six `.csproj` files, and nothing
-prevents a warning from being committed. Add `RecipeManager/Directory.Build.props`:
-
-```xml
-<Project>
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-  </PropertyGroup>
-</Project>
-```
-
-**Blocked by** `BUILD-01` and `BUILD-02` in [known-issues.md](known-issues.md) — fix those 7 warnings first,
-then turn this on so they can never come back.
-
 ### R-03
 **Fix the frontend toolchain** · `03-senior-react` · ~30 min
 
@@ -72,7 +51,7 @@ Nothing enforces any checklist today. `BUILD-03` is the proof: a check that nobo
 Minimum GitHub Actions workflow on every PR:
 
 ```
-dotnet build (warnings as errors after R-02) · dotnet test
+dotnet build (already warnings-as-errors, ADR-010) · dotnet test
 npm ci · npm run typecheck · npm run lint · npm run build
 dotnet list package --vulnerable --include-transitive · npm audit
 ```

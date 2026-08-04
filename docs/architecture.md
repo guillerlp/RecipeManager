@@ -264,6 +264,30 @@ endpoint is anonymous and every recipe is world-writable. See
   `ResultExtensions`, with the existing integration tests as the regression net — externally visible status
   codes must not change.
 
+### ADR-010 — Warnings are errors, and project properties are centralised
+
+- **Status:** accepted and **implemented 2026-08-04** (`R-02`). Closes `BUILD-01` and `BUILD-02`.
+- **Context:** `TargetFramework`, `Nullable`, and `ImplicitUsings` were duplicated across all six `.csproj`
+  files, and nothing stopped a warning from being committed. Seven had accumulated since the .NET 10 upgrade and
+  survived several PRs, because a warning is only a note in scrollback that everyone learns to skip.
+- **Decision:** `RecipeManager/Directory.Build.props` owns `TargetFramework`, `Nullable`, `ImplicitUsings`,
+  `TreatWarningsAsErrors`, and `EnforceCodeStyleInBuild` for every project in the solution. The six `.csproj`
+  files keep only what is genuinely project-specific (`UserSecretsId`, `IsTestProject`, package references).
+  `TreatWarningsAsErrors` is **unconditional**, not scoped to Release: with no CI yet (`INFRA-01`, `R-04`), the
+  local Debug build is the only gate that exists, so a Release-only condition would enforce nothing.
+- **Consequences:** a warning now stops the build, so it must be fixed or explicitly suppressed with a stated
+  reason rather than accumulating. The cost is real: an unused local while mid-refactor fails the build, which
+  is friction exactly when iterating. That friction is the mechanism, not a side effect — the alternative is a
+  warning count that only ever goes up.
+  `EnforceCodeStyleInBuild` currently reports nothing, because IDE style rules default to suggestion severity
+  and there is no `.editorconfig`. It is a latch: the day an `.editorconfig` is added, style violations become
+  build failures without a further change. Verified by a deliberate negative test — an unused local produced
+  `error CS0219` and failed the build.
+- **Rejected:** *(a)* Release-only enforcement — frictionless locally, but enforces nothing until CI exists.
+  *(b)* Listing specific rule IDs in `WarningsAsErrors` — surgical, but it is a list somebody must maintain and
+  it cannot stop a new class of warning. *(c)* Fixing the seven warnings without the gate — leaves the count
+  free to grow back, which is the `BUILD-03` failure mode.
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001
