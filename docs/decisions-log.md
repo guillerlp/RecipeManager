@@ -76,6 +76,12 @@ confirmed it actually fails. `BUILD-03` is this project's own proof of why: `npm
 *start* for eleven months and nobody noticed, because an unrun check and a passing check look identical from
 outside.
 
+**Follow-on, same PR.** Having removed the duplicated *properties*, the obvious next question was what else was
+duplicated — and it was every package **version**: ten of them declared in two projects each. That one is worse,
+because bumping EF Core in `Infrastructure` and not `Api` produces no warning at all; NuGet resolves
+nearest-wins and the mismatch appears at runtime. Fixed with central package management (ADR-011), and verified
+the same way: putting a `Version` back into a `.csproj` now gives `error NU1008`.
+
 **Takeaway.** *Turn "should" into "cannot".* The gap between a documented standard and an enforced one is
 filled entirely by human attention, which is the least reliable component available — and the failure is silent
 by construction, since nothing reports the warnings you stopped reading. Then verify the enforcement by

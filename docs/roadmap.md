@@ -60,6 +60,13 @@ Dependabot **alerting** is already on (68 open alerts today) but nothing acts on
 **pull requests** for both ecosystems and fail the build on high-severity alerts — that is what turns a
 notification into a gate. Closes `INFRA-01` and stops `SEC-03` from silently regrowing.
 
+**Decide NuGet lock files here, not before.** The frontend restores from a committed `package-lock.json`; the
+backend has no equivalent, so the transitive graph is resolved fresh on every restore and CI could legitimately
+get a different closure than a developer did. `<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>`
+in `Directory.Build.props` plus committed `packages.lock.json` files fixes that, and `--locked-mode` in CI makes
+an unexpected change fail rather than pass silently. It is deliberately deferred to this item because a lock
+file only earns its maintenance cost once something reproducible consumes it.
+
 Also closes `INFRA-06`: on a Windows machine with Smart App Control enabled the 14 integration tests cannot load
 the freshly built `RecipeManager.Api.dll` at all, so they are unreliable locally right after a backend change. A
 Linux runner has no such policy, which makes CI the **only** trustworthy place to run them until then.
@@ -134,6 +141,29 @@ Nothing detects contract drift, which is exactly how `BUG-01`–`BUG-05` accumul
 Add an `openapi-typescript` step producing a generated, committed types file, with a CI check that fails when
 the generated output differs from what is committed. Fix `BUG-01`–`BUG-05` first (they are defects, not
 roadmap), then make recurrence impossible.
+
+### R-15
+**Adopt an `.editorconfig`, or drop `EnforceCodeStyleInBuild`** · `01-architect` → `02-senior-csharp` · ~2 h
+
+`Directory.Build.props` sets `EnforceCodeStyleInBuild` (ADR-010), but there is no `.editorconfig` anywhere in
+the repo, so IDE style rules sit at their default suggestion severity and **nothing is currently enforced**. The
+property is a latch, not a control: it does nothing until an `.editorconfig` exists, and then it does a great
+deal at once.
+
+That is the whole difficulty. With `TreatWarningsAsErrors` also on, any rule set to `warning` becomes a **build
+error in every file simultaneously**. This is the same shape as `UX-02` — a change that shifts every existing
+file and must therefore be one deliberate pass, never a side effect of another PR.
+
+**Decide in this order:**
+
+1. Which rule families are wanted (`IDE0055` formatting, `IDE0005` unused usings, naming rules, `var` preference)
+   — the repo's existing style is the reference, not a blog post's.
+2. What severity each gets. `suggestion` enforces nothing; `warning` is a build break under ADR-010. Starting
+   everything at `suggestion` and promoting deliberately is the low-risk path.
+3. Whether the one-off reformat lands as its own commit, so review can separate it from behaviour changes.
+
+Ending with "we do not want this" is a legitimate outcome — then **delete `EnforceCodeStyleInBuild`**, because a
+property that enforces nothing while looking like a gate is worse than no property at all.
 
 ---
 

@@ -107,7 +107,8 @@ required — then security reviews after code review.
 - `React.FC` vs. plain destructured props — both exist in the codebase.
 - A default export added alongside a named export on a new component.
 - Duplication that has appeared twice but not yet three times.
-- A property re-declared in a `.csproj` that `Directory.Build.props` already owns (ADR-010).
+- A property re-declared in a `.csproj` that `Directory.Build.props` already owns (ADR-010). A package version
+  in a `.csproj` cannot slip past review — it fails the build (`NU1008`, ADR-011).
 - A finding worth recording that is out of scope for this PR — ask for an entry in
   [../known-issues.md](../known-issues.md) rather than a code comment.
 

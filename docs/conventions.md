@@ -28,6 +28,11 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
   in `RecipeManager/Directory.Build.props` and apply to every project (ADR-010). **Never re-declare them in a
   `.csproj`** — a project file carries only what is specific to it (`UserSecretsId`, `IsTestProject`, package
   and project references). A new project needs no boilerplate; it inherits the lot.
+- **Package versions live in `RecipeManager/Directory.Packages.props`, never in a `.csproj`** (ADR-011). Adding
+  a package is two edits: a `<PackageVersion Include="X" Version="N" />` there, and a bare
+  `<PackageReference Include="X" />` — **no `Version` attribute** — in the project that needs it. Per-project
+  metadata (`PrivateAssets`, `IncludeAssets`) stays on the `PackageReference`. A `Version` in a `.csproj` is
+  `error NU1008`, so this is enforced rather than remembered.
 
 ### Naming
 

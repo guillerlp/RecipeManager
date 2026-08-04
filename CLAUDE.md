@@ -63,6 +63,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.sln
     global.json                      pins SDK 10.0.302, rollForward: latestFeature
     Directory.Build.props            TargetFramework/Nullable/ImplicitUsings + TreatWarningsAsErrors, all projects
+    Directory.Packages.props         every package version (central package management) — never version a .csproj
     RecipeManager.Domain/            Recipe entity, Entity base, RecipeErrors, IRecipeRepository
     RecipeManager.Application/       Commands, Queries, Handlers, Dispatchers, DTOs, Validators, Mappings
     RecipeManager.Infrastructure/    AppDbContext, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations

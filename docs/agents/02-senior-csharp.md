@@ -85,6 +85,15 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - [ ] Verify the resulting status code end-to-end: `ErrorCode` metadata drives it, and only `errors.First()`
       sets the response status.
 
+### Packages
+
+- [ ] A new package is **two** edits (ADR-011): `<PackageVersion Include="X" Version="N" />` in
+      `RecipeManager/Directory.Packages.props`, and `<PackageReference Include="X" />` — **no `Version`** — in
+      the project that needs it. A `Version` in a `.csproj` fails the build with `NU1008`.
+- [ ] Never re-declare `TargetFramework`, `Nullable`, `ImplicitUsings`, or the warning properties in a
+      `.csproj`; `Directory.Build.props` owns them (ADR-010).
+- [ ] A new dependency still needs `01-architect` sign-off — central versioning makes it *tidy*, not automatic.
+
 ### Async & nullability
 
 - [ ] `async Task` / `async Task<T>`; `CancellationToken` last and non-optional on new interface members.

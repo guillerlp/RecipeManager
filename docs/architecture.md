@@ -281,8 +281,42 @@ endpoint is anonymous and every recipe is world-writable. See
   warning count that only ever goes up.
   `EnforceCodeStyleInBuild` currently reports nothing, because IDE style rules default to suggestion severity
   and there is no `.editorconfig`. It is a latch: the day an `.editorconfig` is added, style violations become
-  build failures without a further change. Verified by a deliberate negative test — an unused local produced
-  `error CS0219` and failed the build.
+  build failures without a further change — which is why adding one is tracked as `R-15` rather than done
+  incidentally. Verified by a deliberate negative test — an unused local produced `error CS0219` and failed the
+  build.
+- **Also elevates NuGet restore warnings**, which is easy to miss: `TreatWarningsAsErrors` is honoured by
+  restore, not only by the compiler. Verified — a package with a published advisory produces
+  `error NU1903 … Warning As Error` and fails the build, and `NuGetAuditMode` defaults to `all` on .NET 10, so
+  **transitive** advisories count too. All six projects are clean today, so nothing breaks now; the consequence
+  is that a *newly published* advisory against any dependency will fail the build with no code change.
+  Accepted deliberately: it delivers, earlier and harder, the `dotnet list package --vulnerable` gate that
+  `R-04` plans for CI, and `SEC-03` (68 npm alerts nobody acts on) is the failure mode it prevents on the .NET
+  side. If it ever becomes obstructive the escape hatch is
+  `<WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>` — do not reach for it without
+  recording why.
+
+### ADR-011 — Central Package Management
+
+- **Status:** accepted and **implemented 2026-08-04**.
+- **Context:** ADR-010 removed duplicated *properties* from the `.csproj` files but left duplicated *versions*:
+  ten packages declared their version in two projects each — `Microsoft.EntityFrameworkCore` 10.0.10 and
+  `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3 in both `Api` and `Infrastructure`, `FluentResults` in both
+  `Domain` and `Application`, and the whole xunit/FluentAssertions/coverlet set in both test projects.
+- **The failure this prevents.** Bumping EF Core in one project and not the other does not warn and does not
+  fail: NuGet resolves the conflict by nearest-wins and the mismatch surfaces at runtime, in whichever project
+  lost. That is strictly worse than the warning problem ADR-010 solved, because there is no diagnostic at all.
+- **Decision:** `RecipeManager/Directory.Packages.props` sets `ManagePackageVersionsCentrally` and holds every
+  version as a `PackageVersion` item. A `.csproj` names the packages it needs — `<PackageReference Include="…" />`
+  with **no** `Version` attribute — and keeps only per-project metadata (`PrivateAssets`, `IncludeAssets`).
+- **Consequences:** a version exists in exactly one place, so drift becomes unrepresentable rather than merely
+  discouraged — verified by a negative test: adding `Version=` back to a `.csproj` produces
+  `error NU1008` and fails the build. Upgrading a shared package is now a one-line edit, which also makes the
+  `R-04` vulnerability remediation loop single-edit. The cost is indirection: reading a `.csproj` no longer
+  tells you which version you get, and a newcomer who adds a `PackageReference` the usual way (with a version)
+  gets an error until they learn the convention — an error being the point.
+- **Rejected:** leaving versions in the `.csproj` files and relying on review to keep them aligned. That is the
+  same class of rule ADR-008 abandoned for handler registration: enforced only by attention, and it fails
+  silently.
 - **Rejected:** *(a)* Release-only enforcement — frictionless locally, but enforces nothing until CI exists.
   *(b)* Listing specific rule IDs in `WarningsAsErrors` — surgical, but it is a list somebody must maintain and
   it cannot stop a new class of warning. *(c)* Fixing the seven warnings without the gate — leaves the count
