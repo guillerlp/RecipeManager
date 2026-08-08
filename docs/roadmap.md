@@ -49,9 +49,14 @@ dotnet list package --vulnerable --include-transitive · npm audit
 Every one of those npm scripts now exists and passes — `R-03`/ADR-012 made them runnable. This item is what
 makes anyone actually run them.
 
-Dependabot **alerting** is already on (68 open alerts today) but nothing acts on it. Add Dependabot
-**pull requests** for both ecosystems and fail the build on high-severity alerts — that is what turns a
-notification into a gate. Closes `INFRA-01` and stops `SEC-03` from silently regrowing.
+Dependabot **alerting** is already on but nothing acts on it. Add Dependabot **pull requests** for both
+ecosystems and fail the build on high-severity alerts — that is what turns a notification into a gate. Closes
+`INFRA-01`.
+
+**`SEC-03` was remediated first, deliberately, so this gate can land blocking.** With 68 alerts open, a
+blocking `npm audit` step would have gone red on the PR that introduced it, and every subsequent PR would have
+merged over a red check — which teaches people to ignore red, the exact failure mode `BUILD-03` demonstrated.
+The audit baseline is now 0, so any failure here is a genuine regression.
 
 **Decide NuGet lock files here, not before.** The frontend restores from a committed `package-lock.json`; the
 backend has no equivalent, so the transitive graph is resolved fresh on every restore and CI could legitimately
@@ -229,7 +234,7 @@ definition of ready-to-deploy. Re-read this list before the first deployment.
 | --- | --- |
 | Authentication exists and every write endpoint requires it | `SEC-01` |
 | Recipes have an owner, and authorization is enforced in the query, not the UI | `SEC-02` |
-| npm vulnerabilities resolved (currently 68 open Dependabot alerts, 32 high; `axios` is 29 of them) | `SEC-03` |
+| ~~npm vulnerabilities resolved~~ — **closed 2026-08-08**, `npm audit` reports 0 | `SEC-03`, settled |
 | Rate limiting on write endpoints | `SEC-04` |
 | Exception messages no longer returned to clients | `SEC-05`, `SEC-06` |
 | Security headers and HSTS enabled | `SEC-10` |

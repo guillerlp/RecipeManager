@@ -42,14 +42,50 @@ Jump to every entry touching a topic.
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Testing | [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
-| Tooling / infrastructure | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
-| Enforcement vs. convention | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Tooling / infrastructure | [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Enforcement vs. convention | [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Dependency management | [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
 | Frontend / React | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | Accessibility | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 
 ---
 
 ## Entries
+
+### 2026-08-08 — Remediate before you gate, and check what is installed rather than what is allowed
+
+**Context.** `R-04` (CI) specifies a `npm audit` step. `SEC-03` recorded 68 open Dependabot alerts — 70 by the
+time it was measured, two having been published in the interim. A blocking audit step would therefore have
+failed on the very PR that introduced it.
+
+**Decision.** Fix `SEC-03` first, in its own PR, then land `R-04`'s audit step **blocking** against a clean
+baseline. Chosen over the two alternatives below.
+
+**Rejected.** *(a)* Land the audit step report-only and promote it later. Smaller and unblocks CI immediately —
+but it ships a step that cannot fail, which is precisely the `BUILD-03` shape this project has already been
+burned by, and "promote it later" is enforced only by memory. *(b)* Land it blocking with the alerts still
+open, so the pipeline tells the truth from day one. Honest, but every PR until remediation merges over a red
+check, and a check people routinely override has negative value — it costs attention and buys nothing.
+
+**Cost.** `R-04` slips behind a dependency upgrade, and the upgrade carried real risk with no automated net:
+`TEST-01` means zero frontend tests exist, so an `axios` and `react-router` bump was verified by hand in a
+browser. That is not a repeatable guarantee, and it is the strongest argument yet for `R-07`.
+
+**What the fix actually found.** `npm audit fix` cleared all 13 advisories and **`package.json` did not
+change** — only `package-lock.json`. Every fix was already inside the declared semver ranges. Two things follow:
+
+- `SEC-03`'s warning that `react-router` and `vite` were "majors-adjacent" was **wrong**. Every bump was minor:
+  `axios` 1.10→1.19, `react-router` 7.7→7.18, `vite` 7.0→7.3. The entry had been treating an unverified fear as
+  a finding, and it deterred the fix for months. Corrected in the [Settled](known-issues.md#settled) row.
+- Nothing had gone wrong in `package.json`. The ranges permitted every patched version the whole time. The lock
+  file had simply never been re-resolved, and no tool asks it to.
+
+**Takeaway.** *A dependency range says what is permitted; only the lock file says what you actually run — and
+nothing reconciles the two on your behalf.* Being "on `^1.10.0`" while shipping 1.10.0 for a year is the normal
+case, not an anomaly. Related but separable: **remediate before you gate.** A new gate should be introduced
+against a baseline it passes, or the first thing it teaches everyone is how to ignore it.
+
+---
 
 ### 2026-08-08 — A check that cannot start and a check that passes look identical
 
