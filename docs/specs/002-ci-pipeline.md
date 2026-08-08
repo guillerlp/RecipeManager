@@ -163,8 +163,9 @@ Specific hardening applied to the workflow itself, since a CI workflow is an exe
 
 ## 11. Acceptance criteria
 
-- [ ] Given a PR to `main`, when it opens, then the backend and frontend jobs both run. **Only verifiable once
-      the workflow is on GitHub** — confirmed on the PR for this spec, not locally.
+- [x] Given a PR to `main`, when it opens, then the backend and frontend jobs both run. **Confirmed on PR #14**,
+      run `31275373275`: Frontend green in 30s, Backend green in 44s, 0 warnings and 84/84 on the Linux runner —
+      including the 14 integration tests that `INFRA-06` made unreliable on Windows.
 - [x] Given a deliberate compiler warning, when CI runs, then the backend job **fails** (ADR-010 via CI).
 - [x] Given a deliberately failing test, when CI runs, then the backend job **fails**.
 - [x] Given a deliberate TypeScript error, when CI runs, then the frontend job **fails** before Vite bundles.
