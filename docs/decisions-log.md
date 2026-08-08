@@ -42,12 +42,62 @@ Jump to every entry touching a topic.
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Testing | [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
-| Tooling / infrastructure | [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
-| Enforcement vs. convention | [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Tooling / infrastructure | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Enforcement vs. convention | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Frontend / React | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
+| Accessibility | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 
 ---
 
 ## Entries
+
+### 2026-08-08 — A check that cannot start and a check that passes look identical
+
+**Context.** `R-03`. `npm run lint` had been unable to *start* since 2025-08-08: the config was renamed to
+`eslint.config.ts` and ESLint 9 loads a TypeScript flat config through `jiti`, which was never added
+(`BUILD-03`). `npm run build` was `vite build`, and esbuild strips types without checking them (`BUILD-04`). So
+the frontend had two scripts that looked like gates and were not.
+
+**Decision.** Add `jiti`; `"build": "tsc -b && vite build"`; add `"typecheck"`. Scope the type-aware ESLint
+rule sets to `src/**` — the only files `tsconfig.json` includes — and lint the root tooling configs without type
+information. ADR-012.
+
+**Rejected.** *(a)* Renaming the config to `.js`: no new dependency, but it discards type checking of the config
+and the typed `tseslint.config()` helper already in use — reversing a 2025 decision to avoid a dev-only loader
+that never ships to a browser. *(b)* Merging the gate PR green and fixing the lint findings later: smaller diff,
+but a gate merged red is not a gate. *(c)* `ts-node`, which was already installed and is presumably a previous
+attempt at this fix — factually the wrong loader, and it sat there for a year looking like the problem was
+handled.
+
+**Cost.** Every frontend PR now has to satisfy `recommendedTypeChecked` + `stylisticTypeChecked`, and a build
+that used to succeed with a type error now fails. Same shape of friction as ADR-010, and the same answer: the
+friction is the mechanism.
+
+**What turning it on actually found.** Twelve errors, and the interesting ones were not style:
+
+- `ThemeContext` was created with a **default value**, so `useContext` never returned `undefined` and
+  `useTheme`'s `if (!ctx) throw` was unreachable code. The guard-hook pattern this repo documents as one of its
+  examples had never worked. `Footer` also called `useContext(ThemeContext)` directly, bypassing the hook —
+  which is why nobody hit the missing-provider case that would have exposed it.
+- `no-console` was **never configured**. `BUG-08` was recorded as "ESLint would have caught this had it been
+  runnable"; it would not have. The unrunnable linter was hiding a second gap, not causing this one.
+- `RecipeList` passed an `onClick` whose whole body was a `console.log`, so every card rendered as
+  `<button aria-label="View X recipe">` that did nothing when activated. Deleting the log left a no-op handler
+  and made the accessibility lie visible. Cards are now `<article>`; `BUG-10` tracks the missing detail route.
+- The unused `Recipe` import that appeared after that deletion was caught by **`tsc`, not ESLint** —
+  `no-unused-vars` is configured with `varsIgnorePattern: '^[A-Z_]'`, which exempts every PascalCase binding.
+  Two gates, genuinely different coverage.
+
+**Verified by negative test**, per the 2026-08-04 entry: a deliberate `const x: number = "s"` fails
+`npm run build` before Vite runs, and a deliberate `console.log` is reported by `npm run lint`.
+
+**Takeaway.** *An unrun check and a passing check are indistinguishable from outside — and the moment you can
+finally see through the window, expect the room to be dirtier than the ticket said.* The estimate for this was
+30 minutes for three one-line edits. What it actually surfaced was a documented pattern that had never
+functioned, a rule everyone assumed existed, and an accessibility defect hiding inside a debug statement. Budget
+for that: the value of turning on a disabled check is mostly in what it reports, not in the switch.
+
+---
 
 ### 2026-08-04 — A warning nobody has to fix is a warning that multiplies
 

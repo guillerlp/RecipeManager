@@ -131,8 +131,8 @@ of these, point at the file.
 | Concept | Where it lives | What to notice |
 | --- | --- | --- |
 | **Server state vs. client state** | `useRecipes` (TanStack Query) vs. `useState` in `RecipePage` | Server data is cached, shared, and invalidated; UI state is local. Conflating them is why people reach for Redux unnecessarily. |
-| **Context + guard hook** | `ThemeContext` and `useTheme` | The hook throws when the provider is missing, converting a silent-undefined bug into a loud one. |
-| **Memoised context value** | `ThemeContext`'s `useMemo` + `useCallback` | Without them, every provider render gives consumers a new object and re-renders all of them. |
+| **Context + guard hook** | `contexts/ThemeContext.ts` and `useTheme` | The hook throws when the provider is missing, converting a silent-undefined bug into a loud one. Note the context is created with **no default value** — that is what makes the throw reachable. It had one until `R-03`, and the guard was dead code the whole time. |
+| **Memoised context value** | `ThemeProvider`'s `useMemo` + `useCallback` | Without them, every provider render gives consumers a new object and re-renders all of them. |
 | **Derived state via `useMemo`** | `RecipeList.filteredRecipes` | Filtering is computed from props and state, never stored in its own `useState` — no synchronisation bug is possible. |
 | **Semantic element selection** | `RecipeCard` rendering `<article>` or `<button>` by whether `onClick` exists | Accessibility falls out of the element choice instead of being bolted on with ARIA. |
 | **Design tokens and theming** | `styles/themes/*.css`, `data-theme` on `<html>` | One attribute swaps the whole palette because no component hard-codes a colour. |

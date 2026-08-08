@@ -1,11 +1,10 @@
-import { useContext } from "react";
 import styles from "./Footer.module.css";
-import { ThemeContext } from "@/contexts";
+import { useTheme } from "@/hooks";
 import SunnyIcon from '@mui/icons-material/Sunny';
 import DarkIcon from '@mui/icons-material/Bedtime';
 
 export const Footer: React.FC = () => {
-  const { theme, toggleTheme } = useContext(ThemeContext);
+  const { theme, toggleTheme } = useTheme();
   const nextTheme = theme === "light" ? "dark" : "light";
 
   return (

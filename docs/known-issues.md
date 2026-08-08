@@ -4,7 +4,7 @@ Every **defect and gap in what already exists**. Planned work that does not exis
 [roadmap.md](roadmap.md); the two files cross-reference each other.
 
 Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code. Build and
-test numbers re-measured on 2026-08-04 after `R-02`.
+test numbers re-measured on 2026-08-04 after `R-02`, and the frontend row re-measured on 2026-08-08 after `R-03`.
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -23,10 +23,10 @@ test numbers re-measured on 2026-08-04 after `R-02`.
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **0 warnings** — enforced by `TreatWarningsAsErrors` (ADR-010) |
 | Backend tests | `dotnet test RecipeManager.sln` | **84 passing** (70 unit + 14 integration), 0 failing |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
-| Frontend type-check | `npx tsc --noEmit` | **0 errors** |
-| Frontend build | `npm run build` | succeeds — but does **not** type-check ([BUILD-04](#build-04)) |
-| Frontend lint | `npm run lint` | **fails to start** on a clean install ([BUILD-03](#build-03)) |
-| npm vulnerabilities | `npm audit` · Dependabot API | **17 packages** (12 high) · **68 open alerts** — 32 high, 32 medium, 4 low ([SEC-03](#sec-03)) |
+| Frontend type-check | `npm run typecheck` | **0 errors** |
+| Frontend build | `npm run build` | succeeds, and now type-checks first (`tsc -b && vite build`, ADR-012) |
+| Frontend lint | `npm run lint` | **0 problems** — runs since `jiti` was added (ADR-012, `R-03`) |
+| npm vulnerabilities | `npm audit` · Dependabot API | **18 packages** (13 high, 3 moderate, 2 low) · **68 open alerts** — 32 high, 32 medium, 4 low ([SEC-03](#sec-03)) |
 | Frontend tests | — | **none exist**, no runner installed ([TEST-01](#test-01)) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
@@ -34,8 +34,11 @@ test numbers re-measured on 2026-08-04 after `R-02`.
 (ADR-010, `R-02`). The seven warnings that existed until then — introduced by the .NET 10 package upgrades, not
 present on the .NET 8 set — were `BUILD-01` and `BUILD-02`, both fixed in the same PR.
 
-The frontend has no equivalent gate: `npm run lint` still cannot start ([BUILD-03](#build-03)) and
-`npm run build` still does not type-check ([BUILD-04](#build-04)).
+**The frontend now has the equivalent gate**, closed by `R-03`/ADR-012 on 2026-08-08: `jiti` makes
+`eslint.config.ts` loadable, `npm run build` runs `tsc -b` before Vite, and `npm run typecheck` exists. Both
+gates were verified by negative test — a deliberate type error fails the build before Vite runs, and a
+deliberate `console.log` is reported by lint. What this does **not** buy is automatic enforcement: nothing runs
+these commands for you until CI exists ([INFRA-01](#infra-01), `R-04`).
 
 ---
 
@@ -43,11 +46,10 @@ The frontend has no equivalent gate: `npm run lint` still cannot start ([BUILD-0
 
 | ID | Severity | Area | Issue |
 | --- | --- | --- | --- |
-| [BUILD-03](#build-03) | **High** | Tooling | `npm run lint` cannot run — `jiti` missing from `devDependencies` |
-| [BUILD-04](#build-04) | **High** | Tooling | `npm run build` does not type-check |
 | [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 5.7× the entire JS bundle |
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
 | [BUILD-07](#build-07) | Low | Tooling | Node version not pinned |
+| [BUILD-08](#build-08) | Low | Tooling | `ts-node` is a devDependency nothing uses |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
 | [SEC-03](#sec-03) | **High** | Security | 68 open Dependabot alerts across 14 npm packages; `axios` alone is 29 of them |
@@ -67,8 +69,8 @@ The frontend has no equivalent gate: `npm run lint` still cannot start ([BUILD-0
 | [BUG-05](#bug-05) | Medium | Contract | `updateRecipe` typed as returning a body; API returns 204 |
 | [BUG-06](#bug-06) | Medium | Frontend | `/recipes/new` is linked but has no route |
 | [BUG-07](#bug-07) | Low | API | `GET /api/recipes/{id}` missing the `:guid` route constraint |
-| [BUG-08](#bug-08) | Low | Frontend | `console.log` left in shipped code |
 | [BUG-09](#bug-09) | Low | Frontend | Error recovery does a full page reload |
+| [BUG-10](#bug-10) | Medium | Frontend | No recipe detail route, so cards are not clickable |
 | [TEST-01](#test-01) | **High** | Tests | No frontend test runner or tests |
 | [TEST-02](#test-02) | **High** | Tests | Cache invalidation has no dedicated test |
 | [TEST-03](#test-03) | Medium | Tests | Instruction ordering never asserted |
@@ -98,49 +100,6 @@ Resolved decisions and items promoted to planned work are recorded in [Settled](
 ---
 
 ## Build & tooling
-
-### BUILD-03
-**`npm run lint` cannot run on a clean install — High**
-
-```
-Error: The 'jiti' library is required for loading TypeScript configuration files.
-```
-
-**Cause.** The ESLint config is `eslint.config.ts` (TypeScript). ESLint 9 needs `jiti` to load a TS config, and
-`jiti` is **not** in `devDependencies` and is not pulled in transitively. Reproduced from a clean
-`npm install` on `main` @ `edfd057` (2026-07-26).
-
-**When it broke.** The config was `eslint.config.js` until commit `3474a8b` (2025-08-08, "Convert from
-javascript to typescript"), which renamed it to `.ts` without adding `jiti`. `git log -S'jiti'` shows the
-package has never appeared in `package.json`, so lint has been unable to start since that commit.
-
-**Impact.** Every ESLint rule the project configured — `@typescript-eslint/no-unused-vars`, `react-hooks`, and
-the type-checked rule sets — has been unenforced since then. This is why [BUG-08](#bug-08) survived.
-
-**Fix.** Either add `jiti` to `devDependencies`, or rename the config to `eslint.config.js`/`.mjs`. Adding
-`jiti` preserves the type-checked config and is the smaller change. Then run `npm run lint` and fix whatever it
-reports — that result is currently unknown and may add entries to this file.
-
-**Owner:** `03-senior-react` · **Effort:** ~10 min + unknown follow-up
-
-### BUILD-04
-**`npm run build` does not type-check — High**
-
-`"build": "vite build"` in `package.json`. Vite transpiles with esbuild and **strips types without checking
-them**, so a TypeScript error does not fail the build.
-
-**Impact.** The frontend has no automated type safety gate. Combined with [BUILD-03](#build-03), *nothing*
-currently validates the frontend in CI-equivalent terms. This matters most for the contract bugs
-([BUG-01](#bug-01)–[BUG-03](#bug-03)): fixing the TS types will surface real errors that must be caught
-somewhere.
-
-**Verified.** `npx tsc --noEmit` currently passes with 0 errors — the code is type-clean today, it is just
-unguarded.
-
-**Fix.** `"build": "tsc -b && vite build"` (the Vite React-TS template default), and add a
-`"typecheck": "tsc --noEmit"` script for fast local checks.
-
-**Owner:** `03-senior-react` · **Effort:** ~10 min
 
 ### BUILD-05
 **`mainPhoto.png` is 2.1 MB — Medium**
@@ -184,6 +143,20 @@ verified on runs Node 24.18 / npm 11.16. The .NET SDK *is* pinned (`global.json`
 
 **Owner:** `03-senior-react` · **Effort:** ~5 min
 
+### BUILD-08
+**`ts-node` is a devDependency nothing uses — Low**
+
+`ts-node@^10.9.2` sits in `recipe-manager-frontend/package.json` with no reference anywhere: no `ts-node`
+section in `tsconfig.json`, no script that invokes it, no config that loads through it. The most likely
+explanation is an earlier attempt to fix `BUILD-03` — ESLint 9 loads a TypeScript flat config through `jiti`,
+not `ts-node`, so it never had any effect.
+
+**Fix.** Remove it, then `npm run lint`, `npm run typecheck`, and `npm run build` to confirm nothing regressed.
+Left in place by `R-03`, which added `jiti` — removing an unrelated dependency in the same PR would have
+obscured which change made lint work.
+
+**Owner:** `03-senior-react` · **Effort:** ~5 min
+
 ---
 
 ## Security
@@ -215,7 +188,7 @@ Two tools, two numbers, both correct — they count different things:
 
 | Source | Reports | Counts |
 | --- | --- | --- |
-| `npm audit` | **17 vulnerabilities** (12 high, 3 moderate, 2 low) | affected *packages* |
+| `npm audit` | **18 vulnerabilities** (13 high, 3 moderate, 2 low) | affected *packages* |
 | Dependabot (`gh api repos/guillerlp/RecipeManager/dependabot/alerts`) | **68 open alerts** — 32 high, 32 medium, 4 low | one alert per *advisory per package* |
 
 Quote the Dependabot figure when talking about the repo, since that is what the GitHub UI shows. All 68 are
@@ -246,6 +219,14 @@ then be exactly what the advisory targets.
 **Fix.** `npm audit fix` claims to resolve them. Do it in its own PR, then `npm run build`, `npx tsc --noEmit`,
 and manually exercise the app — `react-router` and `vite` are majors-adjacent and this is the kind of upgrade
 that breaks routing silently.
+
+**The count moved from 17 to 18 in `R-03`, and `jiti` is not the cause.** `jiti@2.7.0` has **zero** runtime
+dependencies, no install scripts, and is MIT-licensed — it adds one dev-scope package and no transitive graph.
+What changed is that `npm install` re-resolved the tree: a hoisted, optional-peer `yaml@2.8.0` entry was dropped
+and `cosmiconfig`'s nested `yaml` now carries the advisory instead (a stack-overflow DoS on deeply nested YAML,
+reachable only through the build toolchain). Recorded here rather than fixed, because this entry's own
+instruction is that `npm audit fix` runs in its **own** PR with manual verification — `react-router` and `vite`
+are majors-adjacent and break routing silently.
 
 **Backend is clean:** `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages in
 any of the six projects, and Dependabot opened zero NuGet alerts. Confirmed by both tools independently.
@@ -397,17 +378,28 @@ is worthwhile regardless.
 `[HttpGet("{id}")]` while `[HttpPut("{id:guid}")]` and `[HttpDelete("{id:guid}")]` are constrained. A malformed
 id reaches model binding instead of being rejected by routing, producing an inconsistent error shape.
 
-### BUG-08
-**`console.log` in shipped code — Low**
-
-`components/common/SearchBar/SearchBar.tsx` logs on every keystroke; `components/ui/Recipe/RecipeList/RecipeList.tsx`
-logs on every card click. Both would have been caught by ESLint had it been runnable ([BUILD-03](#build-03)).
-
 ### BUG-09
 **Error recovery does a full page reload — Low**
 
 `RecipeList`'s retry button calls `window.location.reload()`, discarding all client state. TanStack Query's
 `refetch()` is already available from `useRecipes`.
+
+### BUG-10
+**No recipe detail route, so cards are not clickable — Medium**
+
+`App.tsx` routes only `/`, `/recipes`, and `/profile`. There is no `/recipes/:id` screen, so there is nothing
+for a `RecipeCard` click to navigate to.
+
+Until `R-03`, `RecipeList` passed an `onClick` whose entire body was `console.log('Clicked recipe:', …)`. That
+made every card render as `<button aria-label="View {title} recipe">` — focusable, announced to a screen reader
+as an action, and doing nothing when activated. Removing the debug log (`BUG-08`) left a no-op handler, so the
+`onClick` was dropped and cards now render as `<article>`, which is what `RecipeCard`'s element switch is for.
+
+**Fix.** Build the detail screen, add the `/recipes/:id` route, and pass `onClick` again — `RecipeCard` already
+switches to `<button>` when it receives one. Note that the detail screen is blocked by the contract defects
+[BUG-01](#bug-01)–[BUG-03](#bug-03): it needs the real `Guid` id, `servings`, and `instructions`.
+
+**Owner:** `03-senior-react` + `07-ux-ui`
 
 ---
 
@@ -470,8 +462,9 @@ PostgreSQL, and PRs should say so explicitly.
 **No CI pipeline — High**
 
 No `.github/` directory, no workflow, nothing. Every check in
-[workflows/release-workflow.md](workflows/release-workflow.md) is manual and therefore skippable —
-[BUILD-03](#build-03) is direct evidence that an unenforced check silently rots.
+[workflows/release-workflow.md](workflows/release-workflow.md) is manual and therefore skippable — the retired
+`BUILD-03` (see [Settled](#settled)) is direct evidence that an unenforced check silently rots: `npm run lint`
+could not even *start* for eleven months and no one noticed.
 
 **Minimum useful pipeline:** `dotnet build` (already warnings-as-errors via `Directory.Build.props`, ADR-010),
 `dotnet test`, `npm ci`, `npm run typecheck`, `npm run lint`, `npm run build`. Add
@@ -640,3 +633,7 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | Package versions duplicated across `.csproj` files | **Central package management.** Ten packages were versioned in two projects each; drift resolved nearest-wins with no diagnostic. **Shipped 2026-08-04.** | ADR-011 |
 | Should a NuGet advisory fail the local build? | **Yes, accepted.** `TreatWarningsAsErrors` elevates `NU1903`, delivering `R-04`'s vulnerability gate earlier. Escape hatch recorded in ADR-010 if it becomes obstructive. | ADR-010 |
 | `RecipeManager.Api.csproj.user` committed | **Untracked**, and `*.user` added to `.gitignore` — it carried one developer's debug profile. Fixed 2026-08-04. | — |
+| `BUILD-03` — `npm run lint` could not start | **Fixed** by adding `jiti`; ESLint 9 loads a TypeScript flat config through it. Unable to start since 2025-08-08. **Shipped 2026-08-08.** | ADR-012, `R-03` |
+| `BUILD-04` — `npm run build` did not type-check | **Fixed**: `"build": "tsc -b && vite build"`, plus a `typecheck` script. **Shipped 2026-08-08.** | ADR-012, `R-03` |
+| `BUG-08` — `console.log` in shipped code | **Removed**, and `no-console` added to the ESLint config — the rule had never been configured, so the entry's claim that lint "would have caught" them was wrong. **Shipped 2026-08-08.** | ADR-012, `R-03` |
+| Was the ESLint config lintable as written? | **No.** Type-aware rules were applied to `**/*.{ts,tsx}` while `tsconfig.json` includes only `src`, so `eslint.config.ts` and `vite.config.ts` were parse errors. Typed rules now scope to `src/**`; root tooling files lint without type information. | ADR-012 |

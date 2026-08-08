@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeProvider } from '@/contexts';
 import { HomePage, RecipePage } from '@/pages';
 import { AppLayout } from '@/components';
 

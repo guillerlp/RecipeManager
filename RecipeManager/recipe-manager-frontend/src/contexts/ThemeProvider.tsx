@@ -1,13 +1,8 @@
-import { ThemeContextType, Theme } from "@/types/theme";
+import { Theme } from "@/types/theme";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { ThemeContext } from "./ThemeContext";
 
-export const ThemeContext = React.createContext<ThemeContextType>({
-    theme: 'light',
-    toggleTheme: () => {},
-    setTheme: () => {}
-});
-
-export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
+export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
     const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
 
     const [theme, setTheme] = useState<Theme>(() => {
@@ -31,7 +26,7 @@ export const ThemeProvider: React.FC<React.PropsWithChildren<{}>> = ({ children 
             window.localStorage.setItem('theme', theme);
         } catch {
         }
-    }, [theme]);
+    }, [theme, isBrowser]);
 
     const toggleTheme = useCallback(() => {
         setTheme(prev => prev === 'light' ? 'dark' : 'light');

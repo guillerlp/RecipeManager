@@ -166,8 +166,9 @@ real gap in the suite: `TEST-02` in [../known-issues.md](../known-issues.md).
 There is no Vitest, no Jest, no React Testing Library, and no `test` script in `package.json`.
 
 **Decided stack: Vitest + React Testing Library + jsdom** (`R-07` in [../roadmap.md](../roadmap.md)) — the
-project is already Vite-based and Vitest reuses `vite.config.ts` aliases directly. Blocked by `R-03`, since the
-frontend toolchain itself is broken.
+project is already Vite-based and Vitest reuses `vite.config.ts` aliases directly. **Unblocked** — `R-03`
+shipped the working toolchain on 2026-08-08 (ADR-012). Note that Vitest's own config file will land outside
+`tsconfig.json`'s `include`, so check which ESLint block picks it up.
 
 First tests worth writing, in priority order:
 
@@ -176,8 +177,9 @@ First tests worth writing, in priority order:
 2. `RecipeList` filtering — matches on title, description, and ingredients; case-insensitive; trims;
    empty-query returns everything.
 3. `RecipeList` states — loading, error, empty-with-query vs. empty-without-query, populated.
-4. `ThemeContext` / `useTheme` — persists to `localStorage`, sets `data-theme` on `<html>`, and the guard hook
-   throws outside a provider.
+4. `ThemeProvider` / `useTheme` — persists to `localStorage`, sets `data-theme` on `<html>`, and the guard hook
+   throws outside a provider. That last case only became testable in `R-03`: the context previously had a
+   default value, so `useContext` never returned `undefined` and the guard could not fire.
 5. `NavLink` active-state logic — trailing-slash normalisation and prefix matching (`/recipes` active on
    `/recipes/123`).
 

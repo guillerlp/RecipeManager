@@ -11,7 +11,7 @@ interface RecipeCardProps {
 export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
 
     const formatDuration = (minutes: number): string => {
-        const safeMinutes = Math.max(0, Number.isFinite(minutes as number) ? (minutes as number) : 0);
+        const safeMinutes = Math.max(0, Number.isFinite(minutes) ? minutes : 0);
 
         if(safeMinutes < 60) return `${safeMinutes} min`;
 
@@ -22,7 +22,7 @@ export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
     }
 
     const getISODuration = (minutes: number): string => {
-        const safeMinutes = Math.max(0, Number.isFinite(minutes as number) ? (minutes as number) : 0);
+        const safeMinutes = Math.max(0, Number.isFinite(minutes) ? minutes : 0);
 
         if (safeMinutes < 60) return `PT${safeMinutes}M`;
 
@@ -49,7 +49,7 @@ export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
         <CardComponent className={`${styles.recipesList} ${onClick ? styles.clickable : ''}`} {...cardProps}> 
             <div className={styles.imageBox}>
                 <img
-                    src={recipe.image || Logo}
+                    src={recipe.image ?? Logo}
                     className={styles.heroImage}
                     alt={`${recipe.title} photo`}
                     loading="lazy"

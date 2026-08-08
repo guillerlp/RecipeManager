@@ -7,11 +7,14 @@ import tseslint from 'typescript-eslint'
 export default tseslint.config(
   { ignores: ['dist'] },
 
-  ...tseslint.configs.recommendedTypeChecked,
-  ...tseslint.configs.stylisticTypeChecked,
-
+  // Application source. tsconfig.json has `include: ["src"]`, so these are the only
+  // files type information is available for — the type-checked rule sets belong here.
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}'],
+    extends: [
+      ...tseslint.configs.recommendedTypeChecked,
+      ...tseslint.configs.stylisticTypeChecked,
+    ],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -32,11 +35,17 @@ export default tseslint.config(
 
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
 
+  // Build tooling at the repo root. These run in Node and are outside tsconfig.json's
+  // `include`, so type-aware linting is impossible for them.
   {
-    files: ['**/*.{js,cjs,mjs}'],
-    ...tseslint.configs.disableTypeChecked,
+    files: ['*.{ts,mts,cts,js,mjs,cjs}'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      globals: globals.node,
+    },
   },
 )

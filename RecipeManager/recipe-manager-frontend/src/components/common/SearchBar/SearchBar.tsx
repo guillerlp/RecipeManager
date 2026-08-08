@@ -15,8 +15,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
     const handleInputChange = (e:React.ChangeEvent<HTMLInputElement>) => {
         onSearchChange(e.target.value);
-        console.log(searchQuery);
-    } 
+    }
 
     return (
         <div className={styles.searchContainer}>

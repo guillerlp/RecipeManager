@@ -108,15 +108,17 @@ There is **no form in the codebase today** and no form library installed. When b
 npm run build
 ```
 ```bash
-npx tsc --noEmit
+npm run lint
 ```
 
-- [ ] **`npm run build` does not type-check** (`BUILD-04`) — run `npx tsc --noEmit` separately until that is
-      fixed. It currently passes with 0 errors.
-- [ ] **`npm run lint` cannot run on a clean install** (`BUILD-03`) — `eslint.config.ts` needs `jiti`, which is
-      not a dependency. Do not report "lint passes" without checking that it actually executed.
-- [ ] No `console.log` added. Existing ones in `SearchBar.tsx` and `RecipeList.tsx` (`BUG-08`) should be removed
-      when you are next in those files.
+- [ ] `npm run build` runs `tsc -b` before Vite (ADR-012), so it type-checks. `npm run typecheck` is the same
+      check without bundling when you want a faster loop.
+- [ ] `npm run lint` must report **0 problems**. Read the output — an ESLint that cannot start also exits
+      non-zero, and for eleven months nobody noticed the difference (`BUILD-03`, now closed).
+- [ ] No `console.log` added — `no-console` is an **error** in the flat config (`warn`/`error` are allowed).
+- [ ] Type-aware rules only cover `src/**`. A new root-level `.ts` tooling file lands in the non-type-checked
+      block, and a new folder outside `src/` needs adding to `tsconfig.json`'s `include` before typed rules
+      apply to it.
 - [ ] Verified in **both** light and dark themes.
 - [ ] Anything left undone is an entry in [../known-issues.md](../known-issues.md), not a code comment.
 
@@ -131,7 +133,7 @@ npx tsc --noEmit
 
 1. Components/hooks/pages with barrels updated.
 2. CSS Modules using theme variables, verified light and dark.
-3. `npm run build` and `npx tsc --noEmit` output (not `npm run lint` — see `BUILD-03`).
+3. `npm run build` and `npm run lint` output.
 4. A note on which of the four states (loading/error/empty/populated) were implemented.
 5. New entries in [../known-issues.md](../known-issues.md) for anything you had to leave undone — never a
    inline TODO marker in the source or the docs.
@@ -148,7 +150,10 @@ npx tsc --noEmit
    - **Why this element**, when the choice carries accessibility meaning — `<button>` vs. `<div onClick>`,
      `<article>` vs. `<section>`, `<time dateTime>` vs. plain text.
    - **What TypeScript is and is not checking** — especially that `npm run build` strips types without checking
-     them (`BUILD-04`), so a green build proves less than it appears to.
+     them — which is why `npm run build` now runs `tsc -b` first (ADR-012). Note also that
+     `@typescript-eslint/no-unused-vars` is configured with `varsIgnorePattern: '^[A-Z_]'`, so it ignores every
+     PascalCase binding: an unused component or type import is caught by `tsc`'s `noUnusedLocals`, not by lint.
+     The two checks are not interchangeable.
 
 ## Handoff
 

@@ -322,6 +322,31 @@ endpoint is anonymous and every recipe is world-writable. See
   it cannot stop a new class of warning. *(c)* Fixing the seven warnings without the gate — leaves the count
   free to grow back, which is the `BUILD-03` failure mode.
 
+### ADR-012 — The frontend gets a build gate: `jiti` and a type-checking build
+
+- **Status:** accepted and **implemented 2026-08-08** (`R-03`).
+- **Context:** ADR-010 made every backend warning a build failure, but stops at the solution boundary. On the
+  frontend `npm run lint` could not *start* — `eslint.config.ts` is a TypeScript flat config and ESLint 9 loads
+  those through `jiti`, which was never a dependency (`BUILD-03`, since commit `3474a8b`, 2025-08-08) — and
+  `"build": "vite build"` transpiles with esbuild, which strips types without checking them (`BUILD-04`). So no
+  ESLint rule and no type error could fail anything for eleven months.
+- **Decision:** add `jiti` to `devDependencies`; make `"build": "tsc -b && vite build"` and add
+  `"typecheck": "tsc --noEmit"`. Scope the type-checked ESLint rule sets to the files `tsconfig.json` actually
+  includes, and lint the root config files with a non-type-checked config instead.
+- **Alternatives:** *(a)* rename the config to `eslint.config.js` — no new dependency, but it discards type
+  checking of the config and the typed `tseslint.config()` helper the project already uses. *(b)*
+  `tsc --noEmit && vite build` — one fewer TS mode to understand, but not incremental; `tsc -b` is the Vite
+  React-TS template default and both are valid against a single non-composite `tsconfig.json`. *(c)* leave it
+  and rely on `R-04`'s CI to run `npx tsc` directly — but CI cannot run a script that does not exist, and the
+  local loop would still have no gate.
+- **Consequences:** the frontend now has the enforcement ADR-010 gave the backend, so `R-04` has something to
+  call and `R-07` (Vitest) has a working toolchain to attach to. The cost is real and daily: every frontend PR
+  must satisfy `recommendedTypeChecked` + `stylisticTypeChecked`, and a build that used to succeed with a type
+  error now fails. Verified by negative test in both directions — a deliberate type error fails `npm run build`,
+  and a deliberate `console.log` is reported by `npm run lint`. Note what is **not** bought: nothing forces
+  anyone to run either command until CI exists (`INFRA-01`, `R-04`). This makes the gate possible, not
+  automatic.
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001
