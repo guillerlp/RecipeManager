@@ -105,8 +105,9 @@ prerequisite for any recipe detail or edit screen.
 
 - [ ] Compare against the running Swagger document rather than reading the C# by eye:
       `dotnet run --project RecipeManager.Api --launch-profile https` then `https://localhost:7231/swagger`.
-- [ ] `npx tsc --noEmit` — **not** `npm run build`, which strips types without checking them (`BUILD-04`).
-      Type-checking is the only automated signal on this seam, and it is not currently wired into any script.
+- [ ] `npm run typecheck`, and `npm run build` (which now type-checks too — ADR-012). Type-checking is the only
+      automated signal on this seam, so treat a green `tsc` as *necessary but not sufficient*: it proves the TS
+      code agrees with the TS types, never that the TS types agree with `RecipeDto`.
 - [ ] Manually exercise the changed endpoint from the SPA, or with the Swagger UI, and confirm the payload
       matches the TS type.
 

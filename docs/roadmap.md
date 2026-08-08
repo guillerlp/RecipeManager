@@ -32,21 +32,11 @@ that are *wrong* with what already exists.
 
 These are cheap, unblock everything else, and each one removes a whole class of future bug.
 
-### R-03
-**Fix the frontend toolchain** · `03-senior-react` · ~30 min
-
-Three separate holes that together mean the frontend has *no* automated quality gate:
-
-1. Add `jiti` to `devDependencies` so `npm run lint` can actually run (`BUILD-03`).
-2. `"build": "tsc -b && vite build"` and add `"typecheck": "tsc --noEmit"` (`BUILD-04`).
-3. Run the newly-working lint and fix what it reports — the result is currently unknown.
-
-Everything else on the frontend roadmap depends on this.
-
 ### R-04
 **CI pipeline** · `01-architect` → implementation · ~3 h
 
-Nothing enforces any checklist today. `BUILD-03` is the proof: a check that nobody runs silently stops working.
+Nothing enforces any checklist today. `R-03` is the proof: `npm run lint` could not start for eleven months and
+nothing reported it, because a check that nobody runs and a check that passes look the same from outside.
 
 Minimum GitHub Actions workflow on every PR:
 
@@ -55,6 +45,9 @@ dotnet build (already warnings-as-errors, ADR-010) · dotnet test
 npm ci · npm run typecheck · npm run lint · npm run build
 dotnet list package --vulnerable --include-transitive · npm audit
 ```
+
+Every one of those npm scripts now exists and passes — `R-03`/ADR-012 made them runnable. This item is what
+makes anyone actually run them.
 
 Dependabot **alerting** is already on (68 open alerts today) but nothing acts on it. Add Dependabot
 **pull requests** for both ecosystems and fail the build on high-severity alerts — that is what turns a
@@ -119,8 +112,8 @@ Zero frontend tests exist (`TEST-01`). **Vitest + React Testing Library + jsdom*
 `vite.config.ts` aliases directly, so setup is minimal.
 
 First tests, in priority order: `RecipeCard.formatDuration`/`getISODuration` boundaries; `RecipeList` filtering
-and its four states; `ThemeContext` persistence and the `useTheme` guard; `NavLink` active-state matching.
-Blocked by `R-03`.
+and its four states; `ThemeProvider` persistence and the `useTheme` guard; `NavLink` active-state matching.
+Unblocked — `R-03` shipped 2026-08-08.
 
 ### R-08
 **Close the cache-invalidation test gap** · `06-qa-tester` · ~2 h

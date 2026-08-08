@@ -65,15 +65,16 @@ Run from `RecipeManager/`. Everything here is manual — nothing enforces it.
    ```
    Currently **84 passing** — 70 unit + 14 integration.
 
-3. **Frontend builds and type-checks.** From `recipe-manager-frontend/`:
+3. **Frontend builds, type-checks, and lints.** From `recipe-manager-frontend/`:
    ```bash
    npm run build
    ```
    ```bash
-   npx tsc --noEmit
+   npm run lint
    ```
-   `npm run build` does **not** type-check (`BUILD-04`), so `tsc` must be run separately. `npm run lint` cannot
-   run at all on a clean install (`BUILD-03`) — once that is fixed, add it here.
+   `npm run build` now runs `tsc -b` first, so it type-checks (ADR-012); `npm run typecheck` is the same check
+   without bundling, for a faster loop. Lint must report **0 problems** — it runs since `jiti` was added, and
+   `no-console` is an error.
 
 4. **Migrations.** If the model changed, exactly one new migration is committed together with its
    `.Designer.cs` and the updated `AppDbContextModelSnapshot.cs`. Confirm `Up` and `Down` are both correct —
@@ -163,6 +164,5 @@ deploy — `INFRA-03` in [../known-issues.md](../known-issues.md).
 | No rollback or database-restore procedure | `INFRA-03` | `01-architect` |
 | No frontend deployment target or production `VITE_API_URL` | `INFRA-04`, `SEC-12` | `03-senior-react` + `01-architect` |
 | No frontend test runner, so nothing to gate on | `TEST-01` | `06-qa-tester` |
-| `npm run lint` cannot run; `npm run build` does not type-check | `BUILD-03`, `BUILD-04` | `03-senior-react` |
 
 Full detail for each: [../known-issues.md](../known-issues.md).

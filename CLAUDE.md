@@ -118,9 +118,10 @@ Current state: build succeeds with **0 warnings** and **84 tests pass** (70 unit
 a **build failure**, not a note — and `TargetFramework`, `Nullable`, and `ImplicitUsings` live there too. Never
 re-declare those in a `.csproj`.
 
-Frontend checks are in worse shape than they look: `npm run lint` **cannot run at all** on a clean install, and
-`npm run build` does not type-check (`BUILD-03`, `BUILD-04`). Read those entries before trusting a green
-frontend build.
+Frontend checks work as of `R-03`/ADR-012: `npm run lint` runs and reports 0 problems, `npm run build` is
+`tsc -b && vite build` so a type error fails it, and `npm run typecheck` exists for the fast local loop. What
+they are not is *automatic* — nothing invokes them until CI lands (`INFRA-01`, `R-04`), so run all three from
+`RecipeManager/recipe-manager-frontend/` before opening a frontend PR.
 
 Unit-test coverage with an HTML report (needs `dotnet tool install --global dotnet-reportgenerator-globaltool`):
 

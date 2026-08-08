@@ -1,6 +1,5 @@
 // src/pages/RecipeList.tsx
 import React, { useMemo } from 'react';
-import type { Recipe } from '@/types';
 import { RecipeCard } from '@/components';
 import styles from './RecipeList.module.css';
 import { useRecipes } from '@/hooks/useRecipes';
@@ -35,10 +34,6 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
       return searchableText.includes(query);
     });
   }, [recipes, searchQuery])
-
-  const handleRecipeClick = (recipe: Recipe) => {
-    console.log('Clicked recipe:', recipe.title);
-  };
 
   if (loading) return <div className={styles.loadingSection}>Loading…</div>;
   if (error) {
@@ -85,7 +80,6 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
-              onClick={handleRecipeClick}
             />
           ))}
         </>

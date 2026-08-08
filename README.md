@@ -139,6 +139,22 @@ fall back to the relative `/api` path, which `vite.config.ts` proxies to the sam
 
 Start the API first — the frontend has no mock backend.
 
+### Frontend checks
+
+Run these before opening a pull request; nothing runs them for you yet.
+
+```bash
+npm run lint
+```
+
+```bash
+npm run build
+```
+
+`npm run build` is `tsc -b && vite build`, so a type error fails it before Vite bundles anything. For a faster
+loop while working, `npm run typecheck` runs the same check without producing `dist/`. There is no `npm test` —
+no frontend test runner exists yet.
+
 ## Docker
 
 `RecipeManager.Api/Dockerfile` builds the API alone (no database container). Build from the `RecipeManager/`

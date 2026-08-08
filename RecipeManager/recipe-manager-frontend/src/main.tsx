@@ -10,7 +10,7 @@ import './styles/globals.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
-const container = document.getElementById('root') as HTMLElement;
+const container = document.getElementById('root')!;
 const root = createRoot(container);
 const queryClient = new QueryClient({
   defaultOptions: {

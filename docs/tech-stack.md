@@ -64,19 +64,23 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `@tanstack/react-query-devtools` | 5.85 | mounted when `process.env.NODE_ENV === 'development'` |
 | `axios` | 1.10 | single `AxiosInstance` in `services/recipeService.ts` |
 | `react-router-dom` | 7.7 | `BrowserRouter` + 3 routes in `App.tsx` |
-| `eslint` 9 + `typescript-eslint` 8.39 | | flat config, `recommendedTypeChecked` + `stylisticTypeChecked` |
+| `eslint` 9 + `typescript-eslint` 8.39 | | flat config, `recommendedTypeChecked` + `stylisticTypeChecked` scoped to `src/**`, plus `no-console` |
+| `jiti` | 2.7 | dev-only loader ESLint 9 uses to evaluate `eslint.config.ts`. Without it ESLint cannot start at all — ADR-012 |
 
-### npm scripts — two are broken or misleading
+### npm scripts
 
 | Script | Command | Reality |
 | --- | --- | --- |
 | `dev` | `vite` | works — port 3000 |
-| `build` | `vite build` | succeeds, but **does not type-check** (esbuild strips types without checking). `BUILD-04` |
-| `lint` | `eslint .` | **fails to start** on a clean install — `eslint.config.ts` needs `jiti`, which is not a dependency. `BUILD-03` |
+| `build` | `tsc -b && vite build` | type-checks first, so a type error fails before Vite bundles (ADR-012) |
+| `typecheck` | `tsc --noEmit` | the fast local loop; 0 errors |
+| `lint` | `eslint .` | runs, 0 problems (ADR-012) |
 | `preview` | `vite preview` | works |
 
-There is no `typecheck` script and no `test` script. Run `npx tsc --noEmit` manually until `BUILD-04` is fixed —
-it currently passes with 0 errors. See [known-issues.md](known-issues.md).
+There is still no `test` script — no frontend test runner exists (`TEST-01`, planned as `R-07`). And note what
+the three working scripts do *not* give you: nothing runs them on your behalf until CI exists (`INFRA-01`,
+`R-04`). `ts-node` remains in `devDependencies` with nothing using it — `BUILD-08` in
+[known-issues.md](known-issues.md).
 
 Dependabot reports **68 open alerts** across 14 npm packages (32 high, 32 medium, 4 low); `npm audit` describes
 the same set as **17 affected packages**, because it counts packages while Dependabot counts advisories.

@@ -153,7 +153,7 @@ recipe-manager-frontend/src/
     common/    cross-cutting widgets (SearchBar)
     layout/    AppLayout, Header, Footer
     ui/        presentational pieces (Logo, NavLink, Recipe/RecipeCard, Recipe/RecipeList)
-  contexts/    ThemeContext
+  contexts/    ThemeContext (the context object), ThemeProvider (the component)
   hooks/       useTheme, useRecipes
   pages/       Home/HomePage, Recipe/RecipePage
   services/    recipeService (axios)
@@ -200,7 +200,14 @@ adding/updating its `index.ts`.
   invalidation leaves permanently stale data on screen. No mutation hook exists yet; the first one sets the
   precedent.
 - Consumers of a context must go through a guard hook that throws when the provider is missing — copy the
-  `useTheme` pattern.
+  `useTheme` pattern. Never call `useContext(SomeContext)` directly in a component; `Footer` did until `R-03`,
+  which is how it went unnoticed that the guard could not fire.
+- **A context created for a guard hook takes no default value** — `createContext<T | undefined>(undefined)`.
+  A "sensible" default makes `useContext` always return something, so the guard's `throw` is unreachable and a
+  component rendered outside its provider silently gets the default instead of a loud error.
+- The context object and the provider component live in **separate files** (`ThemeContext.ts` /
+  `ThemeProvider.tsx`). `react-refresh/only-export-components` enforces this: a module exporting both a
+  component and a non-component breaks Fast Refresh, so an edit forces a full reload instead of preserving state.
 
 ### API access
 
@@ -225,9 +232,9 @@ on images.
 
 ### Avoid
 
-- `console.log` in committed code. `SearchBar.handleInputChange` and `RecipeList.handleRecipeClick` still have
-  some (`BUG-08` in [known-issues.md](known-issues.md)) — do not add more. Note that ESLint would normally catch
-  this but currently cannot run at all (`BUILD-03`).
+- `console.log` in committed code — `no-console` is an **error** in `eslint.config.ts`, with `console.warn` and
+  `console.error` allowed. The rule was added in `R-03`: it had never been configured, so the eleven months of
+  unrunnable lint were not even the reason `BUG-08` survived.
 - Inline styles.
 - Declaring a path alias in only one of `vite.config.ts` / `tsconfig.json`.
 
