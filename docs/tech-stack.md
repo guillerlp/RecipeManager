@@ -55,15 +55,15 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | Package | Version | Role |
 | --- | --- | --- |
 | `react` / `react-dom` | 19.1 | UI |
-| `vite` | 7.0 | dev server + build; port **3000**, `/api` → `https://localhost:7231` proxy with `secure: false` |
+| `vite` | 7.3 | dev server + build; port **3000**, `/api` → `https://localhost:7231` proxy with `secure: false` |
 | `@vitejs/plugin-react` | 4.6 | Babel-based Fast Refresh |
 | `typescript` | 5.9 | `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` all on |
 | `@mui/material` + `@mui/icons-material` | 7.x | used sparingly: `Box` for layout, icons (`Search`, `Sunny`, `Bedtime`, `BlenderOutlined`). **No MUI ThemeProvider** — visual styling is CSS Modules |
 | `@emotion/react` / `@emotion/styled` | 11.x | MUI peer dependency only; no direct `styled` usage in `recipe-manager-frontend/src/` |
 | `@tanstack/react-query` | 5.85 | server state (`useRecipes`); client configured in `main.tsx` |
 | `@tanstack/react-query-devtools` | 5.85 | mounted when `process.env.NODE_ENV === 'development'` |
-| `axios` | 1.10 | single `AxiosInstance` in `services/recipeService.ts` |
-| `react-router-dom` | 7.7 | `BrowserRouter` + 3 routes in `App.tsx` |
+| `axios` | 1.19 | single `AxiosInstance` in `services/recipeService.ts` |
+| `react-router-dom` | 7.18 | `BrowserRouter` + 3 routes in `App.tsx` |
 | `eslint` 9 + `typescript-eslint` 8.39 | | flat config, `recommendedTypeChecked` + `stylisticTypeChecked` scoped to `src/**`, plus `no-console` |
 | `jiti` | 2.7 | dev-only loader ESLint 9 uses to evaluate `eslint.config.ts`. Without it ESLint cannot start at all — ADR-012 |
 
@@ -82,10 +82,15 @@ the three working scripts do *not* give you: nothing runs them on your behalf un
 `R-04`). `ts-node` remains in `devDependencies` with nothing using it — `BUILD-08` in
 [known-issues.md](known-issues.md).
 
-Dependabot reports **68 open alerts** across 14 npm packages (32 high, 32 medium, 4 low); `npm audit` describes
-the same set as **17 affected packages**, because it counts packages while Dependabot counts advisories.
-`axios` alone accounts for 29 alerts and is a direct runtime dependency — `SEC-03`. The NuGet side is clean by
-both tools.
+`npm audit` reports **0 vulnerabilities** as of 2026-08-08, and the NuGet side is clean by both
+`dotnet list package --vulnerable --include-transitive` and Dependabot. The 13 npm advisories previously tracked
+as `SEC-03` were all resolved by `npm audit fix` **without changing `package.json`** — every fix was already
+inside the declared semver ranges, so only `package-lock.json` moved.
+
+The lesson worth carrying: a version range in `package.json` tells you what is *permitted*, not what is
+*installed*. The lock file is the only statement of the latter, and it had drifted a long way behind. Nothing
+re-resolves it on your behalf — which is why `R-04` runs `npm audit` on every PR, and why the same reasoning
+produced committed NuGet lock files in that item.
 
 ### Styling
 

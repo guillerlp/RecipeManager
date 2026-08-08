@@ -4,7 +4,8 @@ Every **defect and gap in what already exists**. Planned work that does not exis
 [roadmap.md](roadmap.md); the two files cross-reference each other.
 
 Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code. Build and
-test numbers re-measured on 2026-08-04 after `R-02`, and the frontend row re-measured on 2026-08-08 after `R-03`.
+test numbers re-measured on 2026-08-04 after `R-02`, and the frontend rows re-measured on 2026-08-08 after `R-03`
+and again after the `SEC-03` dependency remediation.
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -26,7 +27,7 @@ test numbers re-measured on 2026-08-04 after `R-02`, and the frontend row re-mea
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and now type-checks first (`tsc -b && vite build`, ADR-012) |
 | Frontend lint | `npm run lint` | **0 problems** — runs since `jiti` was added (ADR-012, `R-03`) |
-| npm vulnerabilities | `npm audit` · Dependabot API | **18 packages** (13 high, 3 moderate, 2 low) · **68 open alerts** — 32 high, 32 medium, 4 low ([SEC-03](#sec-03)) |
+| npm vulnerabilities | `npm audit` | **0** — cleared 2026-08-08 by `npm audit fix`, verified again after `npm ci` (`SEC-03`, [Settled](#settled)) |
 | Frontend tests | — | **none exist**, no runner installed ([TEST-01](#test-01)) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
@@ -52,7 +53,6 @@ these commands for you until CI exists ([INFRA-01](#infra-01), `R-04`).
 | [BUILD-08](#build-08) | Low | Tooling | `ts-node` is a devDependency nothing uses |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
-| [SEC-03](#sec-03) | **High** | Security | 68 open Dependabot alerts across 14 npm packages; `axios` alone is 29 of them |
 | [SEC-04](#sec-04) | **High** | Security | No rate limiting on unauthenticated write endpoints |
 | [SEC-05](#sec-05) | **High** | Security | Exception messages returned to the client on 500s |
 | [SEC-06](#sec-06) | Medium | Security | `DeleteRecipeHandler` echoes `ex.Message` to the client |
@@ -180,58 +180,6 @@ No `User` entity and no `OwnerId` on `Recipe`. Any caller who knows a `Guid` can
 Guid ids prevent enumeration but are not an access control.
 
 On the [deploy gate](roadmap.md#deploy-gate). Depends on [SEC-01](#sec-01); planned as `R-14`.
-
-### SEC-03
-**68 open Dependabot alerts across 14 npm packages — High**
-
-Two tools, two numbers, both correct — they count different things:
-
-| Source | Reports | Counts |
-| --- | --- | --- |
-| `npm audit` | **18 vulnerabilities** (13 high, 3 moderate, 2 low) | affected *packages* |
-| Dependabot (`gh api repos/guillerlp/RecipeManager/dependabot/alerts`) | **68 open alerts** — 32 high, 32 medium, 4 low | one alert per *advisory per package* |
-
-Quote the Dependabot figure when talking about the repo, since that is what the GitHub UI shows. All 68 are
-**npm**, all in `RecipeManager/recipe-manager-frontend/package-lock.json`. A further 13 alerts are
-`auto_dismissed`.
-
-**Where the risk actually sits.** 46 of the 68 are `runtime`-scope — they ship to the browser. The remaining 22
-are `development`-scope, reachable only through the build toolchain:
-
-| Package | Alerts | Severity | Scope | Direct? |
-| --- | --- | --- | --- | --- |
-| `axios` | **29** | high, medium, low | runtime | **direct** |
-| `react-router` | 14 | high, medium | runtime | transitive (via `react-router-dom`) |
-| `vite` | 7 | high, medium, low | development | **direct** |
-| `js-yaml`, `postcss` | 3 each | high, medium | development | transitive |
-| `brace-expansion`, `minimatch`, `picomatch` | 2 each | high / medium | development | transitive |
-| `follow-redirects`, `form-data`, `yaml` | 1 each | high / medium | runtime | transitive |
-| `@babel/core`, `flatted`, `rollup` | 1 each | low / high | development | transitive |
-
-**`axios` alone is 43% of the total** and is the app's only HTTP client, on a direct runtime dependency.
-Advisories include prototype-pollution gadgets enabling response hijacking and full MitM via `config.proxy`.
-
-**Why High and not Critical.** The headline `axios` advisory is credential theft — and this app has no
-authentication, so there are no credentials to steal (see [SEC-01](#sec-01)). The MitM and prototype-pollution
-paths remain real. If [SEC-01](#sec-01) is ever closed, **re-rate this to Critical**, because auth tokens would
-then be exactly what the advisory targets.
-
-**Fix.** `npm audit fix` claims to resolve them. Do it in its own PR, then `npm run build`, `npx tsc --noEmit`,
-and manually exercise the app — `react-router` and `vite` are majors-adjacent and this is the kind of upgrade
-that breaks routing silently.
-
-**The count moved from 17 to 18 in `R-03`, and `jiti` is not the cause.** `jiti@2.7.0` has **zero** runtime
-dependencies, no install scripts, and is MIT-licensed — it adds one dev-scope package and no transitive graph.
-What changed is that `npm install` re-resolved the tree: a hoisted, optional-peer `yaml@2.8.0` entry was dropped
-and `cosmiconfig`'s nested `yaml` now carries the advisory instead (a stack-overflow DoS on deeply nested YAML,
-reachable only through the build toolchain). Recorded here rather than fixed, because this entry's own
-instruction is that `npm audit fix` runs in its **own** PR with manual verification — `react-router` and `vite`
-are majors-adjacent and break routing silently.
-
-**Backend is clean:** `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages in
-any of the six projects, and Dependabot opened zero NuGet alerts. Confirmed by both tools independently.
-
-**Owner:** `03-senior-react` + `05-security-reviewer` · **Effort:** ~1 h including verification
 
 ### SEC-04
 **No rate limiting — High**
@@ -468,9 +416,11 @@ could not even *start* for eleven months and no one noticed.
 
 **Minimum useful pipeline:** `dotnet build` (already warnings-as-errors via `Directory.Build.props`, ADR-010),
 `dotnet test`, `npm ci`, `npm run typecheck`, `npm run lint`, `npm run build`. Add
-`dotnet list package --vulnerable` and `npm audit` so [SEC-03](#sec-03) cannot silently regrow. Dependabot
-*alerting* is already enabled and currently reports 68 open alerts, but nothing acts on it — enabling Dependabot
-**pull requests** and failing CI on high-severity alerts is what turns it from a notification into a control.
+`dotnet list package --vulnerable` and `npm audit` so the npm advisories cleared by `SEC-03` cannot silently
+regrow — that entry is closed precisely so this gate can be **blocking** from the day it lands, rather than
+decorative until someone remediates. Dependabot *alerting* is already enabled but nothing acts on it — enabling
+Dependabot **pull requests** and failing CI on high-severity alerts is what turns it from a notification into a
+control.
 
 ### INFRA-02
 **No versioning or tags — Medium**
@@ -635,5 +585,6 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `RecipeManager.Api.csproj.user` committed | **Untracked**, and `*.user` added to `.gitignore` — it carried one developer's debug profile. Fixed 2026-08-04. | — |
 | `BUILD-03` — `npm run lint` could not start | **Fixed** by adding `jiti`; ESLint 9 loads a TypeScript flat config through it. Unable to start since 2025-08-08. **Shipped 2026-08-08.** | ADR-012, `R-03` |
 | `BUILD-04` — `npm run build` did not type-check | **Fixed**: `"build": "tsc -b && vite build"`, plus a `typecheck` script. **Shipped 2026-08-08.** | ADR-012, `R-03` |
+| `SEC-03` — 68 open Dependabot alerts (13 npm advisories, `axios` the largest) | **Fixed** by `npm audit fix`. Every advisory resolved **within the declared semver ranges** — `package.json` did not change, only `package-lock.json`. The entry's fear that `react-router` and `vite` were "majors-adjacent" was wrong: all bumps were minor (`axios` 1.10→1.19, `react-router` 7.7→7.18, `vite` 7.0→7.3). Verified by clean `npm ci` + typecheck + lint + build, and by exercising routing, search, and theming in a browser against a live API. **Shipped 2026-08-08.** | — |
 | `BUG-08` — `console.log` in shipped code | **Removed**, and `no-console` added to the ESLint config — the rule had never been configured, so the entry's claim that lint "would have caught" them was wrong. **Shipped 2026-08-08.** | ADR-012, `R-03` |
 | Was the ESLint config lintable as written? | **No.** Type-aware rules were applied to `**/*.{ts,tsx}` while `tsconfig.json` includes only `src`, so `eslint.config.ts` and `vite.config.ts` were parse errors. Typed rules now scope to `src/**`; root tooling files lint without type information. | ADR-012 |
