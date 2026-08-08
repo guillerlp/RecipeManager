@@ -153,8 +153,9 @@ real gap in the suite: `TEST-02` in [../known-issues.md](../known-issues.md).
   collation, and real constraint violations do not surface. Verify manually against PostgreSQL.
   **EF InMemory is not a supported integration-test target** — the EF Core team recommends against it precisely
   for this reason. Replacing it with Testcontainers + real PostgreSQL is **decided** (`R-06` in
-  [../roadmap.md](../roadmap.md)), deferred until CI exists. Until then, every PR touching persistence must
-  state what was verified against a real database.
+  [../roadmap.md](../roadmap.md)), and **now unblocked** — it was deferred until CI existed because it needs
+  Docker in both places, and the `ubuntu-latest` runner provides it (ADR-013). Until `R-06` actually lands,
+  every PR touching persistence must still state what was verified against a real database.
 - **Concurrency.** No optimistic concurrency exists; concurrent `PUT`s are last-write-wins and untested.
 - **Startup migration behaviour** (`app.MigrateDatabase()`) is skipped in the `IntegrationTest` environment.
 - **Performance / volume.** No load test; `GET /api/recipes` is unpaginated.

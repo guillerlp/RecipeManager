@@ -42,8 +42,8 @@ Jump to every entry touching a topic.
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Testing | [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
-| Tooling / infrastructure | [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
-| Enforcement vs. convention | [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Tooling / infrastructure | [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Enforcement vs. convention | [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Dependency management | [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
 | Frontend / React | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | Accessibility | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
@@ -51,6 +51,53 @@ Jump to every entry touching a topic.
 ---
 
 ## Entries
+
+### 2026-08-08 — CI must build Debug, because a security guard from 2025 says so
+
+**Context.** `R-04` added the CI pipeline. Choosing `--configuration Release` for the build and test steps was
+reflex: it is what CI conventionally does, and it is what most guides show.
+
+**Decision.** CI builds and tests in **Debug**. ADR-013.
+
+**Why the reflex was wrong here.** ADR-005 makes `Program.Main` throw
+`"IntegrationTest environment is not allowed in RELEASE builds"` — a deliberate guard added in 2025 (commit
+`898c9ce`) so that setting `ASPNETCORE_ENVIRONMENT=IntegrationTest` on a real deployment cannot start the app
+with no database configured. `WebApplicationFactory` uses exactly that environment name. So a Release CI build
+fails **all 14** integration tests by design. Measured, not reasoned about: 84 passing became 70, with
+`InvalidOperationException` from `Program.cs:20` on every one.
+
+**Rejected.** *(a)* Relaxing the ADR-005 guard so Release works — this inverts a security control to satisfy a
+convention, and the guard is compile-time precisely so it cannot be argued with. *(b)* Building Release and
+running tests in Debug — two builds, double the time, to gain almost nothing. *(c)* Excluding the integration
+tests from CI, which would discard the single biggest thing CI buys this repo (`INFRA-06`).
+
+**Cost.** A Release-only compilation difference would not be caught. Genuinely accepted rather than waved past:
+`TreatWarningsAsErrors` is unconditional rather than Release-only (ADR-010), so the warning gate is identical in
+Debug, and the deployable artefact is built by `Dockerfile`, not by this workflow.
+
+**The other thing turning the gate on found.** Three of them, and none was in the plan:
+
+- **`dotnet list package --vulnerable` exits 0 even when it finds vulnerabilities.** A step written the obvious
+  way would have been a green tick that could never go red — the `BUILD-03` shape again, in code I was writing
+  *to prevent* it. The step parses the output instead. Verified both directions against synthetic output, and
+  against a real `Newtonsoft.Json@12.0.1`, where `NU1903` at restore turned out to fire first anyway.
+- **A malformed XML comment silently disabled `Directory.Build.props` entirely.** The comment I added contained
+  `--`, which is illegal inside an XML comment, so the file failed to parse and *every* property vanished. The
+  error MSBuild reported was `NETSDK1013: The TargetFramework value '' was not recognized` on all six projects —
+  pointing at a property I had not touched, in files I had not opened. I formed and tested two confident
+  theories about NuGet's restore internals before running `dotnet msbuild -getProperty`, which named the real
+  cause in one line.
+- **All 18 npm advisories were fixable inside the existing semver ranges** — the finding recorded in the
+  entry below.
+
+**Takeaway.** *Check whether your project's own recorded decisions constrain the tool you are reaching for,
+before reaching for the conventional configuration of it.* ADR-005 was written about deployment safety and
+turned out to dictate a CI flag three items later; nothing linked the two, and only running it revealed the
+connection. Corollary, learned the expensive way: **when an error names something you did not change, suspect
+the file you did change of not parsing at all.** A syntax error in a config file does not report itself as a
+syntax error — it reports as every value being absent, arbitrarily far from the cause.
+
+---
 
 ### 2026-08-08 — Remediate before you gate, and check what is installed rather than what is allowed
 

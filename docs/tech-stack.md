@@ -10,13 +10,19 @@ from `recipe-manager-frontend/package.json`.
 | --- | --- | --- |
 | .NET | `net10.0` (all six projects) | `Directory.Build.props` `<TargetFramework>` (ADR-010) |
 | .NET SDK | `10.0.302`, `rollForward: latestFeature` | `RecipeManager/global.json` |
-| Node.js | not pinned | no `engines` field, no `.nvmrc` |
+| Node.js | `24` used, `>=20` supported | `recipe-manager-frontend/.nvmrc`, `engines` in `package.json` |
 | PostgreSQL | 16+ recommended by `README.md` | not enforced anywhere |
 | React | 19.1 | `package.json` |
 | TypeScript | 5.9 | `package.json` |
 
-The .NET SDK is pinned but Node is not (`BUILD-07` in [known-issues.md](known-issues.md)). Verified working
-with Node 24.18 / npm 11.16; `README.md` asks for 20 LTS or newer.
+Both runtimes are now pinned (`BUILD-07` closed by `R-04`/ADR-013). `.nvmrc` says `24` — what is actually used,
+and what CI installs via `node-version-file` — while `engines` says `>=20`, the floor `README.md` supports. The
+two differ deliberately: one is the tested version, the other is the compatibility claim.
+
+The NuGet **transitive closure** is pinned too: `RestorePackagesWithLockFile` is on for every project and each
+has a committed `packages.lock.json`. CI restores with `--locked-mode`, so an unexpected graph change is a
+failure (`NU1004`) rather than a silent resolution. Changing any package means re-running
+`dotnet restore RecipeManager.sln --force-evaluate` and committing the result.
 
 ## Backend packages
 
@@ -78,9 +84,9 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `preview` | `vite preview` | works |
 
 There is still no `test` script — no frontend test runner exists (`TEST-01`, planned as `R-07`). And note what
-the three working scripts do *not* give you: nothing runs them on your behalf until CI exists (`INFRA-01`,
-`R-04`). `ts-node` remains in `devDependencies` with nothing using it — `BUILD-08` in
-[known-issues.md](known-issues.md).
+the three working scripts do *not* give you on their own — but CI now runs all of them on every PR
+(`R-04`/ADR-013), pinned to the Node version in `.nvmrc`. `ts-node` remains in `devDependencies` with nothing
+using it — `BUILD-08` in [known-issues.md](known-issues.md).
 
 `npm audit` reports **0 vulnerabilities** as of 2026-08-08, and the NuGet side is clean by both
 `dotnet list package --vulnerable --include-transitive` and Dependabot. The 13 npm advisories previously tracked

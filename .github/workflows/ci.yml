@@ -1,0 +1,129 @@
+# CI — R-04 / ADR-013. Closes INFRA-01 and INFRA-06.
+#
+# Every check here already existed locally and was enforced by nothing: TreatWarningsAsErrors
+# (ADR-010) and the frontend typecheck/lint scripts (ADR-012) were both built so this workflow
+# would have something to call. See docs/specs/002-ci-pipeline.md.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Least privilege. The default token is broadly scoped and is inherited by every action that
+# runs; nothing here needs to write to the repository. Note the trigger is `pull_request` and
+# deliberately not `pull_request_target`, which would run with a writable token in the base
+# repo's context while checking out untrusted PR code.
+permissions:
+  contents: read
+
+# A superseded run tells you nothing useful. Cancel it rather than paying for it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: RecipeManager
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    steps:
+      # Third-party actions are pinned to a commit SHA, not a tag. A tag is mutable and can be
+      # repointed at new code by whoever controls the repository — the mechanism behind the 2025
+      # tj-actions/changed-files compromise. Dependabot's github-actions ecosystem keeps these
+      # current, which is what makes SHA pinning maintainable rather than instantly stale.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: RecipeManager/global.json
+
+      # Locked mode fails when the resolved graph differs from the committed packages.lock.json,
+      # instead of silently resolving something the developer never saw. ADR-013.
+      - name: Restore (locked mode)
+        run: dotnet restore RecipeManager.sln --locked-mode
+
+      # DEBUG, not Release — and this is load-bearing, not an oversight. ADR-005 makes
+      # Program.Main throw "IntegrationTest environment is not allowed in RELEASE builds", a
+      # deliberate guard so that setting ASPNETCORE_ENVIRONMENT=IntegrationTest on a real
+      # deployment cannot start the app with no database configured. WebApplicationFactory uses
+      # exactly that environment name, so a Release build fails all 14 integration tests by
+      # design. Verified: switching this to Release turns the suite from 84 passing to 70.
+      #
+      # Nothing is lost by building Debug here: TreatWarningsAsErrors is unconditional rather
+      # than Release-only (ADR-010), so the warning gate applies identically. What is not
+      # covered is a Release-only compilation difference — accepted, and noted in ADR-013.
+      - name: Build
+        run: dotnet build RecipeManager.sln --no-restore --configuration Debug
+
+      # 70 unit + 14 integration. The integration tests are the reason this job runs on Linux:
+      # on a Windows machine with Smart App Control enabled they cannot load a freshly built
+      # RecipeManager.Api.dll at all (INFRA-06), so CI is the only place they are trustworthy.
+      - name: Test
+        run: dotnet test RecipeManager.sln --no-build --configuration Debug
+
+      # `dotnet list package --vulnerable` exits 0 even when it finds vulnerabilities, so its
+      # exit code cannot be used as a gate — a step that can never fail is worse than no step,
+      # because the green tick is evidence of nothing. Parse the output instead.
+      #
+      # This is belt-and-braces: NuGetAudit already elevates NU1903 to an error via
+      # TreatWarningsAsErrors (ADR-010), so restore is the stronger gate. This step names the
+      # failure clearly and still fires when restore is served from the lock file.
+      - name: Check for vulnerable NuGet packages
+        run: |
+          set -euo pipefail
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee "$RUNNER_TEMP/vulnerable.log"
+          if grep -q "has the following vulnerable packages" "$RUNNER_TEMP/vulnerable.log"; then
+            echo "::error::Vulnerable NuGet packages detected — see the log above."
+            exit 1
+          fi
+          echo "No vulnerable NuGet packages."
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: RecipeManager/recipe-manager-frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          # Read from .nvmrc so CI and a developer's machine cannot disagree (BUILD-07).
+          node-version-file: RecipeManager/recipe-manager-frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: RecipeManager/recipe-manager-frontend/package-lock.json
+
+      # `npm ci` installs strictly from package-lock.json and fails if it disagrees with
+      # package.json — the npm equivalent of --locked-mode above.
+      - name: Install
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # `tsc -b && vite build` — type errors fail before Vite bundles anything (ADR-012).
+      - name: Build
+        run: npm run build
+
+      # Blocking, not report-only. SEC-03 was remediated first precisely so this could be a real
+      # gate from day one: the baseline is 0, so any failure here is a regression rather than one
+      # more item on a pile. `high` matches the roadmap's wording — low and moderate dev-scope
+      # advisories appear constantly and would block unrelated PRs, which is the fastest way to
+      # teach everyone to route around the gate.
+      #
+      # Runs last so a vulnerability cannot mask a broken build.
+      - name: Audit dependencies
+        run: npm audit --audit-level=high

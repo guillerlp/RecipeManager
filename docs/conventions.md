@@ -33,6 +33,15 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
   `<PackageReference Include="X" />` — **no `Version` attribute** — in the project that needs it. Per-project
   metadata (`PrivateAssets`, `IncludeAssets`) stays on the `PackageReference`. A `Version` in a `.csproj` is
   `error NU1008`, so this is enforced rather than remembered.
+- **…and a third step since ADR-013: regenerate and commit the lock files.** `RestorePackagesWithLockFile` is on
+  for every project, so each has a `packages.lock.json` recording the full transitive closure. Any change to a
+  package version or reference must be followed by:
+  ```bash
+  dotnet restore RecipeManager.sln --force-evaluate
+  ```
+  Commit the changed `packages.lock.json` files with the `.csproj`/`Directory.Packages.props` change. Forgetting
+  is not silent — CI restores with `--locked-mode` and fails with `NU1004`, naming the package whose version
+  moved. The message is accurate but unhelpful the first time you see it; this is what it means.
 
 ### Naming
 

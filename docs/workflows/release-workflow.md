@@ -1,8 +1,12 @@
 # Release workflow
 
-There is **no CI, no automated pipeline, and no published versioning scheme** in this repo (no `.github/`, no
-tags in git history). What follows is the convention the existing history actually shows, plus the gaps that
-need a decision.
+**CI exists as of `R-04`/ADR-013**: `.github/workflows/ci.yml` runs the whole pre-merge checklist on every PR to
+`main`. There is still **no published versioning scheme** (no tags, no `<Version>`) and **no deployment
+pipeline** — CI verifies, it does not ship.
+
+One caveat that matters when reading a green tick: the checks are not yet **required** to merge. That is a
+branch-protection rule on `main`, a repository setting rather than a file, tracked as `INFRA-07`. Until it is
+enabled a red run can be merged past, so the checklist below is still worth reading rather than assuming.
 
 ---
 
@@ -50,7 +54,9 @@ Nothing identifies what is deployed. Tracked as `INFRA-02` in [../known-issues.m
 
 ## Pre-merge checklist
 
-Run from `RecipeManager/`. Everything here is manual — nothing enforces it.
+Run from `RecipeManager/`. **CI runs steps 1–3 for you on every PR** (ADR-013) — run them locally anyway, because
+a failure found in twenty seconds on your machine is cheaper than one found in three minutes on a runner. Steps
+4–7 are judgement, and no pipeline checks them.
 
 1. **Build is clean.**
    ```bash
@@ -159,7 +165,7 @@ deploy — `INFRA-03` in [../known-issues.md](../known-issues.md).
 
 | Gap | ID | Suggested owner |
 | --- | --- | --- |
-| No CI running build / test / typecheck / lint on PRs | `INFRA-01` | `01-architect` |
+| CI checks exist but are not *required* to merge (branch protection) | `INFRA-07` | repository owner |
 | No versioning or tags | `INFRA-02` | `01-architect` |
 | No rollback or database-restore procedure | `INFRA-03` | `01-architect` |
 | No frontend deployment target or production `VITE_API_URL` | `INFRA-04`, `SEC-12` | `03-senior-react` + `01-architect` |

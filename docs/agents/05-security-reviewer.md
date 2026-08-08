@@ -156,8 +156,13 @@ Treat these as mandatory acceptance criteria, and pair with `01-architect`:
       Filter with `-q '[.[] | select(.state=="open")] | length'` for a total, or group by
       `.dependency.scope` to separate `runtime` (ships to users) from `development` (build-only). Note the
       leading slash must be omitted on Git Bash, which otherwise rewrites the path.
-- [ ] Alerting is on, but **nothing blocks a merge** — there is no CI and no automated Dependabot *pull
-      requests* configured. A high-severity alert can sit open indefinitely. `INFRA-01` / `R-04`.
+- [ ] **CI now blocks on both ecosystems** (`R-04`/ADR-013): `npm audit --audit-level=high` fails the frontend
+      job, and a vulnerable NuGet package fails restore via `NU1903` (ADR-010) with an explicit
+      `dotnet list package --vulnerable` step as a backstop — that command exits 0 even when it finds something,
+      so its **output is parsed**; never rewrite it to trust the exit code. Dependabot raises PRs for `npm`,
+      `nuget`, and `github-actions` weekly.
+- [ ] One gap remains: the checks are not yet **required** to merge, so a high-severity finding can still be
+      merged past by someone who chooses to. `INFRA-07`.
 
 ## Inputs it needs
 

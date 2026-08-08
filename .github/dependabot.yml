@@ -1,0 +1,51 @@
+# Dependabot — R-04 / ADR-013.
+#
+# Alerting was already enabled on this repository and reported 70 open alerts that nothing acted
+# on. Alerting is a notification; pull requests plus a blocking CI audit step are the control.
+# See docs/specs/002-ci-pipeline.md.
+#
+# Grouping is deliberate: ungrouped weekly updates across three ecosystems produce enough PRs
+# that they stop being read, which is the same attention-exhaustion failure that let SEC-03 reach
+# 70 alerts. Security updates are always raised individually by Dependabot regardless of grouping.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /RecipeManager/recipe-manager-frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    # Majors arrive as individual PRs — React, Vite and react-router majors each need manual
+    # verification, and there are no frontend tests to catch a regression (TEST-01, R-07).
+
+  - package-ecosystem: nuget
+    directory: /RecipeManager
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      nuget-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    # Versions live in Directory.Packages.props (ADR-011), so Dependabot edits one file. Each PR
+    # must also update the six packages.lock.json files or CI fails at --locked-mode; that is the
+    # intended behaviour, not a bug in the setup.
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        update-types:
+          - major
+          - minor
+          - patch
+    # This is what makes SHA-pinning the actions in ci.yml sustainable. Without it the pins rot
+    # and a security fix in an action never arrives.

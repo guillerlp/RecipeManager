@@ -120,8 +120,9 @@ re-declare those in a `.csproj`.
 
 Frontend checks work as of `R-03`/ADR-012: `npm run lint` runs and reports 0 problems, `npm run build` is
 `tsc -b && vite build` so a type error fails it, and `npm run typecheck` exists for the fast local loop. What
-they are not is *automatic* — nothing invokes them until CI lands (`INFRA-01`, `R-04`), so run all three from
-`RecipeManager/recipe-manager-frontend/` before opening a frontend PR.
+they are now also *automatic*: `.github/workflows/ci.yml` runs all three on every PR (`R-04`/ADR-013). Run them
+locally from `RecipeManager/recipe-manager-frontend/` anyway — a failure found in seconds beats one found on a
+runner. Note the checks are not yet **required** to merge (`INFRA-07`), so a red run can still be merged past.
 
 Unit-test coverage with an HTML report (needs `dotnet tool install --global dotnet-reportgenerator-globaltool`):
 
@@ -214,8 +215,11 @@ API first; there is no mock backend.
   already drifted in a way that is verifiable in the code: `recipe-manager-frontend/src/types/recipe.ts` declares `id: number` while the
   API returns a `Guid`, and the TS type is missing `servings` and `instructions`. This seam needs an owner.
   See [docs/agents/08-api-contract.md](docs/agents/08-api-contract.md).
-- **No DevOps/CI agent**: there is no `.github/` directory, no pipeline, and no compose file. Deployment
-  concerns are folded into [docs/workflows/release-workflow.md](docs/workflows/release-workflow.md) until CI exists.
+- **No DevOps/CI agent**, still: `.github/` now holds a CI workflow and a Dependabot config (`R-04`/ADR-013),
+  but that is ~120 lines of YAML that verifies and deploys nothing, and there is no compose file or deployment
+  target. Ownership stays with `01-architect` for structure and
+  [docs/workflows/release-workflow.md](docs/workflows/release-workflow.md) for process. Revisit if a deployment
+  pipeline is ever built — that is when the surface justifies an owner.
 - **No DBA agent**: a single table, a single migration, no stored procedures, no indexes beyond the PK.
   EF-related concerns belong to `02-senior-csharp`, schema-shape decisions to `01-architect`.
 

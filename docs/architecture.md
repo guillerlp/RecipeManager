@@ -347,6 +347,43 @@ endpoint is anonymous and every recipe is world-writable. See
   anyone to run either command until CI exists (`INFRA-01`, `R-04`). This makes the gate possible, not
   automatic.
 
+### ADR-013 — CI enforces the checklist, and NuGet restores from a lock file
+
+- **Status:** accepted and **implemented 2026-08-08** (`R-04`). Closes `INFRA-01`, `INFRA-06`, `BUILD-07`.
+- **Context:** ADR-010 and ADR-012 built gates on both halves of the codebase and neither is *run* by anything.
+  `BUILD-03` is the proof that this matters: `npm run lint` could not start for eleven months unnoticed. Ten
+  package versions were also centralised by ADR-011, but the **transitive** closure was still resolved fresh on
+  every restore, so CI could legitimately get a different graph than a developer did, with no diagnostic.
+- **Decision:** a GitHub Actions workflow on every PR to `main` and every push to `main`, in two parallel jobs
+  (backend: locked restore → build → test → vulnerable-package check; frontend: `npm ci` → typecheck → lint →
+  build → audit). `RestorePackagesWithLockFile` in `Directory.Build.props` with six committed
+  `packages.lock.json`, restored in CI with `--locked-mode`. Dependabot for `npm`, `nuget`, and
+  `github-actions`, grouped weekly. Node pinned in `.nvmrc`, read by the workflow.
+- **Alternatives:** *(a)* One sequential job — simpler, but a frontend lint error hides behind a five-minute
+  backend run, and the two are genuinely independent. *(b)* Trusting `dotnet list package --vulnerable`'s exit
+  code — it exits **0 even when it finds vulnerabilities** (verified), so the step could never fail; its output
+  is parsed instead. *(c)* Pinning actions by tag — tags are mutable and can be repointed at new code, which is
+  how the 2025 `tj-actions/changed-files` compromise leaked secrets; actions are pinned by commit SHA, and the
+  `github-actions` Dependabot ecosystem is what stops those pins rotting. *(d)* Skipping lock files — smallest
+  diff, but leaves the silent-divergence failure ADR-011 removed for direct versions.
+- **Consequences:** the checklist in [workflows/release-workflow.md](workflows/release-workflow.md) stops being
+  a document people are trusted to follow. `R-06` (Testcontainers) is unblocked, since Docker exists on the
+  runner. The costs are real: every PR now waits on CI; every dependency change must regenerate the lock files
+  or CI fails at `--locked-mode` with an unhelpful message; and CI tempts people to stop running checks locally,
+  which makes the individual loop slower even as the repo's guarantee gets stronger.
+- **CI builds `Debug`, not `Release`, and that is load-bearing.** ADR-005 makes `Program.Main` throw
+  `"IntegrationTest environment is not allowed in RELEASE builds"` — a deliberate guard against setting that
+  environment on a real deployment. `WebApplicationFactory` uses exactly that environment name, so a Release
+  build fails **all 14** integration tests by design; measured, 84 passing drops to 70. Nothing is lost, because
+  `TreatWarningsAsErrors` is unconditional rather than Release-only (ADR-010), so the warning gate is identical
+  in Debug. What is **not** covered is a Release-only compilation difference. Accepted — and it is worth noting
+  that a guard added for *security* reasons in 2025 turned out to constrain the CI design three items later.
+- **Verified by negative test**, per the 2026-08-04 entry — each gate was observed rejecting:
+  `NU1004` on a lock-file mismatch, `NU1903` on a deliberately vulnerable package, `CS0219` on an unused local,
+  a non-zero exit on an inverted assertion, `TS2322` on a bad annotation, and `no-console` on a `console.log`.
+- **What this does not buy.** The workflow makes the checks *exist*; only a branch-protection rule makes them
+  *required*, and that is a repository setting, not a file. Until it is enabled, a red pipeline is advisory.
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001
