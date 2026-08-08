@@ -57,7 +57,7 @@ These were settled on 2026-07-26. Implement towards them; do not re-litigate the
 | CQRS | Keep hand-rolled; handlers auto-registered with Scrutor (**shipped**) | ADR-008 |
 | Domain error codes | Move HTTP status out of the Domain layer into a semantic error kind | ADR-009, `R-05` |
 | Ingredients | Structure them — the `string[]` shape is an acknowledged temporary shortcut | `R-10` |
-| Integration tests | Testcontainers with real PostgreSQL, deferred until CI exists | `R-06` |
+| Integration tests | Testcontainers with real PostgreSQL — **unblocked**, CI now provides Docker (ADR-013) | `R-06` |
 | Frontend tests | Vitest + React Testing Library | `R-07` |
 
 ### Recipe-domain questions still to answer

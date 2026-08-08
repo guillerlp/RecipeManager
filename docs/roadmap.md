@@ -30,44 +30,13 @@ that are *wrong* with what already exists.
 
 ## Phase 1 — foundations (do these first)
 
-These are cheap, unblock everything else, and each one removes a whole class of future bug.
+**Phase 1 is complete.** `R-02` (build hygiene), `R-03` (frontend toolchain), and `R-04` (CI) all shipped;
+`R-04` on 2026-08-08 as ADR-013, closing `INFRA-01`, `INFRA-06`, and `BUILD-07`. Phase 2 and Phase 3 items are
+therefore no longer gated by the ordering rule above.
 
-### R-04
-**CI pipeline** · `01-architect` → implementation · ~3 h
-
-Nothing enforces any checklist today. `R-03` is the proof: `npm run lint` could not start for eleven months and
-nothing reported it, because a check that nobody runs and a check that passes look the same from outside.
-
-Minimum GitHub Actions workflow on every PR:
-
-```
-dotnet build (already warnings-as-errors, ADR-010) · dotnet test
-npm ci · npm run typecheck · npm run lint · npm run build
-dotnet list package --vulnerable --include-transitive · npm audit
-```
-
-Every one of those npm scripts now exists and passes — `R-03`/ADR-012 made them runnable. This item is what
-makes anyone actually run them.
-
-Dependabot **alerting** is already on but nothing acts on it. Add Dependabot **pull requests** for both
-ecosystems and fail the build on high-severity alerts — that is what turns a notification into a gate. Closes
-`INFRA-01`.
-
-**`SEC-03` was remediated first, deliberately, so this gate can land blocking.** With 68 alerts open, a
-blocking `npm audit` step would have gone red on the PR that introduced it, and every subsequent PR would have
-merged over a red check — which teaches people to ignore red, the exact failure mode `BUILD-03` demonstrated.
-The audit baseline is now 0, so any failure here is a genuine regression.
-
-**Decide NuGet lock files here, not before.** The frontend restores from a committed `package-lock.json`; the
-backend has no equivalent, so the transitive graph is resolved fresh on every restore and CI could legitimately
-get a different closure than a developer did. `<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>`
-in `Directory.Build.props` plus committed `packages.lock.json` files fixes that, and `--locked-mode` in CI makes
-an unexpected change fail rather than pass silently. It is deliberately deferred to this item because a lock
-file only earns its maintenance cost once something reproducible consumes it.
-
-Also closes `INFRA-06`: on a Windows machine with Smart App Control enabled the 14 integration tests cannot load
-the freshly built `RecipeManager.Api.dll` at all, so they are unreliable locally right after a backend change. A
-Linux runner has no such policy, which makes CI the **only** trustworthy place to run them until then.
+One residual is tracked as `INFRA-07`: the workflow runs on every PR but is not yet **required** to merge, which
+is a branch-protection setting on `main` rather than anything a PR can contain. Until it is enabled, the
+pipeline reports honestly and can be merged past.
 
 ---
 
@@ -106,7 +75,8 @@ testing. It cannot reproduce `text[]` semantics, PostgreSQL identifier folding, 
 concurrency, so `TEST-06` is unfixable while it stays.
 
 **Target.** `Testcontainers.PostgreSql`, one container per test class, `RespawnDb` or a fresh database per
-class for isolation. Requires Docker locally and in CI, so it should land **after** `R-04`.
+class for isolation. Requires Docker locally and in CI — **unblocked as of `R-04`**, since the `ubuntu-latest`
+runner provides Docker (ADR-013).
 
 Keep the existing 14 tests passing throughout — this is a swap of the base class, not a rewrite.
 
@@ -241,7 +211,7 @@ definition of ready-to-deploy. Re-read this list before the first deployment.
 | Length limits enforced at the database, not only in FluentValidation | `SEC-08`, `SEC-09` |
 | `GET /api/recipes` paginated | `SEC-07`, `R-11` |
 | Health/readiness endpoint | `SEC-11` |
-| CI green on every PR | `INFRA-01`, `R-04` |
+| CI green on every PR — **workflow shipped**; still to make the checks *required* to merge | `INFRA-07` (was `INFRA-01`, `R-04`) |
 | Versioning scheme and a tested rollback procedure — migrations apply themselves at startup | `INFRA-02`, `INFRA-03` |
 | Real production `VITE_API_URL` and a documented frontend host | `INFRA-04`, `SEC-12` |
 

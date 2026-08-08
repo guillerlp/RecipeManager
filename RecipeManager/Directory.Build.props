@@ -6,6 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Records the resolved transitive closure in packages.lock.json so CI restores the exact
+         graph a developer did. CI restores in locked mode, which turns an unexpected change into
+         a failure instead of a silent resolution. ADR-013. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
 </Project>

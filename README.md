@@ -19,7 +19,7 @@ RecipeManager/
 | --- | --- | --- |
 | .NET SDK | **10.0** | All projects target `net10.0`. Pinned in `RecipeManager/global.json` with `rollForward: latestFeature`. |
 | PostgreSQL | 16 or newer | Accessed via Npgsql. Default host/port `localhost:5432`. |
-| Node.js | 20 LTS or newer | Only needed for the frontend. |
+| Node.js | 20 LTS or newer; **24 recommended** | Only needed for the frontend. `engines` declares the `>=20` floor; `recipe-manager-frontend/.nvmrc` pins **24**, which is what CI installs and what the project is tested on. `nvm use` in that folder picks it up. |
 
 Install on Windows:
 
@@ -154,6 +154,27 @@ npm run build
 `npm run build` is `tsc -b && vite build`, so a type error fails it before Vite bundles anything. For a faster
 loop while working, `npm run typecheck` runs the same check without producing `dist/`. There is no `npm test` —
 no frontend test runner exists yet.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request to `main` and every push to `main`, in two parallel jobs
+on `ubuntu-latest`:
+
+| Job | Steps |
+| --- | --- |
+| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (84) → vulnerable-package check |
+| **Frontend** | `npm ci` → `npm run typecheck` → `npm run lint` → `npm run build` → `npm audit --audit-level=high` |
+
+Two things are worth knowing before a run surprises you:
+
+- **NuGet restores from committed lock files.** Every project has a `packages.lock.json`, and CI restores in
+  locked mode. Change a package version and CI fails with `NU1004` until you run
+  `dotnet restore RecipeManager.sln --force-evaluate` and commit the updated lock files.
+- **CI builds Debug on purpose.** A Release build makes every integration test fail: the `IntegrationTest`
+  environment throws in RELEASE builds by design, and `WebApplicationFactory` uses that environment name. See
+  ADR-005 and ADR-013.
+
+The checks are not yet *required* to merge — that is a branch-protection setting on `main`.
 
 ## Docker
 

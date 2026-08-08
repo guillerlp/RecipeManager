@@ -29,6 +29,7 @@ and again after the `SEC-03` dependency remediation.
 | Frontend lint | `npm run lint` | **0 problems** — runs since `jiti` was added (ADR-012, `R-03`) |
 | npm vulnerabilities | `npm audit` | **0** — cleared 2026-08-08 by `npm audit fix`, verified again after `npm ci` (`SEC-03`, [Settled](#settled)) |
 | Frontend tests | — | **none exist**, no runner installed ([TEST-01](#test-01)) |
+| CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
 `TreatWarningsAsErrors`, so a warning is a build failure rather than a note somebody may or may not read
@@ -39,7 +40,8 @@ present on the .NET 8 set — were `BUILD-01` and `BUILD-02`, both fixed in the 
 `eslint.config.ts` loadable, `npm run build` runs `tsc -b` before Vite, and `npm run typecheck` exists. Both
 gates were verified by negative test — a deliberate type error fails the build before Vite runs, and a
 deliberate `console.log` is reported by lint. What this does **not** buy is automatic enforcement: nothing runs
-these commands for you until CI exists ([INFRA-01](#infra-01), `R-04`).
+these commands for you — **until `R-04`, which now does**: `.github/workflows/ci.yml` runs both gates on every
+PR (ADR-013). The remaining gap is that a red run does not yet *block* a merge ([INFRA-07](#infra-07)).
 
 ---
 
@@ -49,7 +51,6 @@ these commands for you until CI exists ([INFRA-01](#infra-01), `R-04`).
 | --- | --- | --- | --- |
 | [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 5.7× the entire JS bundle |
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
-| [BUILD-07](#build-07) | Low | Tooling | Node version not pinned |
 | [BUILD-08](#build-08) | Low | Tooling | `ts-node` is a devDependency nothing uses |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
@@ -77,12 +78,11 @@ these commands for you until CI exists ([INFRA-01](#infra-01), `R-04`).
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [TEST-06](#test-06) | Medium | Tests | Integration tests cannot reproduce Npgsql behaviour |
-| [INFRA-01](#infra-01) | **High** | CI/CD | No CI pipeline |
+| [INFRA-07](#infra-07) | Medium | CI/CD | CI runs on every PR but is not yet *required* to merge |
 | [INFRA-02](#infra-02) | Medium | CI/CD | No versioning or tags |
 | [INFRA-03](#infra-03) | Medium | CI/CD | No rollback procedure |
 | [INFRA-04](#infra-04) | Medium | CI/CD | No frontend deployment target |
 | [INFRA-05](#infra-05) | Low | DX | No seed data |
-| [INFRA-06](#infra-06) | Medium | DX | Smart App Control blocks the integration tests after an Api change |
 | [QUAL-01](#qual-01) | Low | Quality | `ILogger` called with interpolated strings |
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
 | [QUAL-03](#qual-03) | Low | Quality | Deep relative imports for shared assets |
@@ -132,16 +132,6 @@ contribute nothing and the reported percentage understates real coverage — par
 limitation in `README.md`.
 
 **Owner:** `06-qa-tester` · **Effort:** ~30 min
-
-### BUILD-07
-**Node version not pinned — Low**
-
-No `engines` field in `package.json`, no `.nvmrc`. `README.md` asks for "20 LTS or newer"; the machine this was
-verified on runs Node 24.18 / npm 11.16. The .NET SDK *is* pinned (`global.json`), so this is an inconsistency.
-
-**Fix.** Add `"engines": { "node": ">=20" }` and an `.nvmrc`.
-
-**Owner:** `03-senior-react` · **Effort:** ~5 min
 
 ### BUILD-08
 **`ts-node` is a devDependency nothing uses — Low**
@@ -400,27 +390,28 @@ decision from the user.
 violations, and concurrency do not surface. Anything provider-specific must be verified manually against a real
 PostgreSQL, and PRs should say so explicitly.
 
-**Possible fix.** Testcontainers for PostgreSQL — a dependency and a CI decision ([INFRA-01](#infra-01)).
+**Possible fix.** Testcontainers for PostgreSQL — `R-06`, **now unblocked**: it was deferred until CI existed
+because it needs Docker in both places, and the `ubuntu-latest` runner provides it (ADR-013).
 
 ---
 
 ## Infrastructure & process
 
-### INFRA-01
-**No CI pipeline — High**
+### INFRA-07
+**CI checks are not yet *required* to merge — Medium**
 
-No `.github/` directory, no workflow, nothing. Every check in
-[workflows/release-workflow.md](workflows/release-workflow.md) is manual and therefore skippable — the retired
-`BUILD-03` (see [Settled](#settled)) is direct evidence that an unenforced check silently rots: `npm run lint`
-could not even *start* for eleven months and no one noticed.
+`.github/workflows/ci.yml` exists and runs on every PR (ADR-013, `R-04`), but nothing makes a red run block a
+merge. Requiring a status check is a **branch-protection rule on `main`** — a GitHub repository setting, not a
+file in the repo, so it could not be delivered by the PR that added the workflow.
 
-**Minimum useful pipeline:** `dotnet build` (already warnings-as-errors via `Directory.Build.props`, ADR-010),
-`dotnet test`, `npm ci`, `npm run typecheck`, `npm run lint`, `npm run build`. Add
-`dotnet list package --vulnerable` and `npm audit` so the npm advisories cleared by `SEC-03` cannot silently
-regrow — that entry is closed precisely so this gate can be **blocking** from the day it lands, rather than
-decorative until someone remediates. Dependabot *alerting* is already enabled but nothing acts on it — enabling
-Dependabot **pull requests** and failing CI on high-severity alerts is what turns it from a notification into a
-control.
+Until it is enabled, the pipeline is advisory: it reports honestly and can be merged past. That is a strictly
+better position than no CI, and strictly worse than the item's goal.
+
+**Fix.** Repository → Settings → Branches → add a rule for `main` requiring the `Backend` and `Frontend` checks,
+and requiring branches to be up to date before merging. Confirm Dependabot **pull requests** are enabled in the
+same visit — `dependabot.yml` configures them, but the repository-level toggle governs.
+
+**Owner:** repository owner (not automatable from within the repo) · **Effort:** ~5 min
 
 ### INFRA-02
 **No versioning or tags — Medium**
@@ -446,31 +437,6 @@ production. See [SEC-12](#sec-12).
 
 The database starts empty and there is no seeder, so a fresh clone shows an empty app until recipes are created
 by hand through Swagger. Integration tests seed only against EF InMemory. A Development-only seeder is planned as `R-13`.
-
-### INFRA-06
-**Windows Smart App Control blocks the integration tests after any Api change — Medium**
-
-On a development machine with Windows **Smart App Control** enabled
-(`HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy` → `VerifiedAndReputablePolicyState = 1`), a freshly compiled,
-unsigned `RecipeManager.Api.dll` is untrusted, so `WebApplicationFactory<Program>` cannot load it:
-
-```
-System.IO.FileLoadException : Could not load file or assembly '…\RecipeManager.Api.dll'.
-An Application Control policy has blocked this file. (0x800711C7)
-```
-
-This fails **every one of the 14 integration tests**, not one of them — they all construct
-`IntegrationTestBase`, which loads the Api assembly. The trigger is a *changed* `Api.dll`, so the tests fail
-exactly when a backend change most needs verifying, and pass again once the binary has been evaluated or
-reverted. It is an environment constraint, not a defect in the tests, so **the tests are not skipped or
-marked** — hiding the gate would be worse than the gap.
-
-**Consequence today:** on such a machine, integration tests cannot be trusted locally straight after an Api
-change, and a negative test (deliberately breaking something to confirm a test catches it) cannot be run at all.
-
-**Resolution:** [INFRA-01](#infra-01) / `R-04` — CI runs the suite on a clean Linux runner where the policy does
-not apply. Until then the workarounds are to disable Smart App Control (**irreversible without reinstalling
-Windows**, so it is a deliberate choice, not a default) or to run `dotnet test` under WSL2.
 
 ---
 
@@ -585,6 +551,10 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `RecipeManager.Api.csproj.user` committed | **Untracked**, and `*.user` added to `.gitignore` — it carried one developer's debug profile. Fixed 2026-08-04. | — |
 | `BUILD-03` — `npm run lint` could not start | **Fixed** by adding `jiti`; ESLint 9 loads a TypeScript flat config through it. Unable to start since 2025-08-08. **Shipped 2026-08-08.** | ADR-012, `R-03` |
 | `BUILD-04` — `npm run build` did not type-check | **Fixed**: `"build": "tsc -b && vite build"`, plus a `typecheck` script. **Shipped 2026-08-08.** | ADR-012, `R-03` |
+| `INFRA-01` — no CI pipeline | **Fixed.** `.github/workflows/ci.yml` runs build, test, typecheck, lint, and both vulnerability checks on every PR. Every gate verified by negative test. **Shipped 2026-08-08.** | ADR-013, `R-04`; residual `INFRA-07` |
+| `INFRA-06` — Smart App Control blocks the integration tests | **Resolved as designed.** The 14 integration tests run on a clean `ubuntu-latest` runner where no Application Control policy applies. It was always an environment constraint rather than a defect, so the fix was to run them somewhere the constraint does not exist. Local Windows runs remain unreliable straight after an Api change; CI is now the authority. | ADR-013, `R-04` |
+| `BUILD-07` — Node version not pinned | **Fixed.** `.nvmrc` (24) and `engines: { node: ">=20" }`. The workflow reads `node-version-file: .nvmrc`, so CI and a developer's machine cannot disagree — the two values say different things deliberately: what is *used* versus what is *supported*. | ADR-013, `R-04` |
+| Should CI build Release or Debug? | **Debug.** ADR-005 makes the `IntegrationTest` environment throw in RELEASE builds, so a Release CI build fails all 14 integration tests by design (measured: 84 → 70). `TreatWarningsAsErrors` is unconditional, so the warning gate is identical in Debug. | ADR-013, ADR-005 |
 | `SEC-03` — 68 open Dependabot alerts (13 npm advisories, `axios` the largest) | **Fixed** by `npm audit fix`. Every advisory resolved **within the declared semver ranges** — `package.json` did not change, only `package-lock.json`. The entry's fear that `react-router` and `vite` were "majors-adjacent" was wrong: all bumps were minor (`axios` 1.10→1.19, `react-router` 7.7→7.18, `vite` 7.0→7.3). Verified by clean `npm ci` + typecheck + lint + build, and by exercising routing, search, and theming in a browser against a live API. **Shipped 2026-08-08.** | — |
 | `BUG-08` — `console.log` in shipped code | **Removed**, and `no-console` added to the ESLint config — the rule had never been configured, so the entry's claim that lint "would have caught" them was wrong. **Shipped 2026-08-08.** | ADR-012, `R-03` |
 | Was the ESLint config lintable as written? | **No.** Type-aware rules were applied to `**/*.{ts,tsx}` while `tsconfig.json` includes only `src`, so `eslint.config.ts` and `vite.config.ts` were parse errors. Typed rules now scope to `src/**`; root tooling files lint without type information. | ADR-012 |
