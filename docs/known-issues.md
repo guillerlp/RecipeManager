@@ -5,7 +5,7 @@ Every **defect and gap in what already exists**. Planned work that does not exis
 
 Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code. Build and
 test numbers re-measured on 2026-08-04 after `R-02`, and the frontend rows re-measured on 2026-08-08 after `R-03`
-and again after the `SEC-03` dependency remediation.
+and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12.
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -27,7 +27,7 @@ and again after the `SEC-03` dependency remediation.
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and now type-checks first (`tsc -b && vite build`, ADR-012) |
 | Frontend lint | `npm run lint` | **0 problems** — runs since `jiti` was added (ADR-012, `R-03`) |
-| npm vulnerabilities | `npm audit` | **0** — cleared 2026-08-08 by `npm audit fix`, verified again after `npm ci` (`SEC-03`, [Settled](#settled)) |
+| npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
 | Frontend tests | — | **none exist**, no runner installed ([TEST-01](#test-01)) |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
