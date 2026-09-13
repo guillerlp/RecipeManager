@@ -83,6 +83,7 @@ PR (ADR-013). The remaining gap is that a red run does not yet *block* a merge (
 | [INFRA-02](#infra-02) | Medium | CI/CD | No versioning or tags |
 | [INFRA-03](#infra-03) | Medium | CI/CD | No rollback procedure |
 | [INFRA-04](#infra-04) | Medium | CI/CD | No frontend deployment target |
+| [INFRA-08](#infra-08) | Medium | CI/CD | Dependabot NuGet PRs arrive red: lock files only partly updated (NU1004) |
 | [INFRA-05](#infra-05) | Low | DX | No seed data |
 | [QUAL-01](#qual-01) | Low | Quality | `ILogger` called with interpolated strings |
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
@@ -456,6 +457,61 @@ work. A destructive migration deploys itself with no gate.
 
 `npm run build` produces `dist/`, but nothing documents where it is hosted or how `VITE_API_URL` is set in
 production. See [SEC-12](#sec-12).
+
+### INFRA-08
+**Dependabot NuGet PRs arrive red: lock files only partly updated (NU1004) — Medium**
+
+ADR-013 accepted that "every dependency change must regenerate the lock files or CI fails at `--locked-mode`".
+What it did not anticipate is that Dependabot regenerates them **incompletely**. It updates some
+`"type": "CentralTransitive"` entries and leaves others on the old version, so restore fails before build or
+test ever run:
+
+```
+error NU1004: Mistmatch between the requestedVersion of a lock file dependency marked as CentralTransitive and
+the the version specified in the central package management file.
+```
+
+Observed twice. #21 (FluentResults, an *ungrouped* PR) was missing entries in four lock files; #26 (the
+minor/patch group) was missing two entries in `RecipeManager.IntegrationTests/packages.lock.json` only. So this
+is not caused by grouping. Which entries Dependabot misses is **not fully characterised**: #26 bumped
+`Microsoft.EntityFrameworkCore.Relational`, which is also `CentralTransitive` in two lock files, and those
+entries *were* updated correctly.
+
+**Exposure.** 11 of the 12 production packages in `RecipeManager/Directory.Packages.props` appear as
+`CentralTransitive` somewhere (all except `Microsoft.EntityFrameworkCore.Design`). None of the 9 test-only
+packages do, which is why #24 (`xunit.runner.visualstudio`) passed untouched. The packages that matter most are
+exactly the ones affected. It follows that a Dependabot *security* update to one of them would arrive red too.
+That is inferred from the mechanism; it has not been observed.
+
+**Why it matters.**
+- A red check on these PRs carries **no compatibility signal**: restore failed, so nothing was compiled or
+  tested. #21 looked like a breaking upgrade and was actually unevaluated.
+- The NU1004 message recommends "Disable the RestoreLockedMode MSBuild property". That advice would silently
+  undo ADR-013. Do not follow it.
+- The fix is a manual push to Dependabot's branch. Per Dependabot's own PR text, editing the branch stops it
+  resolving conflicts automatically, so each fixed PR becomes a human's to maintain.
+- The comment in `.github/dependabot.yml` ("Each PR must also update the six packages.lock.json files or CI
+  fails at --locked-mode; that is the intended behaviour") is accurate about the gate. It reads as though
+  Dependabot does that update in full, which it does not.
+
+**Workaround (current).** On the PR branch, from `RecipeManager/`:
+`dotnet restore RecipeManager.sln --force-evaluate`. Commit only the `packages.lock.json` changes. Confirm with
+`dotnet restore RecipeManager.sln --locked-mode` before pushing. Check the result against CI on the PR's head SHA.
+
+**Fix options.**
+- *(a)* Document the workaround in [workflows/release-workflow.md](workflows/release-workflow.md) and correct
+  the `dependabot.yml` comment. Cheap, and the per-PR manual step remains.
+- *(b)* A workflow that regenerates the lock files on Dependabot PRs and pushes the result. It removes the manual
+  step, but it needs write access from a Dependabot-triggered run, which GitHub restricts by default. The obvious
+  route (`pull_request_target` checking out the PR head) is a known code-injection pattern. Needs
+  `05-security-reviewer` before it is built. Verify GitHub's current Dependabot token rules at that time rather
+  than from memory.
+- *(c)* Drop lock files or `--locked-mode`. **Rejected**: this reverses ADR-013 and reopens the silent
+  transitive-divergence failure it closed.
+
+Recommended: *(a)* now; *(b)* only if the manual step proves frequent enough to justify the security surface.
+
+**Owner:** `01-architect` (CI structure) · **Effort:** *(a)* ~15 min; *(b)* not estimated
 
 ### INFRA-05
 **No seed data — Low**
