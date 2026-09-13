@@ -30,7 +30,7 @@ failure (`NU1004`) rather than a silent resolution. Changing any package means r
 | --- | --- | --- | --- |
 | `Microsoft.EntityFrameworkCore` (+ `.Relational`, `.Design`) | 10.0.10 | Infrastructure, Api | `AppDbContext`, migrations |
 | `Npgsql.EntityFrameworkCore.PostgreSQL` | 10.0.3 | Infrastructure, Api | `options.UseNpgsql(...)`; maps `IReadOnlyList<string>` to a native `text[]` column with no configuration |
-| `FluentResults` | 3.16.0 | Domain, Application | Expected-failure channel (ADR-002). `Error` metadata carries `ErrorCode` + `field` |
+| `FluentResults` | 4.0.0 | Domain, Application | Expected-failure channel (ADR-002). `Error` metadata carries `ErrorCode` + `field`. Ships no `net10.0` asset — the `net9.0` build is consumed. `Errors` is `IReadOnlyList<IError>`, and `Result.Fail` with an empty error collection throws |
 | `FluentValidation` | 11.11.0 | Application, Api | Payload-shape validation |
 | `FluentValidation.AspNetCore` | 11.3.1 | Api | `AddFluentValidationAutoValidation()` — validates the bound request type before the action runs |
 | `Scrutor` | 7.0.0 | Api | Only for `services.Decorate<IRecipeRepository, CachedRecipeRepository>()`. Assembly scanning is **not** used — handlers are registered explicitly |

@@ -37,20 +37,62 @@ Jump to every entry touching a topic.
 | --- | --- |
 | CQRS / dispatching | [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-08-28 CQRS without MediatR](#2025-08-28--hand-rolled-cqrs-instead-of-mediatr) |
 | Layering / dependency direction | [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain) |
-| Error handling | [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
+| Error handling | [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
 | Caching | [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Testing | [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
 | Tooling / infrastructure | [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Enforcement vs. convention | [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
-| Dependency management | [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
+| Dependency management | [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
 | Frontend / React | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | Accessibility | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 
 ---
 
 ## Entries
+
+### 2026-09-13 — Take a library major when it is cheap, not when it is needed
+
+**Context.** Dependabot opened #21, FluentResults 3.16.0 → 4.0.0. FluentResults is the expected-failure channel
+for the whole app (ADR-002), so a major bump is an architecture change, not a routine update. #21's CI never got
+past `dotnet restore --locked-mode` (NU1004 — Dependabot updated the `Direct` lock entries but not the
+`CentralTransitive` ones), so its red check said nothing about compatibility.
+
+**Decision.** Upgrade, on a fresh branch rather than Dependabot's. Superseding #21.
+
+**How it was evaluated.** From the library source at tags `v3.16` and `v4.0`, not from the release-note titles.
+The prediction — exactly one compile break, `ResultExtensions.CreateProblemDetails(List<IError>)` receiving
+the now-`IReadOnlyList<IError>` `Errors` — was then confirmed by building before fixing anything: 3 errors, all
+that one signature. Fixed by widening the parameter to `IReadOnlyList<IError>` rather than adding `.ToList()`
+at the three callers, because the method only reads the list. "Deconstruct operators (BREAKING)" cost nothing —
+no `Result` is deconstructed anywhere.
+
+**Why upgrade when no 4.0 feature is needed.** The new helpers (`FailIfNotEmpty`, `Merge` on enumerables,
+`OrFailIf`) are not used. The case was:
+- *A semantic trap closes.* In 3.16, `IsFailed` is computed as "has any error", so `Result.Fail(emptyList)`
+  returned a **successful** result — and for `Result<T>`, a success with a `default` value. 4.0 throws
+  instead. Every current call site is guarded, so this is protection for future code, recorded in ADR-002.
+- *`Errors` was a fresh copy on every read* in 3.16, so `result.Errors.Add(x)` compiled and did nothing. It is
+  now a compile error.
+- *The break only grows.* Every new method taking `List<IError>` would add to it.
+
+**Rejected.** Deferring with `@dependabot ignore this major version`. 3.16 has no known vulnerability, so this
+was legitimate — but the ignore silences **every** 4.x update, including any future security patch, and pins
+the project to a line upstream no longer releases (the last 3.x release was June 2024). It trades a one-line fix
+today for a suppression someone must remember to lift.
+
+**Cost.** An empty collection reaching `Result.Fail` is now a 500 through `ErrorHandlerMiddleware` rather than a
+silent success — the right direction, but a new exception path. FluentResults 4.0 ships no `net10.0` build, so
+the app consumes the `net9.0` asset. Upstream releases roughly yearly, so a 4.x defect may sit unfixed as long as
+a 3.x one would have.
+
+**Takeaway.** *A release-note title is not an impact assessment.* The "BREAKING" item was free and the
+innocent-sounding "introduce ReadOnlyList type" was the actual break. Read the diff of the types you consume,
+predict the break, then let the compiler confirm it before changing code — and weigh "defer" by what the
+deferral silences, not only by what the upgrade costs.
+
+---
 
 ### 2026-08-08 — CI must build Debug, because a security guard from 2025 says so
 

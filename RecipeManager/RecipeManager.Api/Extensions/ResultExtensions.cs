@@ -29,7 +29,7 @@ public static class ResultExtensions
         return CreateProblemDetails(result.Errors);
     }
 
-    public static ActionResult CreateProblemDetails(List<IError> errors)
+    public static ActionResult CreateProblemDetails(IReadOnlyList<IError> errors)
     {
         var firstError = errors.First();
         

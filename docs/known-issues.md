@@ -52,6 +52,7 @@ PR (ADR-013). The remaining gap is that a red run does not yet *block* a merge (
 | [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 5.7× the entire JS bundle |
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
 | [BUILD-08](#build-08) | Low | Tooling | `ts-node` is a devDependency nothing uses |
+| [BUILD-09](#build-09) | Low | Docs | Backend package versions in the docs have drifted from `Directory.Packages.props` |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
 | [SEC-04](#sec-04) | **High** | Security | No rate limiting on unauthenticated write endpoints |
@@ -146,6 +147,30 @@ Left in place by `R-03`, which added `jiti` — removing an unrelated dependency
 obscured which change made lint work.
 
 **Owner:** `03-senior-react` · **Effort:** ~5 min
+
+### BUILD-09
+**Backend package versions in the docs have drifted from `Directory.Packages.props` — Low**
+
+Dependabot PRs change `RecipeManager/Directory.Packages.props` and the lock files but never the docs, so the
+version tables have fallen behind. Found on 2026-09-13 (`main` @ `aeb1f19`) while upgrading FluentResults:
+
+| Package | Docs say | `Directory.Packages.props` |
+| --- | --- | --- |
+| `Microsoft.EntityFrameworkCore` (+ `.Relational`, `.Design`), `Microsoft.Extensions.DependencyInjection`, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.InMemory` | 10.0.10 | 10.0.12 |
+| `FluentValidation` | 11.11.0 | 11.12.0 |
+| `NSubstitute` | 6.0.0 | 6.2.0 |
+| `xunit.runner.visualstudio` | 3.1.5 | 4.0.0 |
+| `Microsoft.NET.Test.Sdk` | 18.8.1 | 18.10.0 |
+| `Microsoft.VisualStudio.Azure.Containers.Tools.Targets` | 1.21.0 | 1.23.0 |
+
+Affected: `docs/tech-stack.md` backend tables and the `CLAUDE.md` stack summary. Separately, the `Scrutor` row
+in `docs/tech-stack.md` still says assembly scanning is not used, which ADR-008 reversed on 2026-08-03.
+
+**Fix.** Correct the tables. To stop recurrence, either drop exact patch versions from prose docs and point at
+`Directory.Packages.props` as the single source, or add the doc update to the Dependabot merge checklist in
+`docs/workflows/release-workflow.md` — the first removes the drift, the second only reminds someone.
+
+**Owner:** `01-architect` · **Effort:** ~15 min
 
 ---
 

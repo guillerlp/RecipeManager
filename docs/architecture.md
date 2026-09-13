@@ -185,6 +185,16 @@ endpoint is anonymous and every recipe is world-writable. See
   `RecipeManager.Domain` depend on HTTP semantics, which is the one place the layering is violated, and it
   causes a real bug (`ResultExtensions` reads the status from `errors.First()`, so mixed error kinds return an
   arbitrary status).
+- **Status update 2026-09-13 — FluentResults 4.0.** The contract above is unchanged (same `Result`/`Result<T>`,
+  same `ErrorCode`/`field` metadata, same `ProblemDetails` mapping). Two library semantics changed and are now
+  part of this ADR:
+  - `Result.Errors` is `IReadOnlyList<IError>`, so code that consumes errors takes `IReadOnlyList<IError>` (see
+    `ResultExtensions.CreateProblemDetails`). A failed `Result` is never edited through `Errors`.
+  - `Result.Fail(IEnumerable<IError>)` **throws `ArgumentException` on an empty collection**. In 3.16 the same
+    call returned a *successful* result, because `IsFailed` is computed as "has any error". Every collection
+    passed to `Fail` must be provably non-empty — guard with `IsFailed` or a count check, as `Recipe.Create`,
+    `Recipe.ValidateProperties`, and `CreateRecipeHandler` do. A violation now surfaces as a 500 through
+    `ErrorHandlerMiddleware` rather than as a silent success.
 
 ### ADR-003 — Caching as a repository decorator
 
