@@ -33,8 +33,8 @@ comparing unequal.
 | `PreparationTime` | `int` | `integer` | **Minutes** |
 | `CookingTime` | `int` | `integer` | **Minutes** |
 | `Servings` | `int` | `integer` | Count of portions |
-| `Ingredients` | `IReadOnlyList<string>` | `text[]`, `NOT NULL` | Native PostgreSQL array. Free text, e.g. `"Flour"` |
-| `Instructions` | `IReadOnlyList<string>` | `text[]`, `NOT NULL` | Ordered steps as free text; order = array order |
+| `Ingredients` | `IReadOnlyList<string>` | `text[]`, `NOT NULL` | Native PostgreSQL array. Free text, e.g. `"Flour"`. Read-only only when built via `Create`/`Update`, not when loaded ([BUG-11](known-issues.md#bug-11)) |
+| `Instructions` | `IReadOnlyList<string>` | `text[]`, `NOT NULL` | Ordered steps as free text; order = array order. Same read-only gap ([BUG-11](known-issues.md#bug-11)) |
 
 Table: `"Recipes"` (quoted — PostgreSQL folds unquoted identifiers to lowercase). Single migration
 `20260725173218_InitialCreate`. No indexes beyond the PK, no unique constraint on `Title` —

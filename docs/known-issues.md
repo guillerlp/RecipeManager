@@ -73,6 +73,7 @@ PR (ADR-013). The remaining gap is that a red run does not yet *block* a merge (
 | [BUG-07](#bug-07) | Low | API | `GET /api/recipes/{id}` missing the `:guid` route constraint |
 | [BUG-09](#bug-09) | Low | Frontend | Error recovery does a full page reload |
 | [BUG-10](#bug-10) | Medium | Frontend | No recipe detail route, so cards are not clickable |
+| [BUG-11](#bug-11) | Low | Domain | Recipes loaded from the database expose a mutable `List<string>` ([#8](https://github.com/guillerlp/RecipeManager/issues/8)) |
 | [TEST-01](#test-01) | **High** | Tests | No frontend test runner or tests |
 | [TEST-02](#test-02) | **High** | Tests | Cache invalidation has no dedicated test |
 | [TEST-03](#test-03) | Medium | Tests | Instruction ordering never asserted |
@@ -364,6 +365,60 @@ switches to `<button>` when it receives one. Note that the detail screen is bloc
 [BUG-01](#bug-01)–[BUG-03](#bug-03): it needs the real `Guid` id, `servings`, and `instructions`.
 
 **Owner:** `03-senior-react` + `07-ux-ui`
+
+### BUG-11
+**Recipes loaded from the database expose a mutable `List<string>` behind `IReadOnlyList<string>` — Low**
+
+Tracked on GitHub as [#8](https://github.com/guillerlp/RecipeManager/issues/8).
+
+`Recipe.Ingredients` and `Recipe.Instructions` are auto-properties with a `private set`
+(`RecipeManager.Domain/Entities/Recipe.cs:14-15`). `Recipe.Create` and `Recipe.Update` assign
+`ToList().AsReadOnly()`, which is genuinely read-only. EF Core, however, materializes a primitive collection as a
+`List<string>` and assigns it straight through the private setter. Nothing in `AppDbContext` redirects it. So the
+same entity is protected when constructed and unprotected when read:
+
+```
+[construct] System.Collections.ObjectModel.ReadOnlyCollection`1[System.String]
+[read]      System.Collections.Generic.List`1[System.String]
+[cast]      castable to List<string>: True
+```
+
+Reproduced 2026-09-13 against local PostgreSQL on `main` @ `84226dc` (EF Core 10.0.12, Npgsql 10.0.3) with a
+throwaway probe that created, re-read, and deleted one recipe. That confirms the July finding in #8 still holds.
+
+**Consequences.**
+- `((List<string>)recipe.Ingredients).Add(…)` compiles and bypasses the validation in `Recipe.Update`, which
+  breaks the rule that the domain owns every invariant (CLAUDE.md global rule 5). On a tracked entity the
+  change persists.
+- **The cache makes it worse (found while verifying #8, not stated in it).** Both repository reads use
+  `AsNoTracking()`, and `MemoryCacheService` stores that same instance. A mutated cached recipe therefore never
+  reaches the database. It is served to every later request until the entry expires. The safety argument in
+  [architecture.md → Caching](architecture.md#caching) relied on these collections being read-only.
+- The `02-senior-csharp` checklist item "assigned with `.ToList().AsReadOnly()`" covers the construction path
+  only. Following it does not prevent this defect.
+
+**Severity.** Low: nothing reachable over HTTP triggers it, since it needs a deliberate downcast in this repo's
+own code. It is recorded because it silently falsifies an encapsulation guarantee two documents relied on.
+
+**Fix (as proposed in #8).** Private backing fields, with the properties exposing a read-only view:
+
+```csharp
+private readonly List<string> _ingredients = new();
+public IReadOnlyList<string> Ingredients => _ingredients.AsReadOnly();
+```
+
+EF is then pointed at the fields (`UsePropertyAccessMode(PropertyAccessMode.Field)` in
+`AppDbContext.OnModelCreating`). The issue also sets two constraints. They are recorded here as its author's
+reasoning and were not re-verified for this entry:
+- no `ValueConverter` on these collections, which would likely collapse the native `text[]` mapping into a
+  serialized scalar;
+- no switch to `string[]`, because an array behind `IReadOnlyList<string>` is still castable and writable.
+
+**Verification must use real PostgreSQL.** EF InMemory does not exercise the `text[]` mapping
+([TEST-06](#test-06)). A regression test for this belongs with Testcontainers-based integration tests (`R-06`).
+Also check that a schema diff produces no migration, since the column should not change.
+
+**Owner:** `02-senior-csharp` (fix) · `01-architect` if the property-access-mode choice needs an ADR
 
 ---
 
