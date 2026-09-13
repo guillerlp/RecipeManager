@@ -19,7 +19,7 @@ RecipeManager/
 | --- | --- | --- |
 | .NET SDK | **10.0** | All projects target `net10.0`. Pinned in `RecipeManager/global.json` with `rollForward: latestFeature`. |
 | PostgreSQL | 16 or newer | Accessed via Npgsql. Default host/port `localhost:5432`. |
-| Node.js | 20 LTS or newer; **24 recommended** | Only needed for the frontend. `engines` declares the `>=20` floor; `recipe-manager-frontend/.nvmrc` pins **24**, which is what CI installs and what the project is tested on. `nvm use` in that folder picks it up. |
+| Node.js | 20.19+ or 22.12+; **24 recommended** | Only needed for the frontend. `engines` declares `^20.19.0 \|\| >=22.12.0`, the floor Vite 8 itself requires; `recipe-manager-frontend/.nvmrc` pins **24**, which is what CI installs and what the project is tested on. `nvm use` in that folder picks it up. |
 
 Install on Windows:
 

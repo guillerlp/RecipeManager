@@ -417,6 +417,30 @@ endpoint is anonymous and every recipe is world-writable. See
   finding it already installed. One visible change, verified: at ≤420 px the search icon now honours the 18 px
   `SearchBar.module.css` always declared — Emotion's injected `width: 1em` had silently kept it at 24 px.
 
+### ADR-015 — Vite 8 and `@vitejs/plugin-react` 6
+
+- **Status:** accepted and **implemented 2026-09-13**. Supersedes Dependabot #16.
+- **Context:** #16 bumped `@vitejs/plugin-react` to 6, which peers on `vite ^8` while `vite` stayed on 7, so it
+  never installed. Vite 8 replaces the build toolchain underneath the same config: Rolldown instead of Rollup and
+  esbuild, Oxc for transforms and React Fast Refresh (plugin-react 6 drops Babel), and Lightning CSS for CSS
+  minification. `vite.config.ts` is small (one plugin, aliases, a dev proxy), so the config surface was not the
+  risk; changed output was.
+- **Decision:** `vite` 8.3 + `@vitejs/plugin-react` 6.1. `__dirname` in `vite.config.ts` becomes
+  `import.meta.dirname` (Vite 8 warns that its planned native config loader cannot provide `__dirname`).
+  `engines` tightens from `>=20` to `^20.19.0 || >=22.12.0`, copied from Vite's own. A `vite` Dependabot group,
+  ordered before the minor/patch group, keeps `vite` and `@vitejs/*` in one PR from now on.
+- **Alternatives:** *(a)* defer — Vite 7 keeps working, but #16 re-raises weekly and plugin-react 4 falls further
+  behind the toolchain `R-07` (Vitest) will build on. *(b)* stay on Vite 7 and try `rolldown-vite` first — a
+  staging step that suits a large config; here it would be two migrations instead of one. *(c)* keep
+  `engines: >=20` — fewer characters, but a claim the build tool contradicts.
+- **Consequences:** production build 991 ms → 201 ms, JS 327.66 → 324.39 kB, 226 → 183 packages. The production
+  CSS was proven **semantically identical**, not merely similar: both builds parsed with the browser's CSSOM and
+  compared by longhand property per selector and media condition. Every textual difference was a rewrite with the
+  same meaning (declaration order, `(max-width: 768px)` → `(width <= 768px)`, `#ffffff` → `#fff`, two adjacent
+  `opacity: 1` rules merged in place). Computed styles on every element of both routes in both themes matched too,
+  and Fast Refresh was observed preserving component state. Harder: Babel plugins can no longer be passed through
+  `react({ babel })`, and the default `build.target` rises to Chrome 111 / Firefox 114 / Safari 16.4.
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001
