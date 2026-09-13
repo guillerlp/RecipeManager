@@ -1,5 +1,5 @@
 import styles from './SearchBar.module.css';
-import SearchIcon from '@mui/icons-material/Search';
+import { SearchIcon } from '@/components/ui/Icon';
 
 interface SearchBarProps {
     searchQuery: string;

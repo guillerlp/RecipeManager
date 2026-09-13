@@ -396,6 +396,27 @@ endpoint is anonymous and every recipe is world-writable. See
 - **What this does not buy.** The workflow makes the checks *exist*; only a branch-protection rule makes them
   *required*, and that is a repository setting, not a file. Until it is enabled, a red pipeline is advisory.
 
+### ADR-014 — Remove MUI; the app owns its four icons
+
+- **Status:** accepted and **implemented 2026-09-13**. Supersedes Dependabot #17 (`@mui/icons-material` 7 → 9).
+- **Context:** MUI 7 → 9 was due (#17 could not merge: icons 9 peers on `@mui/material` 9). The entire usage was
+  two `Box` elements (`HomePage`, `AppLayout`) and four icons, and the conventions already forbade anything more
+  (`sx`, `styled`, `ThemeProvider`). That surface carried `@mui/material`, `@mui/icons-material`,
+  `@emotion/react`, `@emotion/styled` and 49 transitive packages, plus Emotion styles injected at runtime that
+  out-ranked the CSS Modules — the `!important`s in `Logo.module.css` and `Footer.module.css` existed only to win.
+- **Decision:** remove all four packages. `Box` becomes `<div>` / `<main>`. The icons become
+  `components/ui/Icon/`: MUI's exact Material Icons path data (Apache-2.0) in plain `<svg>`, with SvgIcon's
+  defaults in a zero-specificity `:where(.icon)` rule so a consumer class always wins regardless of bundle order.
+- **Alternatives:** *(a)* upgrade to MUI 9 — verified zero code changes, but every future MUI and Emotion major
+  repeats the exercise for four glyphs, and MUI 9 raises the browser floor to Safari 17 / Chrome 117. *(b)* A
+  lighter icon library (lucide) — still a dependency to render four SVGs, with different glyphs. *(c)* Stay on
+  MUI 7 — v7's last release was 7.3.11 in May 2026.
+- **Consequences:** JS bundle 401.95 → 327.66 kB (gzip 133.95 → 107.28), 279 → 226 installed packages, and one
+  styling system instead of two. Harder: a new icon is copied by hand from the Material Icons catalogue, and any
+  future need for real MUI components (dialogs, pickers) means re-adopting it as a deliberate decision rather than
+  finding it already installed. One visible change, verified: at ≤420 px the search icon now honours the 18 px
+  `SearchBar.module.css` always declared — Emotion's injected `width: 1em` had silently kept it at 24 px.
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001

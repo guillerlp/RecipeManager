@@ -44,13 +44,50 @@ Jump to every entry touching a topic.
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
 | Tooling / infrastructure | [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Enforcement vs. convention | [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
-| Dependency management | [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
-| Frontend / React | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
+| Dependency management | [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
+| Frontend / React | [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | Accessibility | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 
 ---
 
 ## Entries
+
+### 2026-09-13 — Remove a dependency whose footprint is smaller than its upgrade
+
+**Context.** Dependabot #17 bumped `@mui/icons-material` 7 → 9 and could not install: icons 9 peers on
+`@mui/material` 9, which arrived in no PR. The obvious question was "upgrade MUI or defer". Counting call sites
+first changed the question: two `<Box>` elements and four icons were the entire usage, and the conventions
+already forbade `sx`, `styled` and a `ThemeProvider`.
+
+**Decision.** Remove MUI and Emotion (ADR-014). Closed #17 without upgrading.
+
+**How it was evaluated.** All three paths were built on `84226dc` and measured, not estimated. MUI 9.4.0: zero
+code changes, JS 406.90 kB / 135.24 gzip. No MUI: JS 327.49 / 107.26, 53 fewer packages. The icons keep MUI's path
+data byte for byte (checked by script against `node_modules`). Icon sizes were then read with
+`getComputedStyle` on desktop and at 375 px, before and after, rather than judged from screenshots.
+
+**What the measurement found that inspection would not.** `SearchBar.module.css` sets the search icon to 18 px
+under 420 px, but on the MUI build it rendered at 24 px: the same rule's `left` applied, its `width` did not,
+because Emotion appends its styles to `<head>` after the CSS Modules and wins the tie at equal specificity. The
+`!important`s in `Logo.module.css` and `Footer.module.css` were the same fight, won by force. The replacement puts
+the icon defaults in `:where(.icon)`, which has zero specificity, so any consumer class wins whatever order Vite
+emits the files in.
+
+**Rejected.** *Upgrading* — cheap once and genuinely safe, but it re-buys the whole library at every MUI and
+Emotion major for four glyphs, and MUI 9 raises the browser floor to Safari 17. *A small icon library* — a
+dependency to render four SVGs, with different glyphs. *Deferring* — stays on a line with no release since
+May 2026.
+
+**Cost.** New icons are copied in by hand. The search icon is visibly smaller on phones (the size its stylesheet
+always asked for). If the recipe form ever wants an accessible date picker or dialog, a component library comes
+back as a decision with this entry to argue against, rather than already being installed.
+
+**Takeaway.** *Before asking "upgrade or defer", count the call sites.* A dependency is worth its upgrade cost
+only in proportion to what it does for you, and a bundle-size number is a weaker argument than a runtime style
+engine silently overriding your stylesheet. An `!important` added to beat a library is evidence that the library
+and the codebase are working against each other.
+
+---
 
 ### 2026-09-13 — Take a library major when it is cheap, not when it is needed
 

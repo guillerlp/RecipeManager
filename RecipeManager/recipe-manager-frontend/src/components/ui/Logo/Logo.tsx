@@ -2,7 +2,7 @@
 
 import styles from './Logo.module.css';
 import { Link } from 'react-router-dom';
-import BlenderOutlinedIcon from '@mui/icons-material/BlenderOutlined';
+import { BlenderOutlinedIcon } from '@/components/ui/Icon';
 
 export const Logo: React.FC = () => {
   return (

@@ -232,7 +232,9 @@ Recorded so they are not repeatedly re-proposed. Revisit only if the stated reas
 - **AutoMapper.** One hand-written mapping extension is clearer and faster than a mapping configuration.
 - **A global frontend store (Redux/Zustand).** TanStack Query owns server state and Context owns UI state;
   there is no client state that needs either.
-- **A MUI `ThemeProvider`.** The app themes via `data-theme` plus CSS variables. Adopting MUI theming would
-  mean maintaining two token systems.
+- **A component library (MUI or similar).** The app themes via `data-theme` plus CSS variables, and ADR-014
+  removed MUI because its whole footprint was two `Box`es and four icons. Re-adopting one would mean two token
+  systems and runtime-injected styles competing with CSS Modules. Reconsider only when a screen needs components
+  that are genuinely expensive to build accessibly (a date picker, a modal dialog).
 - **Distributed cache.** `IMemoryCache` behind `ICacheService` is correct for a single instance. The port
   already exists, so swapping `MemoryCacheService` is the only change needed if the app ever scales out.

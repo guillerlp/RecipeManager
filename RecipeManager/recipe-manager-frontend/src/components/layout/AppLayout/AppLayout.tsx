@@ -1,4 +1,3 @@
-import { Box } from "@mui/material";
 import styles from "./AppLayout.module.css";
 import { Footer, Header } from "@/components";
 
@@ -10,9 +9,9 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <div className={styles.appShell}>
       <Header />
-      <Box component="main" className={styles.main} role="main">
+      <main className={styles.main} role="main">
         {children}
-      </Box>
+      </main>
       <Footer />
     </div>
   );
