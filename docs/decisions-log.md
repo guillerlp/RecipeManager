@@ -42,15 +42,57 @@ Jump to every entry touching a topic.
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Testing | [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
-| Tooling / infrastructure | [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Tooling / infrastructure | [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Enforcement vs. convention | [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
-| Dependency management | [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
-| Frontend / React | [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
+| Dependency management | [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
+| Frontend / React | [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | Accessibility | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 
 ---
 
 ## Entries
+
+### 2026-09-13 — Compare what a toolchain upgrade produces, not what it prints
+
+**Context.** Dependabot #16 bumped `@vitejs/plugin-react` to 6, a major that peers on `vite` 8, while leaving
+`vite` on 7, so it failed at `npm ci`. Vite 8 swaps the whole engine under an unchanged config: Rolldown bundles,
+Oxc transforms and does React Fast Refresh, Lightning CSS minifies. After the upgrade, typecheck, lint, build and
+audit were all green with only a one-token config change.
+
+**Decision.** Upgrade to Vite 8.3 + plugin-react 6.1 (ADR-015), tighten `engines` to Vite's own floor, and add a
+`vite` Dependabot group so the family can never be split across PRs again. Closed #16.
+
+**Why a green build was not the evidence.** None of the gates can see the two things that changed: the CSS the
+minifier emits, and Fast Refresh, which only exists in the dev server. The frontend has no tests (`TEST-01`), and
+the manual smoke test used for ADR-014 ran on the dev server, which does not minify CSS at all. It would have
+passed whatever Lightning CSS did. So the check had to be built around the change:
+- *Computed styles.* A script recorded ~40 computed properties for every element on both routes in both themes
+  on a Vite 7 production build, stored them in `localStorage` (same origin, so they survive a rebuild), and diffed
+  the Vite 8 build against them. It was first shown to report **0** diffs against itself and **1** diff for an
+  injected 1 px padding change, so a clean result meant something.
+- *The stylesheet itself*, because computed styles only cover one viewport. Both CSS files were parsed with the
+  browser's CSSOM and compared as longhand property maps per selector and media condition. The raw texts differ
+  in dozens of places; semantically, every difference was an equivalence: reordered declarations,
+  `(max-width: 768px)` → `(width <= 768px)`, `#ffffff` → `#fff`, `background: transparent` → `0 0`, two adjacent
+  `opacity: 1` rules merged into one selector list.
+- *Fast Refresh.* With "lemon" typed into search, `RecipePage`'s placeholder was edited on disk. The page
+  hot-updated, the page did not reload, and the typed state survived. That is the specific behaviour the Babel → Oxc
+  swap could have broken.
+
+**Rejected.** *Deferring* — safe today, but the PR re-raises weekly and the gap grows under `R-07`. *A text diff of
+the CSS* — every rule it flagged, even after normalising class-name hashes, turned out to mean the same thing. *Trusting the green build* — it cannot see
+either of the changed components. *An `update-types: [major]` Dependabot group* — whether a minor update then
+falls through to the minor/patch group is not documented, so the group matches every update type instead.
+
+**Cost.** Babel plugins can no longer go through `react({ babel })`. The default build target is newer. The
+`vite` group opens its own PR for Vite minors instead of folding them into the weekly minor/patch PR. The
+verification took longer than the upgrade; it is not repeatable without re-writing the scripts (`TEST-01`).
+
+**Takeaway.** *Aim the evidence at what actually changed.* A passing gate only proves what that gate looks at, so
+before trusting it, ask which component the upgrade replaced and whether any check observes that component. And
+test the test: a diff tool that has never been seen to report a difference proves nothing when it reports none.
+
+---
 
 ### 2026-09-13 — Remove a dependency whose footprint is smaller than its upgrade
 
