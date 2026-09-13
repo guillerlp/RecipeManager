@@ -10,7 +10,7 @@ RecipeManager/
   RecipeManager.Api/               controllers, DI/startup, Swagger
   RecipeManager.UnitTests/         xUnit + NSubstitute
   RecipeManager.IntegrationTests/  xUnit + WebApplicationFactory (EF InMemory)
-  recipe-manager-frontend/         React 19 + Vite + MUI
+  recipe-manager-frontend/         React 19 + Vite + CSS Modules
 ```
 
 ## Prerequisites

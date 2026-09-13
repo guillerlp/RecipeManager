@@ -188,8 +188,8 @@ adding/updating its `index.ts`.
   nothing now that implicit `children` is gone) — **prefer plain destructured params for new components**, as
   `NavLink` and `AppLayout` already do. Do not mix styles within a file.
 - Styling: `import styles from './Foo.module.css'` and `className={styles.x}`; conditional classes via template
-  literals. MUI is used only for `Box` and icons — do not introduce `sx` props or a MUI `ThemeProvider` without
-  an architecture decision.
+  literals. There is no component library (ADR-014): icons come from `components/ui/Icon/`, and introducing a
+  UI or icon library needs an architecture decision.
 
 ### State
 

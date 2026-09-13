@@ -1,7 +1,6 @@
 import styles from "./Footer.module.css";
 import { useTheme } from "@/hooks";
-import SunnyIcon from '@mui/icons-material/Sunny';
-import DarkIcon from '@mui/icons-material/Bedtime';
+import { BedtimeIcon, SunnyIcon } from "@/components/ui/Icon";
 
 export const Footer: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -28,7 +27,7 @@ export const Footer: React.FC = () => {
             <SunnyIcon className={styles.iconToggle}/>
           </span>
           <span className={`${styles.icon} ${styles.iconMoon}`} aria-hidden="true">
-            <DarkIcon className={styles.iconToggle}/>
+            <BedtimeIcon className={styles.iconToggle}/>
           </span>
 
           <span className={styles.knob} aria-hidden="true" />

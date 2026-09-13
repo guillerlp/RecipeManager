@@ -1,0 +1,17 @@
+/* Icon.module.css
+ *
+ * The defaults @mui/material's SvgIcon used to inject at runtime (ADR-014).
+ *
+ * Wrapped in :where() so this rule has zero specificity. A consumer's CSS Module class
+ * (.searchIcon, .iconToggle, ...) then always wins, whatever order Vite emits the two
+ * stylesheets in. Without it both selectors are one class, and the winner is decided by
+ * bundle order, which nobody controls on purpose. */
+:where(.icon) {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  fill: currentColor;
+  user-select: none;
+}

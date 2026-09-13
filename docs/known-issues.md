@@ -49,7 +49,7 @@ PR (ADR-013). The remaining gap is that a red run does not yet *block* a merge (
 
 | ID | Severity | Area | Issue |
 | --- | --- | --- | --- |
-| [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 5.7× the entire JS bundle |
+| [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 6.5× the entire JS bundle |
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
 | [BUILD-08](#build-08) | Low | Tooling | `ts-node` is a devDependency nothing uses |
 | [BUILD-09](#build-09) | Low | Docs | Backend package versions in the docs have drifted from `Directory.Packages.props` |
@@ -92,6 +92,7 @@ PR (ADR-013). The remaining gap is that a red run does not yet *block* a merge (
 | [UX-01](#ux-01) | Medium | UX | Dark-theme status colours never contrast-checked |
 | [UX-02](#ux-02) | Medium | UX | Global heading sizes ignore the type scale; `h3` clips descenders |
 | [UX-03](#ux-03) | Low | UX | No shared breakpoint tokens |
+| [UX-04](#ux-04) | Low | DX | In development, the React Query Devtools button covers the theme switch |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-06](#dec-06) | — | Decision | Follow OS colour-scheme preference on first visit? |
@@ -107,15 +108,15 @@ Resolved decisions and items promoted to planned work are recorded in [Settled](
 ### BUILD-05
 **`mainPhoto.png` is 2.1 MB — Medium**
 
-Production build output:
+Production build output (2026-09-13, after ADR-014 removed MUI):
 
 ```
 dist/assets/mainPhoto-DpyCXFCt.png   2,115.48 kB
-dist/assets/index-C7UHO9B0.js          373.08 kB │ gzip: 124.88 kB
-dist/assets/index-DS_0laZR.css          12.07 kB │ gzip:   2.94 kB
+dist/assets/index-B99dYcRa.js          327.66 kB │ gzip: 107.28 kB
+dist/assets/index-CgMeuNaH.css          12.17 kB │ gzip:   2.98 kB
 ```
 
-The image is **5.7× larger than all JavaScript combined** and is shipped unoptimized. It is used twice — as the
+The image is **6.5× larger than all JavaScript combined** and is shipped unoptimized. It is used twice — as the
 hero image on `HomePage` and as the fallback thumbnail in every `RecipeCard`, so a list of 20 recipes references
 a 2 MB asset 20 times (cached, but decoded at full resolution each time).
 
@@ -627,6 +628,19 @@ should not be done incidentally.
 
 Each CSS module defines its own media queries with ad-hoc values. Define `--breakpoint-*` tokens, or document
 the standard breakpoints, before the next screen is built.
+
+### UX-04
+**In development, the React Query Devtools button covers the theme switch — Low**
+
+`main.tsx` mounts `<ReactQueryDevtools initialIsOpen={false} />` in development, and its floating button sits in
+the bottom-right corner — on top of the `Footer` theme switch. Measured at 1024×768 on 2026-09-13:
+`document.elementFromPoint` at the centre of the 56×28 px switch returns the Devtools button's `<path>`, not the
+switch, so a click on the middle of the switch does nothing. Only the left edge (the knob) is reachable. This is
+why clicking the switch "sometimes does not work" during manual testing. Production builds do not mount Devtools,
+so users are unaffected.
+
+**Fix.** Pass `buttonPosition="bottom-left"` (or `top-right`) to `ReactQueryDevtools`, which keeps it away from the
+footer controls.
 
 ---
 
