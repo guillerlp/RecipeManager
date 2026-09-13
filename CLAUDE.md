@@ -44,7 +44,7 @@ Verified against `main` @ `edfd057` (merge of `dotnet10-postgresql`) on 2026-07-
 | --- | --- |
 | Backend | .NET 10 (`net10.0`), ASP.NET Core Web API, hand-rolled CQRS (no MediatR — deliberate, ADR-001) |
 | Persistence | EF Core 10.0.10 + Npgsql 10.0.3, **PostgreSQL**, code-first migrations |
-| Result/validation | FluentResults 3.16, FluentValidation 11.11 |
+| Result/validation | FluentResults 4.0, FluentValidation 11.11 |
 | DI helpers | Scrutor 7.0 (`Decorate` for the caching repository) |
 | Caching | `IMemoryCache` behind `ICacheService`, decorator over `IRecipeRepository` |
 | Tests | xUnit 2.9, NSubstitute 6.0, FluentAssertions 8.10, `WebApplicationFactory` + EF InMemory |
