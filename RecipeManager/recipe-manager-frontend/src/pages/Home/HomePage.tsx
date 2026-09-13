@@ -1,7 +1,6 @@
 // src/pages/Home/HomePage.tsx
 import { NavLink } from '@/components/ui/NavLink';
 import styles from './HomePage.module.css';
-import { Box } from '@mui/material';
 import Logo from '../../assets/mainPhoto.png';
 
 export const HomePage: React.FC = () => {
@@ -22,22 +21,22 @@ export const HomePage: React.FC = () => {
           className={styles.actionButtons} 
           aria-label="Main recipe management actions"
         >
-          <Box className={styles.actionButton}>
+          <div className={styles.actionButton}>
             <NavLink 
               to='/recipes'
               aria-label="View all your saved recipes"
             >
               View Recipes
             </NavLink>
-          </Box>
-          <Box className={styles.actionButton}>
+          </div>
+          <div className={styles.actionButton}>
             <NavLink 
               to='/recipes/new'
               aria-label="Create a new recipe"
             >
               Add Recipe
             </NavLink>
-          </Box>
+          </div>
         </nav>
       </section>
       

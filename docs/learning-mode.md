@@ -136,6 +136,7 @@ of these, point at the file.
 | **Derived state via `useMemo`** | `RecipeList.filteredRecipes` | Filtering is computed from props and state, never stored in its own `useState` — no synchronisation bug is possible. |
 | **Semantic element selection** | `RecipeCard` rendering `<article>` or `<button>` by whether `onClick` exists | Accessibility falls out of the element choice instead of being bolted on with ARIA. |
 | **Design tokens and theming** | `styles/themes/*.css`, `data-theme` on `<html>` | One attribute swaps the whole palette because no component hard-codes a colour. |
+| **Zero-specificity defaults with `:where()`** | `components/ui/Icon/Icon.module.css` | Base styles any consumer class overrides without `!important` and regardless of stylesheet order. Compare the `!important`s ADR-014 deleted, which existed because a runtime style engine won ties. |
 
 ---
 

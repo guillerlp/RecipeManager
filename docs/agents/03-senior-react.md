@@ -39,8 +39,10 @@ build config.
       (`` `${styles.card} ${onClick ? styles.clickable : ''}` ``). No inline styles.
 - [ ] Colours, spacing, radii, and font sizes come from the CSS variables in `styles/themes/` — never hard-coded
       hex values. See [07-ux-ui.md](07-ux-ui.md).
-- [ ] MUI is used **only** for `Box` and icons. Do not introduce `sx`, `styled`, or a `ThemeProvider` without an
-      ADR — the app themes itself via `data-theme` on `<html>` plus CSS variables.
+- [ ] No component library (ADR-014). Layout is plain elements plus CSS Modules; icons come from
+      `components/ui/Icon/` (copy the Material Icons `<path>` in, mark it decorative). Adding a UI or icon
+      library is an `01-architect` decision — the app themes itself via `data-theme` on `<html>` plus CSS
+      variables, and a CSS-in-JS library injects runtime styles that out-rank CSS Modules.
 - [ ] Semantic element chosen deliberately — `RecipeCard` switches between `<article>` and `<button>` depending
       on interactivity; follow that reasoning rather than wrapping everything in `<div onClick>`.
 

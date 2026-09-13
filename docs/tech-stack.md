@@ -64,8 +64,6 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `vite` | 7.3 | dev server + build; port **3000**, `/api` → `https://localhost:7231` proxy with `secure: false` |
 | `@vitejs/plugin-react` | 4.6 | Babel-based Fast Refresh |
 | `typescript` | 5.9 | `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` all on |
-| `@mui/material` + `@mui/icons-material` | 7.x | used sparingly: `Box` for layout, icons (`Search`, `Sunny`, `Bedtime`, `BlenderOutlined`). **No MUI ThemeProvider** — visual styling is CSS Modules |
-| `@emotion/react` / `@emotion/styled` | 11.x | MUI peer dependency only; no direct `styled` usage in `recipe-manager-frontend/src/` |
 | `@tanstack/react-query` | 5.85 | server state (`useRecipes`); client configured in `main.tsx` |
 | `@tanstack/react-query-devtools` | 5.85 | mounted when `process.env.NODE_ENV === 'development'` |
 | `axios` | 1.19 | single `AxiosInstance` in `services/recipeService.ts` |
@@ -103,6 +101,10 @@ produced committed NuGet lock files in that item.
 CSS Modules (`*.module.css`) co-located with each component, plus four global sheets imported in `main.tsx`:
 `styles/themes/variables.css` (spacing/radius/font-size/transition tokens), `themes/light.css`,
 `themes/dark.css` (selected via `data-theme` on `<html>`), and `styles/globals.css`.
+
+There is **no component library** (ADR-014 removed MUI and Emotion). The four icons live in
+`recipe-manager-frontend/src/components/ui/Icon/` as plain SVG using Material Icons path data (Apache-2.0); add
+new ones there the same way rather than installing an icon package for a handful of glyphs.
 
 ### Environment variables
 

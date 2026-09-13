@@ -74,9 +74,10 @@ toggle lives in the `Footer`.
 
 ### Styling approach
 
-CSS Modules per component (`Foo.module.css`), plus `globals.css` for resets and base typography. MUI supplies
-only `Box` and icons — **there is no MUI `ThemeProvider`**, so MUI components do not inherit these tokens.
-Introducing one is an `01-architect` decision.
+CSS Modules per component (`Foo.module.css`), plus `globals.css` for resets and base typography. There is **no
+component library** (ADR-014), so every visible element takes its colours from these tokens. Icons are plain SVG
+in `components/ui/Icon/` with `fill: currentColor`, so they follow the surrounding text colour in both themes.
+Introducing a UI library is an `01-architect` decision.
 
 ### Typography — inconsistent, handle with care
 
@@ -184,6 +185,6 @@ Additional requirements for new work:
 ## Handoff
 
 - → `03-senior-react` with the screen spec and token list.
-- → `01-architect` when a UI dependency (form library, drag-and-drop, MUI `ThemeProvider`) is required.
+- → `01-architect` when a UI dependency (form library, drag-and-drop, component or icon library) is required.
 - → `04-code-reviewer` with the a11y findings from the implemented screen.
 - → `00-leader` when the design reveals a missing product decision (e.g. what "edit recipe" means without users).
