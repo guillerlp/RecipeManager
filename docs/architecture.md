@@ -131,8 +131,10 @@ several.
 - Writes invalidate both `recipes_all` and the per-id key. `AddAsync` invalidates the list and warms the item.
 - Cache set/remove failures are swallowed and logged as warnings — caching is best-effort and must never fail a
   request.
-- Cached values are **entity instances**, safe today because reads are `AsNoTracking()` and `Recipe` exposes
-  read-only collections.
+- Cached values are **entity instances**. The intended safety argument is that reads are `AsNoTracking()` and
+  `Recipe` exposes read-only collections. **Only the first half holds today:** a recipe read from the database
+  carries a mutable `List<string>` behind `IReadOnlyList<string>`, and the cache serves that same instance to
+  every later request. See [BUG-11](known-issues.md#bug-11).
 
 ### Logging
 
