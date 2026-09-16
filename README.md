@@ -218,3 +218,9 @@ dotnet run --project RecipeManager.Api --launch-profile https -p:UseAppHost=fals
 ```
 
 Changing the Application Control policy also works, but it is a machine-wide security setting — prefer the flag.
+
+The same policy can also block the **integration tests**: every one fails with
+`FileLoadException … An Application Control policy has blocked this file. (0x800711C7)` on
+`RecipeManager.IntegrationTests\bin\Debug\net10.0\RecipeManager.Api.dll`. Here the flag does not help — the
+blocked file is the DLL, not the launcher. The unit tests still run; for the integration tests, rely on CI, which
+runs all of them on Linux for every PR.
