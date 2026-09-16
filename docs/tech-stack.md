@@ -12,7 +12,7 @@ from `recipe-manager-frontend/package.json`.
 | .NET SDK | `10.0.302`, `rollForward: latestFeature` | `RecipeManager/global.json` |
 | Node.js | `24` used, `^20.19.0 \|\| >=22.12.0` supported | `recipe-manager-frontend/.nvmrc`, `engines` in `package.json` |
 | PostgreSQL | 16+ recommended by `README.md` | not enforced anywhere |
-| React | 19.1 | `package.json` |
+| React | 19.3 | `package.json` |
 | TypeScript | 7.0 | `package.json` |
 
 Both runtimes are now pinned (`BUILD-07` closed by `R-04`/ADR-013). `.nvmrc` says `24` — what is actually used,
@@ -62,13 +62,13 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 
 | Package | Version | Role |
 | --- | --- | --- |
-| `react` / `react-dom` | 19.1 | UI |
+| `react` / `react-dom` | 19.3 | UI |
 | `vite` | 8.3 | dev server + build; port **3000**, `/api` → `https://localhost:7231` proxy with `secure: false`. Bundles with Rolldown, transforms with Oxc, minifies CSS with Lightning CSS (ADR-015) |
 | `@vitejs/plugin-react` | 6.1 | Fast Refresh via Oxc — no Babel. Its `babel` option no longer exists; Babel plugins would need `@rolldown/plugin-babel` |
 | `typescript` | 7.0.2 (exact) | the Go-native compiler: a `tsc` binary, **no JavaScript API**. `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` all on (ADR-016) |
-| `@tanstack/react-query` | 5.85 | server state (`useRecipes`); client configured in `main.tsx` |
-| `@tanstack/react-query-devtools` | 5.85 | mounted when `import.meta.env.DEV` (Vite's own flag — browser code does not rely on Node's `process` types) |
-| `axios` | 1.19 | single `AxiosInstance` in `services/recipeService.ts` |
+| `@tanstack/react-query` | 5.102 | server state (`useRecipes`); client configured in `main.tsx` |
+| `@tanstack/react-query-devtools` | 5.102 | mounted when `import.meta.env.DEV` (Vite's own flag — browser code does not rely on Node's `process` types) |
+| `axios` | 1.20 | single `AxiosInstance` in `services/recipeService.ts` |
 | `react-router-dom` | 7.18 | `BrowserRouter` + 3 routes in `App.tsx` |
 | `oxlint` | 1.82.0 (exact) | the linter; `.oxlintrc.json` holds the 71 rules ESLint + typescript-eslint enforced before ADR-016, scoped to `src/**`, plus `no-console` |
 | `oxlint-tsgolint` | 7.0.2001 (exact) | Oxlint's type-aware backend. Embeds its own typescript-go and is versioned after it (7.0.2, patch 001) — keep it in step with `typescript`; the `typescript` Dependabot group moves all three together |

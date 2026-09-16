@@ -51,7 +51,7 @@ kind of negative test.
 
 | ID | Severity | Area | Issue |
 | --- | --- | --- | --- |
-| [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 6.5× the entire JS bundle |
+| [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 6× the entire JS bundle |
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
 | [BUILD-08](#build-08) | Low | Tooling | `ts-node` is a devDependency nothing uses |
 | [BUILD-09](#build-09) | Low | Docs | Backend package versions in the docs have drifted from `Directory.Packages.props` |
@@ -77,6 +77,7 @@ kind of negative test.
 | [BUG-09](#bug-09) | Low | Frontend | Error recovery does a full page reload |
 | [BUG-10](#bug-10) | Medium | Frontend | No recipe detail route, so cards are not clickable |
 | [BUG-11](#bug-11) | Low | Domain | Recipes loaded from the database expose a mutable `List<string>` ([#8](https://github.com/guillerlp/RecipeManager/issues/8)) |
+| [BUG-12](#bug-12) | Low | Frontend | A paused recipe query renders "No recipes available" |
 | [TEST-01](#test-01) | **High** | Tests | No frontend test runner or tests |
 | [TEST-02](#test-02) | **High** | Tests | Cache invalidation has no dedicated test |
 | [TEST-03](#test-03) | Medium | Tests | Instruction ordering never asserted |
@@ -110,15 +111,15 @@ Resolved decisions and items promoted to planned work are recorded in [Settled](
 ### BUILD-05
 **`mainPhoto.png` is 2.1 MB — Medium**
 
-Production build output (2026-09-13, after ADR-014 removed MUI):
+Production build output (2026-09-16, React 19.3 on Vite 8):
 
 ```
-dist/assets/mainPhoto-DpyCXFCt.png   2,115.48 kB
-dist/assets/index-B99dYcRa.js          327.66 kB │ gzip: 107.28 kB
-dist/assets/index-CgMeuNaH.css          12.17 kB │ gzip:   2.98 kB
+dist/assets/mainPhoto-DpyCXFCt.png   2,115.47 kB
+dist/assets/index-DnV4jc7g.js          353.62 kB │ gzip: 113.93 kB
+dist/assets/index-D9pZeVVo.css          12.02 kB │ gzip:   2.97 kB
 ```
 
-The image is **6.5× larger than all JavaScript combined** and is shipped unoptimized. It is used twice — as the
+The image is **6× larger than all JavaScript combined** and is shipped unoptimized. It is used twice — as the
 hero image on `HomePage` and as the fallback thumbnail in every `RecipeCard`, so a list of 20 recipes references
 a 2 MB asset 20 times (cached, but decoded at full resolution each time).
 
@@ -439,6 +440,26 @@ reasoning and were not re-verified for this entry:
 Also check that a schema diff produces no migration, since the column should not change.
 
 **Owner:** `02-senior-csharp` (fix) · `01-architect` if the property-access-mode choice needs an ADR
+
+### BUG-12
+**A paused recipe query renders "No recipes available" — Low**
+
+Found 2026-09-16 while smoke-testing React 19.3. `RecipeList` shows its loading state only for `isLoading`, which
+TanStack Query v5 defines as `isPending && isFetching`. A query that is pending but **paused** — no data, no error,
+`fetchStatus: 'paused'` — is neither loading nor errored, so it falls through to the empty state and tells the user
+they have no recipes. Observed directly by reading the query result from the component: `status: 'pending'`,
+`fetchStatus: 'paused'`, `failureCount: 1`, page text "No recipes available", with the API stopped.
+
+React Query pauses a query when it believes the browser is offline (from the first fetch) and pauses retries while
+the page is hidden. The observation above was the second case, in a background tab, which resumes once the tab is
+visible. The first case is the real exposure: a user who opens the page offline is told the collection is empty.
+The visible-page error branch itself was not observed in this test.
+
+**Fix.** Gate the loading state on `isPending` rather than `isLoading`, and consider a distinct message when
+`fetchStatus === 'paused'` ("You appear to be offline"). The same check belongs in any future list that reuses the
+pattern.
+
+**Owner:** `03-senior-react` · **Effort:** ~15 min
 
 ---
 
