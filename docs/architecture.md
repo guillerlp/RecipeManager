@@ -336,7 +336,8 @@ endpoint is anonymous and every recipe is world-writable. See
 
 ### ADR-012 — The frontend gets a build gate: `jiti` and a type-checking build
 
-- **Status:** accepted and **implemented 2026-08-08** (`R-03`).
+- **Status:** accepted and **implemented 2026-08-08** (`R-03`). The ESLint/`jiti` half is **superseded by
+  ADR-016** (Oxlint); the type-checking build (`tsc -b && vite build`, `typecheck`) still stands.
 - **Context:** ADR-010 made every backend warning a build failure, but stops at the solution boundary. On the
   frontend `npm run lint` could not *start* — `eslint.config.ts` is a TypeScript flat config and ESLint 9 loads
   those through `jiti`, which was never a dependency (`BUILD-03`, since commit `3474a8b`, 2025-08-08) — and
@@ -440,6 +441,38 @@ endpoint is anonymous and every recipe is world-writable. See
   `opacity: 1` rules merged in place). Computed styles on every element of both routes in both themes matched too,
   and Fast Refresh was observed preserving component state. Harder: Babel plugins can no longer be passed through
   `react({ babel })`, and the default `build.target` rises to Chrome 111 / Firefox 114 / Safari 16.4.
+
+### ADR-016 — TypeScript 7, linted by Oxlint instead of ESLint
+
+- **Status:** accepted and **implemented 2026-09-16**. Supersedes Dependabot #19 (`typescript` 5.9 → 7.0.2), and
+  the ESLint/`jiti` half of ADR-012.
+- **Context:** TypeScript 7 is the Go-native compiler. `typescript@7` ships a `tsc` binary and **no JavaScript
+  API**, and typescript-eslint is built on that API: its latest release (8.70) peers on `typescript <6.1.0`, and
+  upstream closed the requests to support 7 as not planned (tracking: typescript-eslint#10940). So #19 could
+  never install, and no ESLint setup with type-aware rules can run on TypeScript 7 today. The two TS 7 errors
+  that were ours to fix (`baseUrl`, `process.env`) were removed first, in #32.
+- **Decision:** replace ESLint with **Oxlint** in type-aware mode (`oxlint` + `oxlint-tsgolint`, which embeds
+  its own typescript-go) and move to `typescript` 7.0.2. `.oxlintrc.json` carries exactly the 71 rules ESLint
+  enforced, translated by `@oxlint/migrate`, with Oxlint's default `correctness` category turned off so nothing
+  else runs. The three packages are **pinned exactly** and share a `typescript` Dependabot group, because
+  `oxlint-tsgolint@7.0.2001` is versioned after the TypeScript it embeds — letting `typescript` float alone would
+  let `tsc` and the linter type-check with different compilers.
+- **Alternatives:** *(a)* stay on TypeScript 5.9/6 and keep ESLint — works today, but blocks on a dependency
+  whose maintainers have declined the work, and #19 re-raises weekly. *(b)* Biome — a single tool, but it
+  mapped only 46 of the 72 rules and has none of the `no-unsafe-*` family, `unbound-method`,
+  `restrict-template-expressions` or `await-thenable`, which are the rules that justify type-aware linting at
+  all. *(c)* Oxlint without type-aware mode — drops those same rules. *(d)* keep ESLint for non-typed rules and
+  Oxlint for typed ones — two configs to keep in sync for no rule the single Oxlint config lacks.
+- **Consequences:** 183 → 83 installed packages; `tsc --noEmit` ≈0.5–0.7 s and lint ≈0.7 s, against 1.6 s and
+  2.95 s before. The production bundle is byte-identical (`tsc` does not feed Vite). Verified by negative test:
+  a probe file tripped `no-console`, `no-explicit-any`, `no-floating-promises`, `no-unsafe-assignment`,
+  `no-unsafe-call` and `no-unsafe-member-access`, and `tsc` rejected a `TS2322`. What it costs: one rule,
+  `prefer-optional-chain`, exists only in Oxlint's nursery and is **not** enforced; Oxlint's type-aware rule
+  coverage is described upstream as close to, not equal with, typescript-eslint's, and it was declared stable
+  only in July 2026; and rule names are spelled differently in config (`typescript/…`, `react/…` instead of
+  `@typescript-eslint/…`, `react-hooks/…`, `react-refresh/…`). Root
+  tooling files (`vite.config.ts`) still get no lint rules — which, it turned out, was already true under
+  ADR-012: that ESLint block only *disabled* the typed rules and enabled nothing (`BUILD-10`).
 
 ---
 

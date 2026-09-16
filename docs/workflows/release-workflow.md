@@ -79,8 +79,8 @@ a failure found in twenty seconds on your machine is cheaper than one found in t
    npm run lint
    ```
    `npm run build` now runs `tsc -b` first, so it type-checks (ADR-012); `npm run typecheck` is the same check
-   without bundling, for a faster loop. Lint must report **0 problems** — it runs since `jiti` was added, and
-   `no-console` is an error.
+   without bundling, for a faster loop. Lint (Oxlint, type-aware — ADR-016) must report
+   **0 problems**, and `no-console` is an error.
 
 4. **Migrations.** If the model changed, exactly one new migration is committed together with its
    `.Designer.cs` and the updated `AppDbContextModelSnapshot.cs`. Confirm `Up` and `Down` are both correct —

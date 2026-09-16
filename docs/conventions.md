@@ -241,7 +241,7 @@ on images.
 
 ### Avoid
 
-- `console.log` in committed code — `no-console` is an **error** in `eslint.config.ts`, with `console.warn` and
+- `console.log` in committed code — `no-console` is an **error** in `.oxlintrc.json`, with `console.warn` and
   `console.error` allowed. The rule was added in `R-03`: it had never been configured, so the eleven months of
   unrunnable lint were not even the reason `BUG-08` survived.
 - Inline styles.
