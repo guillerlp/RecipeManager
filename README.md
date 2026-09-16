@@ -164,7 +164,7 @@ on `ubuntu-latest`:
 
 | Job | Steps |
 | --- | --- |
-| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (84) → vulnerable-package check |
+| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (99) → vulnerable-package check |
 | **Frontend** | `npm ci` → `npm run typecheck` → `npm run lint` → `npm run build` → `npm audit --audit-level=high` |
 
 Two things are worth knowing before a run surprises you:

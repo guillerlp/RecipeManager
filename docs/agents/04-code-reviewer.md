@@ -22,7 +22,7 @@ required — then security reviews after code review.
 - [ ] `dotnet build RecipeManager.sln` — must be **0 warnings**, enforced by `TreatWarningsAsErrors` (ADR-010),
       so a warning arrives as a build failure. A `#pragma warning disable` or a `NoWarn` entry added to get past
       it is a **Block** unless the PR states why the warning is wrong.
-- [ ] `dotnet test RecipeManager.sln` — **84 passing** is the current count. Fewer than before with no
+- [ ] `dotnet test RecipeManager.sln` — **99 passing** is the current count. Fewer than before with no
       explanation is a Block.
 - [ ] Frontend touched ⇒ `npm run build` **and** `npm run lint`, both clean (ADR-012). A new
       `oxlint-disable`/`eslint-disable` comment or a rule downgraded in `.oxlintrc.json` to get past lint is a **Block** unless
@@ -54,8 +54,9 @@ required — then security reviews after code review.
 - [ ] A write path that does not invalidate both `recipes_all` and `recipe_{id}`.
 - [ ] Repository returning `null` handled with `!` or a throw instead of
       `Result.Fail(RecipeErrors.RecipeNotFound(id))`.
-- [ ] A new `RecipeErrors` entry missing `.WithCode(...)` — it silently defaults to 400.
-- [ ] Multiple errors returned where the **first** one determines a misleading HTTP status.
+- [ ] A new `RecipeErrors` entry built as a plain `Error` instead of a `DomainError` — it maps to 400 and
+      outranks every real kind.
+- [ ] An HTTP status, or anything else transport-specific, in `RecipeManager.Domain` (ADR-009).
 - [ ] Missing or optional `CancellationToken` on a new async interface member.
 - [ ] `.Result`, `.Wait()`, or `async void`.
 - [ ] An edited existing migration instead of a new one. Or a migration committed without its `.Designer.cs`
@@ -116,7 +117,7 @@ required — then security reviews after code review.
 
 ```md
 ## Verification
-build: <N> warnings (must be 0) · test: <N>/<N> (84 today) · npm build + tsc: pass | n/a
+build: <N> warnings (must be 0) · test: <N>/<N> (99 today) · npm build + tsc: pass | n/a
 known-issues: fixed <IDs> · added <IDs>
 
 ## Blocking

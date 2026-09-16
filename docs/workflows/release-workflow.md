@@ -69,7 +69,7 @@ a failure found in twenty seconds on your machine is cheaper than one found in t
    ```bash
    dotnet test RecipeManager.sln
    ```
-   Currently **84 passing** — 70 unit + 14 integration.
+   Currently **99 passing** — 85 unit + 14 integration.
 
 3. **Frontend builds, type-checks, and lints.** From `recipe-manager-frontend/`:
    ```bash
@@ -121,7 +121,7 @@ None | RecipeDto changed: <fields> — frontend updated in this PR (08-api-contr
 
 ## Verification
 - dotnet build: <N> warnings (must be 0 — warnings are errors)
-- dotnet test: <N>/<N> passing (currently 84)
+- dotnet test: <N>/<N> passing (currently 99)
 - npm run build + npx tsc --noEmit: pass | n/a
 - Manual check against a real PostgreSQL: <what you did> | n/a
 

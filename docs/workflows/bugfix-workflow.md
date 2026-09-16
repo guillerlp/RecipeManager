@@ -15,7 +15,7 @@ Use the observed HTTP status to narrow the layer before reading any code:
 | **422** with `ProblemDetails` + `field` | domain invariant | `RecipeManager.Domain/Entities/Recipe.cs` → `ValidateProperties`, `RecipeManager.Domain/Errors/RecipeErrors.cs` |
 | **404** | recipe missing, or the route did not match | handler `GetByIdAsync` path; check the `{id:guid}` constraint |
 | **500** with `ProblemDetails.Type` = an exception name | unhandled exception | `RecipeManager.Api/Middlewares/ErrorHandlerMiddleware.cs` log line |
-| Wrong status code for a known failure | `ErrorCode` metadata, or error ordering | `RecipeErrors.WithCode`, `ResultExtensions.CreateProblemDetails` (uses `errors.First()` only) |
+| Wrong status code for a known failure | the error's `ErrorKind`, or a plain `Error` where a `DomainError` was meant | `RecipeErrors`, `ResultExtensions.Classify` |
 | `InvalidOperationException: No service for type ICommandHandler<…>` | handler not picked up by the Scrutor scan — check it is a public, non-abstract class in `RecipeManager.Application` implementing the handler interface | `RecipeManager.Api/Startup/ServiceInitializer.RegisterCqrsDispatchers()` |
 | Stale data after a write | cache invalidation | `RecipeManager.Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs` |
 | Frontend shows nothing / CORS error in console | CORS origin or API not running | `ServiceInitializer.RegisterCors` (only `http://localhost:3000`), `vite.config.ts` proxy |
@@ -57,7 +57,7 @@ Fix where the rule belongs, not where the symptom appears:
 
 - Business rule wrong or missing → `Recipe.ValidateProperties` (**not** the handler, **not** the validator).
 - Bound-payload shape wrong (null, length, bounds) → `RecipeValidationRules`.
-- Wrong HTTP status → `RecipeErrors.WithCode`, or the order of errors returned.
+- Wrong HTTP status → the kind in `RecipeErrors`, or the mapping in `ResultExtensions.Classify`.
 - Stale/incorrect data → cache invalidation in `CachedRecipeRepository`, not a `try/catch` in the handler.
 - Missing null check on repository results → the handler already returns `RecipeErrors.RecipeNotFound`; follow
   that pattern rather than throwing.
@@ -74,7 +74,7 @@ Escalate when the fix requires: a schema/migration change, a new project referen
 
 ## 5. Regression sweep — `06-qa-tester`
 
-- The new test passes and the whole suite still passes (currently 84 tests). A new build warning cannot slip
+- The new test passes and the whole suite still passes (currently 99 tests). A new build warning cannot slip
   through — it fails the build (ADR-010).
 - If the bug was a cache issue, add a test that performs write-then-read through the API — the integration tests
   exercise the real decorator chain.

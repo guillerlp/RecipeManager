@@ -102,14 +102,14 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
 ### Error handling
 
 - Return `Result.Fail(RecipeErrors.X(...))`; do **not** throw for expected failures.
-- Every new error goes in `RecipeErrors` with `.WithCode(<http status>)` and `.Field("<camelCaseFieldName>")`.
-  `field` values are camelCase to match the JSON payload.
-  **⚠ Target:** `.WithCode(<http status>)` puts HTTP semantics in the Domain layer and is being replaced by a
-  semantic error kind mapped to HTTP in the API layer (ADR-009, `R-05`). Follow the current pattern for
-  consistency until it lands — do not invent a third convention in the meantime.
-- `ResultExtensions.CreateProblemDetails` uses `errors.First()` for the status code, so a `Result` mixing kinds
-  returns an arbitrary status. Put the most significant error first when returning several. ADR-009 fixes this
-  properly.
+- Every new error goes in `RecipeErrors` as a `DomainError` built through the `Validation(...)` / `NotFound(...)`
+  helpers, plus `.Field("<camelCaseFieldName>")`. `field` values are camelCase to match the JSON payload. **Never
+  put an HTTP status in the Domain** (ADR-009): the kind says what failed, `ResultExtensions` says how HTTP
+  reports it.
+- A new kind is three edits made together: the `ErrorKind` value, its status and severity in
+  `ResultExtensions.Classify`, and a test. `ResultExtensionsTests` fails if the mapping is missing.
+- When a `Result` carries several errors, the most severe one sets the status (`ResultExtensions`), so error
+  order does not matter.
 - `try/catch` in a handler is the exception, not the rule: only `DeleteRecipeHandler` has one (logs and returns
   a failed `Result`). Unhandled exceptions are the middleware's job.
 

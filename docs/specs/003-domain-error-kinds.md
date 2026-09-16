@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `003` |
-| **Status** | approved |
+| **Status** | shipped |
 | **Author** | `00-leader` |
 | **Created** | 2026-09-16 |
 | **Branch** | `refactor/domain-error-kinds` |

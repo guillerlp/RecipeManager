@@ -22,7 +22,7 @@ and again after the `SEC-03` dependency remediation. The npm audit row re-measur
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **0 warnings** — enforced by `TreatWarningsAsErrors` (ADR-010) |
-| Backend tests | `dotnet test RecipeManager.sln` | **84 passing** (70 unit + 14 integration), 0 failing |
+| Backend tests | `dotnet test RecipeManager.sln` | **99 passing** (85 unit + 14 integration), 0 failing |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
@@ -197,6 +197,10 @@ The nested error reaches the client through `ResultExtensions.CreateProblemDetai
 [SEC-05](#sec-05). The `_logger.LogError(ex, …)` call above it already captures what is needed.
 
 **Fix.** Drop `.WithError(ex.Message)`.
+
+When fixing this, also decide the status: the error is not a `DomainError`, so `ResultExtensions` maps it to
+400 and ranks it above every domain kind (ADR-009). An unexpected persistence failure is arguably a 500; that
+change was deliberately left out of `R-05`, which had to keep every status unchanged.
 
 **Owner:** `02-senior-csharp` · **Effort:** ~5 min
 
@@ -428,7 +432,7 @@ Needs `01-architect` sign-off for the dependency. First tests worth writing are 
 
 The largest gap in the backend suite. Unit tests mock `IRecipeRepository`, so they bypass `CachedRecipeRepository`
 entirely; the integration tests assert **database** state after a write rather than issuing a second request
-through the API. A broken invalidation in `CachedRecipeRepository` would pass all 84 tests.
+through the API. A broken invalidation in `CachedRecipeRepository` would pass all 99 tests.
 
 **Fix.** Integration tests that write, then re-read **through the HTTP client**: create → `GET /api/recipes`
 contains it; update → `GET /api/recipes/{id}` shows new values; delete → `GET /api/recipes/{id}` returns 404.
