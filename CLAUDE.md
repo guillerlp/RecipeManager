@@ -43,11 +43,11 @@ Verified against `main` @ `edfd057` (merge of `dotnet10-postgresql`) on 2026-07-
 | Layer | Technology |
 | --- | --- |
 | Backend | .NET 10 (`net10.0`), ASP.NET Core Web API, hand-rolled CQRS (no MediatR — deliberate, ADR-001) |
-| Persistence | EF Core 10.0.10 + Npgsql 10.0.3, **PostgreSQL**, code-first migrations |
-| Result/validation | FluentResults 4.0, FluentValidation 11.11 |
+| Persistence | EF Core 10.0.12 + Npgsql 10.0.3, **PostgreSQL**, code-first migrations |
+| Result/validation | FluentResults 4.0, FluentValidation 11.12 |
 | DI helpers | Scrutor 7.0 (`Decorate` for the caching repository) |
 | Caching | `IMemoryCache` behind `ICacheService`, decorator over `IRecipeRepository` |
-| Tests | xUnit 2.9, NSubstitute 6.0, FluentAssertions 8.10, `WebApplicationFactory` + EF InMemory |
+| Tests | xUnit 2.9, NSubstitute 6.2, FluentAssertions 8.11, `WebApplicationFactory` + EF InMemory |
 | Frontend | React 19, TypeScript 7, Oxlint (type-aware — ADR-016), Vite 8, TanStack Query 5, Axios, React Router 7, CSS Modules (no component library — ADR-014) |
 
 Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).

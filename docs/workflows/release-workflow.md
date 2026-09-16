@@ -94,6 +94,9 @@ a failure found in twenty seconds on your machine is cheaper than one found in t
    endpoint shape), `docs/architecture.md` (new ADR entry),
    [../known-issues.md](../known-issues.md) — entries fixed must be deleted, new findings added — and
    [../decisions-log.md](../decisions-log.md) when the PR contains a decision worth remembering.
+   **This includes Dependabot PRs.** They change `Directory.Packages.props` or `package.json` and never the
+   docs, which is how the version tables drifted (`BUILD-09`). Supersede one with a fresh branch that carries
+   both, closing it with a link. Do not merge it as-is.
 
 7. **Reviews recorded.** `04-code-reviewer` always; `05-security-reviewer` when the trigger list in
    [../agents/05-security-reviewer.md](../agents/05-security-reviewer.md) applies.
