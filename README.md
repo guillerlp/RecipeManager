@@ -141,7 +141,8 @@ Start the API first — the frontend has no mock backend.
 
 ### Frontend checks
 
-Run these before opening a pull request; nothing runs them for you yet.
+CI runs these on every pull request (see [Continuous integration](#continuous-integration)); run them locally
+first anyway, since a failure found in seconds beats one found on a runner.
 
 ```bash
 npm run lint
@@ -206,3 +207,14 @@ PostgreSQL folds unquoted identifiers to lowercase, and EF creates the table as 
 
 **Frontend requests fail with a certificate error**
 Run `dotnet dev-certs https --trust`.
+
+**`dotnet run` fails with "An Application Control policy has blocked this file"**
+A Windows Application Control policy (Smart App Control is a common source) refused to start
+`RecipeManager.Api\bin\Debug\net10.0\RecipeManager.Api.exe` — the unsigned launcher the SDK generates for every
+build. The code is fine. Run through the signed `dotnet` host instead, which skips generating that `.exe`:
+
+```bash
+dotnet run --project RecipeManager.Api --launch-profile https -p:UseAppHost=false
+```
+
+Changing the Application Control policy also works, but it is a machine-wide security setting — prefer the flag.

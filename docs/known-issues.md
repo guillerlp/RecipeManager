@@ -307,6 +307,13 @@ orchestrator has no way to distinguish "starting" from "dead" other than by prob
 `VITE_API_URL=https://your-production-api.com/api`. A production build would ship pointing at a domain the
 project does not control. See [INFRA-04](#infra-04).
 
+Observed 2026-09-16: a plain `npm run build` served with `vite preview` requested
+`https://your-production-api.com/api/Recipes` (the name did not resolve: `ERR_NAME_NOT_RESOLVED`), and the page
+showed "No recipes available" instead of an error — the empty-state defect recorded as `BUG-12`. So the
+placeholder is not inert: every production build would send its API traffic, recipe writes included, to whoever
+registers that name, and a local production check silently shows an empty catalogue. For local checks, set
+`VITE_API_URL=/api` in the environment; Vite ranks real environment variables above `.env.production`.
+
 **Fix.** Set the real value, or delete the file so the relative `/api` fallback applies.
 
 ---
