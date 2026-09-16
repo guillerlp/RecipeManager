@@ -118,8 +118,8 @@ Current state: build succeeds with **0 warnings** and **84 tests pass** (70 unit
 a **build failure**, not a note — and `TargetFramework`, `Nullable`, and `ImplicitUsings` live there too. Never
 re-declare those in a `.csproj`.
 
-Frontend checks work as of `R-03`/ADR-012: `npm run lint` runs and reports 0 problems, `npm run build` is
-`tsc -b && vite build` so a type error fails it, and `npm run typecheck` exists for the fast local loop. What
+Frontend checks work as of `R-03`/ADR-012: `npm run lint` runs and reports 0 problems, `npm run build`
+type-checks `src/` and `vite.config.ts` before bundling so a type error fails it, and `npm run typecheck` exists for the fast local loop. What
 they are now also *automatic*: `.github/workflows/ci.yml` runs all three on every PR (`R-04`/ADR-013). Run them
 locally from `RecipeManager/recipe-manager-frontend/` anyway — a failure found in seconds beats one found on a
 runner. Note the checks are not yet **required** to merge (`INFRA-07`), so a red run can still be merged past.

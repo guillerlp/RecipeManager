@@ -152,7 +152,8 @@ npm run lint
 npm run build
 ```
 
-`npm run build` is `tsc -b && vite build`, so a type error fails it before Vite bundles anything. For a faster
+`npm run build` type-checks `src/` and `vite.config.ts` (`tsc -b tsconfig.json tsconfig.node.json`) before
+Vite bundles anything, so a type error fails it. For a faster
 loop while working, `npm run typecheck` runs the same check without producing `dist/`. There is no `npm test` —
 no frontend test runner exists yet.
 

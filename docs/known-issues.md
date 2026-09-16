@@ -25,8 +25,8 @@ and again after the `SEC-03` dependency remediation. The npm audit row re-measur
 | Backend tests | `dotnet test RecipeManager.sln` | **84 passing** (70 unit + 14 integration), 0 failing |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npm run typecheck` | **0 errors** |
-| Frontend build | `npm run build` | succeeds, and now type-checks first (`tsc -b && vite build`, ADR-012) |
-| Frontend lint | `npm run lint` | **0 problems** — Oxlint, type-aware, 71 rules (ADR-016; ESLint until then, ADR-012) |
+| Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
+| Frontend lint | `npm run lint` | **0 problems** — Oxlint, 159 rules: the 71 type-aware ones on `src/**` plus the `correctness` category everywhere (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
 | Frontend tests | — | **none exist**, no runner installed ([TEST-01](#test-01)) |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
@@ -53,8 +53,6 @@ kind of negative test.
 | --- | --- | --- | --- |
 | [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 6× the entire JS bundle |
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
-| [BUILD-08](#build-08) | Low | Tooling | `ts-node` is a devDependency nothing uses |
-| [BUILD-10](#build-10) | Low | Tooling | Root tooling files (`vite.config.ts`) are not linted by any rule |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
 | [SEC-04](#sec-04) | **High** | Security | No rate limiting on unauthenticated write endpoints |
@@ -138,37 +136,6 @@ contribute nothing and the reported percentage understates real coverage — par
 limitation in `README.md`.
 
 **Owner:** `06-qa-tester` · **Effort:** ~30 min
-
-### BUILD-08
-**`ts-node` is a devDependency nothing uses — Low**
-
-`ts-node@^10.9.2` sits in `recipe-manager-frontend/package.json` with no reference anywhere: no `ts-node`
-section in `tsconfig.json`, no script that invokes it, no config that loads through it. The most likely
-explanation is an earlier attempt to fix `BUILD-03` — ESLint 9 loads a TypeScript flat config through `jiti`,
-not `ts-node`, so it never had any effect.
-
-**Fix.** Remove it, then `npm run lint`, `npm run typecheck`, and `npm run build` to confirm nothing regressed.
-Left in place by `R-03`, which added `jiti` — removing an unrelated dependency in the same PR would have
-obscured which change made lint work.
-
-**Owner:** `03-senior-react` · **Effort:** ~5 min
-
-### BUILD-10
-**Root tooling files (`vite.config.ts`) are not linted by any rule — Low**
-
-Found 2026-09-16 while translating the ESLint config for ADR-016. ADR-012 described the root config files as
-"linted without type information", but the ESLint block for `*.{ts,mts,cts,js,mjs,cjs}` only extended
-`disableTypeChecked` — it turned typed rules *off* and never turned anything on, and there was no global rule
-block. So `eslint.config.ts` and `vite.config.ts` were parsed and checked against zero rules. `.oxlintrc.json`
-preserves that scope exactly (its `correctness` category is off and every rule lives in the `src/**` override),
-so the gap carried over rather than being introduced. `vite.config.ts` is also outside `tsconfig.json`'s
-`include`, so `tsc` does not check it either — only Vite's own config loader does, when it runs.
-
-**Fix.** Give root files a non-type-aware rule set in `.oxlintrc.json` (Oxlint's `correctness` category is the
-obvious candidate), and decide whether `vite.config.ts` should be type-checked — a `tsconfig.node.json`
-reference, as the Vite React-TS template does, would need `@types/node`, which is already installed.
-
-**Owner:** `03-senior-react` · **Effort:** ~30 min
 
 ---
 
@@ -711,6 +678,8 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `RecipeManager.Api.csproj.user` committed | **Untracked**, and `*.user` added to `.gitignore` — it carried one developer's debug profile. Fixed 2026-08-04. | — |
 | `BUILD-03` — `npm run lint` could not start | **Fixed** by adding `jiti`; ESLint 9 loads a TypeScript flat config through it. Unable to start since 2025-08-08. **Shipped 2026-08-08.** | ADR-012, `R-03` |
 | `BUILD-04` — `npm run build` did not type-check | **Fixed**: `"build": "tsc -b && vite build"`, plus a `typecheck` script. **Shipped 2026-08-08.** | ADR-012, `R-03` |
+| `BUILD-08` — `ts-node` was a devDependency nothing used | **Removed.** Lint, typecheck and build unchanged; installed packages 83 → 66. **Shipped 2026-09-16.** | — |
+| `BUILD-10` — root tooling files were linted by no rule and type-checked by nothing | **Fixed.** Oxlint's `correctness` category is on for every file (overrides cannot set categories, so it applies to `src/` too — 88 more rules, 0 findings), and `tsconfig.node.json` type-checks `vite.config.ts` with Node types kept out of `src/`. Verified by negative tests: `use-isnan` + `no-debugger` on a root probe file, `TS2769` on a bad `server.port`, `TS2591` still on `process` in `src/`. This also corrects the "root tooling files lint without type information" claim in the ESLint row below — that block enabled no rules. **Shipped 2026-09-16.** | ADR-016 (amended) |
 | `INFRA-01` — no CI pipeline | **Fixed.** `.github/workflows/ci.yml` runs build, test, typecheck, lint, and both vulnerability checks on every PR. Every gate verified by negative test. **Shipped 2026-08-08.** | ADR-013, `R-04`; residual `INFRA-07` |
 | `INFRA-06` — Smart App Control blocks the integration tests | **Resolved as designed.** The 14 integration tests run on a clean `ubuntu-latest` runner where no Application Control policy applies. It was always an environment constraint rather than a defect, so the fix was to run them somewhere the constraint does not exist. Local Windows runs remain unreliable straight after an Api change; CI is now the authority. | ADR-013, `R-04` |
 | `BUILD-07` — Node version not pinned | **Fixed.** `.nvmrc` (24) and `engines: { node: ">=20" }`. The workflow reads `node-version-file: .nvmrc`, so CI and a developer's machine cannot disagree — the two values say different things deliberately: what is *used* versus what is *supported*. | ADR-013, `R-04` |

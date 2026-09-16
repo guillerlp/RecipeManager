@@ -1,0 +1,20 @@
+{
+  // Type-checks the Node-side tooling (vite.config.ts) separately from src/, so Node's
+  // globals (`process`, `__dirname`) never leak into browser code — BUILD-10.
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noEmit": true,
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["vite.config.ts"]
+}

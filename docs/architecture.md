@@ -473,6 +473,12 @@ endpoint is anonymous and every recipe is world-writable. See
   `@typescript-eslint/…`, `react-hooks/…`, `react-refresh/…`). Root
   tooling files (`vite.config.ts`) still get no lint rules — which, it turned out, was already true under
   ADR-012: that ESLint block only *disabled* the typed rules and enabled nothing (`BUILD-10`).
+- **Amended 2026-09-16 (`BUILD-10`).** The `correctness` category is now **on** for every file, and
+  `tsconfig.node.json` type-checks `vite.config.ts`. "Exactly the ESLint rule set" was the right bar for the
+  swap itself — one change at a time — but not a reason to leave root files unchecked afterwards. Oxlint
+  overrides cannot set categories, so `src/` gains the category's 88 rules too; they found nothing. Keeping
+  `vite.config.ts` in its own tsconfig, rather than adding Node types to `tsconfig.json`, is what stops
+  `process` from type-checking in browser code again (#32).
 
 ---
 
