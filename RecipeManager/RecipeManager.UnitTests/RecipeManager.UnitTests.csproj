@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\RecipeManager.Domain\RecipeManager.Domain.csproj" />
     <ProjectReference Include="..\RecipeManager.Application\RecipeManager.Application.csproj" />
+    <ProjectReference Include="..\RecipeManager.Api\RecipeManager.Api.csproj" />
   </ItemGroup>
 
 </Project>
