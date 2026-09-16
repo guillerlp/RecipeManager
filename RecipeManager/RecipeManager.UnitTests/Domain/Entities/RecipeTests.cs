@@ -330,7 +330,7 @@ public class RecipeTests
     #region Error Metadata Tests
 
     [Fact]
-    public void Create_WithInvalidTitle_ShouldIncludeErrorCodeInMetadata()
+    public void Create_WithInvalidTitle_ShouldReturnValidationKindWithoutHttpCode()
     {
         // Arrange
         var ingredients = new List<string> { "Flour" };
@@ -340,11 +340,12 @@ public class RecipeTests
         Result<Recipe> result = Recipe.Create("", "Description",
             10, 20, 2, ingredients, instructions);
 
-        // Assert 
+        // Assert
         result.IsFailed.Should().BeTrue();
         var error = result.Errors.First();
-        error.Metadata.Should().ContainKey("ErrorCode");
-        error.Metadata["ErrorCode"].Should().Be(422); 
+        error.Should().BeOfType<DomainError>()
+            .Which.Kind.Should().Be(ErrorKind.Validation);
+        error.Metadata.Should().NotContainKey("ErrorCode");
     }
 
     [Fact]
