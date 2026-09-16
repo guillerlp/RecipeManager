@@ -67,7 +67,7 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `@vitejs/plugin-react` | 6.1 | Fast Refresh via Oxc — no Babel. Its `babel` option no longer exists; Babel plugins would need `@rolldown/plugin-babel` |
 | `typescript` | 5.9 | `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` all on |
 | `@tanstack/react-query` | 5.85 | server state (`useRecipes`); client configured in `main.tsx` |
-| `@tanstack/react-query-devtools` | 5.85 | mounted when `process.env.NODE_ENV === 'development'` |
+| `@tanstack/react-query-devtools` | 5.85 | mounted when `import.meta.env.DEV` (Vite's own flag — browser code does not rely on Node's `process` types) |
 | `axios` | 1.19 | single `AxiosInstance` in `services/recipeService.ts` |
 | `react-router-dom` | 7.18 | `BrowserRouter` + 3 routes in `App.tsx` |
 | `eslint` 9 + `typescript-eslint` 8.39 | | flat config, `recommendedTypeChecked` + `stylisticTypeChecked` scoped to `src/**`, plus `no-console` |
@@ -120,6 +120,8 @@ and falls back to the relative `/api` (proxied by Vite) when the variable is abs
 
 Declared **twice** and must be kept in sync — `vite.config.ts` `resolve.alias` and `tsconfig.json`
 `compilerOptions.paths`: `@`, `@components`, `@contexts`, `@pages`, `@hooks`, `@services`, `@types`, `@styles`.
+The `paths` targets start with `./` and there is **no `baseUrl`**: TypeScript 6 deprecates `baseUrl` and 7
+(and Oxlint's type-aware mode) drops it, so `paths` resolve relative to `tsconfig.json` itself. Do not re-add it.
 
 ## Notable absences
 
