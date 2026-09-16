@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc --noEmit",
+    "build": "tsc -b tsconfig.json tsconfig.node.json && vite build",
+    "typecheck": "tsc -b tsconfig.json tsconfig.node.json",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -28,7 +28,6 @@
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "1.82.0",
     "oxlint-tsgolint": "7.0.2001",
-    "ts-node": "^10.9.2",
     "typescript": "7.0.2",
     "vite": "^8.3.0"
   }

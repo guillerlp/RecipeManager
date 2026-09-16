@@ -70,7 +70,7 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `@tanstack/react-query-devtools` | 5.102 | mounted when `import.meta.env.DEV` (Vite's own flag — browser code does not rely on Node's `process` types) |
 | `axios` | 1.20 | single `AxiosInstance` in `services/recipeService.ts` |
 | `react-router-dom` | 7.18 | `BrowserRouter` + 3 routes in `App.tsx` |
-| `oxlint` | 1.82.0 (exact) | the linter; `.oxlintrc.json` holds the 71 rules ESLint + typescript-eslint enforced before ADR-016, scoped to `src/**`, plus `no-console` |
+| `oxlint` | 1.82.0 (exact) | the linter. `.oxlintrc.json` holds the 71 type-aware rules ESLint + typescript-eslint enforced before ADR-016, scoped to `src/**` (plus `no-console`), and turns on Oxlint's `correctness` category for every file so root tooling files are checked too — 159 rules in all (`BUILD-10`) |
 | `oxlint-tsgolint` | 7.0.2001 (exact) | Oxlint's type-aware backend. Embeds its own typescript-go and is versioned after it (7.0.2, patch 001) — keep it in step with `typescript`; the `typescript` Dependabot group moves all three together |
 
 ### npm scripts
@@ -78,15 +78,14 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | Script | Command | Reality |
 | --- | --- | --- |
 | `dev` | `vite` | works — port 3000 |
-| `build` | `tsc -b && vite build` | type-checks first, so a type error fails before Vite bundles (ADR-012) |
-| `typecheck` | `tsc --noEmit` | the fast local loop; 0 errors |
+| `build` | `tsc -b tsconfig.json tsconfig.node.json && vite build` | type-checks first, so a type error fails before Vite bundles (ADR-012) |
+| `typecheck` | `tsc -b tsconfig.json tsconfig.node.json` | the same check without bundling; 0 errors. `tsconfig.json` covers `src/` (browser, no Node types); `tsconfig.node.json` covers `vite.config.ts` (Node types) — kept apart so `process` can never creep back into browser code |
 | `lint` | `oxlint` | type-aware (`options.typeAware` in `.oxlintrc.json`), 0 problems (ADR-016) |
 | `preview` | `vite preview` | works |
 
 There is still no `test` script — no frontend test runner exists (`TEST-01`, planned as `R-07`). And note what
 the three working scripts do *not* give you on their own — but CI now runs all of them on every PR
-(`R-04`/ADR-013), pinned to the Node version in `.nvmrc`. `ts-node` remains in `devDependencies` with nothing
-using it — `BUILD-08` in [known-issues.md](known-issues.md).
+(`R-04`/ADR-013), pinned to the Node version in `.nvmrc`.
 
 `npm audit` reports **0 vulnerabilities** as of 2026-08-08, and the NuGet side is clean by both
 `dotnet list package --vulnerable --include-transitive` and Dependabot. The 13 npm advisories previously tracked

@@ -1,9 +1,9 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  // Only the rules listed below run — Oxlint's default `correctness` set is off so the rule
-  // set is exactly the one ESLint enforced before ADR-016. Files at the project root
-  // (vite.config.ts) get no rules, as before: they are outside tsconfig.json's `include`.
-  "categories": { "correctness": "off" },
+  // `correctness` (code that is outright wrong) applies to every file, including the root
+  // tooling files such as vite.config.ts, which the typed override below does not reach
+  // (BUILD-10). Overrides cannot set categories, so this is the only way to cover them.
+  "categories": { "correctness": "error" },
   "options": { "typeAware": true },
   "ignorePatterns": ["dist"],
   "overrides": [

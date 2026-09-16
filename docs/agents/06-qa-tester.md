@@ -168,9 +168,9 @@ There is no Vitest, no Jest, no React Testing Library, and no `test` script in `
 
 **Decided stack: Vitest + React Testing Library + jsdom** (`R-07` in [../roadmap.md](../roadmap.md)) — the
 project is already Vite-based and Vitest reuses `vite.config.ts` aliases directly. **Unblocked** — `R-03`
-shipped the working toolchain on 2026-08-08 (ADR-012). Note that Vitest's own config file will land outside
-`tsconfig.json`'s `include` and outside `.oxlintrc.json`'s `src/**` override, so no lint rule reaches it
-(`BUILD-10`).
+shipped the working toolchain on 2026-08-08 (ADR-012). Note that Vitest's own config file is Node-side tooling:
+add it to `tsconfig.node.json`'s `include` so it is type-checked. Lint reaches it only through Oxlint's
+`correctness` category, not the type-aware `src/**` rules.
 
 First tests worth writing, in priority order:
 
