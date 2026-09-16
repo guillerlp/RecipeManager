@@ -10,14 +10,16 @@ from `recipe-manager-frontend/package.json`.
 | --- | --- | --- |
 | .NET | `net10.0` (all six projects) | `Directory.Build.props` `<TargetFramework>` (ADR-010) |
 | .NET SDK | `10.0.302`, `rollForward: latestFeature` | `RecipeManager/global.json` |
-| Node.js | `24` used, `>=20` supported | `recipe-manager-frontend/.nvmrc`, `engines` in `package.json` |
+| Node.js | `24` used, `^20.19.0 \|\| >=22.12.0` supported | `recipe-manager-frontend/.nvmrc`, `engines` in `package.json` |
 | PostgreSQL | 16+ recommended by `README.md` | not enforced anywhere |
 | React | 19.1 | `package.json` |
 | TypeScript | 5.9 | `package.json` |
 
 Both runtimes are now pinned (`BUILD-07` closed by `R-04`/ADR-013). `.nvmrc` says `24` — what is actually used,
-and what CI installs via `node-version-file` — while `engines` says `>=20`, the floor `README.md` supports. The
-two differ deliberately: one is the tested version, the other is the compatibility claim.
+and what CI installs via `node-version-file` — while `engines` says `^20.19.0 || >=22.12.0`, the floor `README.md`
+supports. The two differ deliberately: one is the tested version, the other is the compatibility claim. The floor
+is not a guess: it is copied from Vite 8's and `@vitejs/plugin-react` 6's own `engines` (ADR-015), because a
+looser claim (`>=20`, as it was) promises Node versions the build tool refuses to run on.
 
 The NuGet **transitive closure** is pinned too: `RestorePackagesWithLockFile` is on for every project and each
 has a committed `packages.lock.json`. CI restores with `--locked-mode`, so an unexpected graph change is a
@@ -61,8 +63,8 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | Package | Version | Role |
 | --- | --- | --- |
 | `react` / `react-dom` | 19.1 | UI |
-| `vite` | 7.3 | dev server + build; port **3000**, `/api` → `https://localhost:7231` proxy with `secure: false` |
-| `@vitejs/plugin-react` | 4.6 | Babel-based Fast Refresh |
+| `vite` | 8.3 | dev server + build; port **3000**, `/api` → `https://localhost:7231` proxy with `secure: false`. Bundles with Rolldown, transforms with Oxc, minifies CSS with Lightning CSS (ADR-015) |
+| `@vitejs/plugin-react` | 6.1 | Fast Refresh via Oxc — no Babel. Its `babel` option no longer exists; Babel plugins would need `@rolldown/plugin-babel` |
 | `typescript` | 5.9 | `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` all on |
 | `@tanstack/react-query` | 5.85 | server state (`useRecipes`); client configured in `main.tsx` |
 | `@tanstack/react-query-devtools` | 5.85 | mounted when `import.meta.env.DEV` (Vite's own flag — browser code does not rely on Node's `process` types) |

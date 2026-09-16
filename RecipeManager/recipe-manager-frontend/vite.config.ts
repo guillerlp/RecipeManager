@@ -6,14 +6,14 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@components': path.resolve(__dirname, './src/components'),
-      '@contexts': path.resolve(__dirname, './src/contexts'),
-      '@pages': path.resolve(__dirname, './src/pages'),
-      '@hooks': path.resolve(__dirname, './src/hooks'),
-      '@services': path.resolve(__dirname, './src/services'),
-      '@types': path.resolve(__dirname, './src/types'),
-      '@styles': path.resolve(__dirname, './src/styles')
+      '@': path.resolve(import.meta.dirname,'./src'),
+      '@components': path.resolve(import.meta.dirname,'./src/components'),
+      '@contexts': path.resolve(import.meta.dirname,'./src/contexts'),
+      '@pages': path.resolve(import.meta.dirname,'./src/pages'),
+      '@hooks': path.resolve(import.meta.dirname,'./src/hooks'),
+      '@services': path.resolve(import.meta.dirname,'./src/services'),
+      '@types': path.resolve(import.meta.dirname,'./src/types'),
+      '@styles': path.resolve(import.meta.dirname,'./src/styles')
     }
   },
   server: {

@@ -16,11 +16,21 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
+      # Peer-coupled families come first: Dependabot puts a dependency in the FIRST group it
+      # matches. Without this, #16 bumped @vitejs/plugin-react to a major that peers on vite 8
+      # while vite stayed on 7, so the PR could never install (ERESOLVE). A family group is still
+      # one upgrade needing one manual verification, which is what the note below protects.
+      # No update-types filter on purpose: whether a non-matching update-type falls through to a
+      # later group is undocumented, so every vite/@vitejs update lands here deterministically.
+      vite:
+        patterns:
+          - vite
+          - "@vitejs/*"
       npm-minor-and-patch:
         update-types:
           - minor
           - patch
-    # Majors arrive as individual PRs — React, Vite and react-router majors each need manual
+    # Other majors arrive as individual PRs — React and react-router majors each need manual
     # verification, and there are no frontend tests to catch a regression (TEST-01, R-07).
 
   - package-ecosystem: nuget
