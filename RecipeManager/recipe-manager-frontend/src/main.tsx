@@ -28,7 +28,8 @@ root.render(
     <QueryClientProvider client={queryClient}>
       <App />
       {import.meta.env.DEV && (
-        <ReactQueryDevtools initialIsOpen={false} />
+        // bottom-left: the default bottom-right covers the Footer theme switch (UX-04).
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
       )}
     </QueryClientProvider>
   </StrictMode>

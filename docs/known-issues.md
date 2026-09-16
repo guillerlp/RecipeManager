@@ -96,7 +96,6 @@ kind of negative test.
 | [UX-01](#ux-01) | Medium | UX | Dark-theme status colours never contrast-checked |
 | [UX-02](#ux-02) | Medium | UX | Global heading sizes ignore the type scale; `h3` clips descenders |
 | [UX-03](#ux-03) | Low | UX | No shared breakpoint tokens |
-| [UX-04](#ux-04) | Low | DX | In development, the React Query Devtools button covers the theme switch |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-06](#dec-06) | — | Decision | Follow OS colour-scheme preference on first visit? |
@@ -670,19 +669,6 @@ should not be done incidentally.
 Each CSS module defines its own media queries with ad-hoc values. Define `--breakpoint-*` tokens, or document
 the standard breakpoints, before the next screen is built.
 
-### UX-04
-**In development, the React Query Devtools button covers the theme switch — Low**
-
-`main.tsx` mounts `<ReactQueryDevtools initialIsOpen={false} />` in development, and its floating button sits in
-the bottom-right corner — on top of the `Footer` theme switch. Measured at 1024×768 on 2026-09-13:
-`document.elementFromPoint` at the centre of the 56×28 px switch returns the Devtools button's `<path>`, not the
-switch, so a click on the middle of the switch does nothing. Only the left edge (the knob) is reachable. This is
-why clicking the switch "sometimes does not work" during manual testing. Production builds do not mount Devtools,
-so users are unaffected.
-
-**Fix.** Pass `buttonPosition="bottom-left"` (or `top-right`) to `ReactQueryDevtools`, which keeps it away from the
-footer controls.
-
 ---
 
 ## Open decisions
@@ -749,3 +735,4 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `SEC-03` — 68 open Dependabot alerts (13 npm advisories, `axios` the largest) | **Fixed** by `npm audit fix`. Every advisory resolved **within the declared semver ranges** — `package.json` did not change, only `package-lock.json`. The entry's fear that `react-router` and `vite` were "majors-adjacent" was wrong: all bumps were minor (`axios` 1.10→1.19, `react-router` 7.7→7.18, `vite` 7.0→7.3). Verified by clean `npm ci` + typecheck + lint + build, and by exercising routing, search, and theming in a browser against a live API. **Shipped 2026-08-08.** | — |
 | `BUG-08` — `console.log` in shipped code | **Removed**, and `no-console` added to the ESLint config — the rule had never been configured, so the entry's claim that lint "would have caught" them was wrong. **Shipped 2026-08-08.** | ADR-012, `R-03` |
 | Was the ESLint config lintable as written? | **No.** Type-aware rules were applied to `**/*.{ts,tsx}` while `tsconfig.json` includes only `src`, so `eslint.config.ts` and `vite.config.ts` were parse errors. Typed rules now scope to `src/**`; root tooling files lint without type information. | ADR-012 |
+| `UX-04` — React Query Devtools button covered the theme switch in development | **Fixed** with `buttonPosition="bottom-left"`, where only the non-interactive copyright text sits beneath it. Verified at 1024×768 and 375×812: the switch centre is hit-testable and toggles under real clicks. Production output is byte-identical. **Shipped 2026-09-16.** | `main.tsx` |
