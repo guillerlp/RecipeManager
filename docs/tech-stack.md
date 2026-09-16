@@ -30,16 +30,16 @@ failure (`NU1004`) rather than a silent resolution. Changing any package means r
 
 | Package | Version | Used in | Why / where it shows up |
 | --- | --- | --- | --- |
-| `Microsoft.EntityFrameworkCore` (+ `.Relational`, `.Design`) | 10.0.10 | Infrastructure, Api | `AppDbContext`, migrations |
+| `Microsoft.EntityFrameworkCore` (+ `.Relational`, `.Design`) | 10.0.12 | Infrastructure, Api | `AppDbContext`, migrations |
 | `Npgsql.EntityFrameworkCore.PostgreSQL` | 10.0.3 | Infrastructure, Api | `options.UseNpgsql(...)`; maps `IReadOnlyList<string>` to a native `text[]` column with no configuration |
 | `FluentResults` | 4.0.0 | Domain, Application | Expected-failure channel (ADR-002). `Error` metadata carries `ErrorCode` + `field`. Ships no `net10.0` asset — the `net9.0` build is consumed. `Errors` is `IReadOnlyList<IError>`, and `Result.Fail` with an empty error collection throws |
-| `FluentValidation` | 11.11.0 | Application, Api | Payload-shape validation |
+| `FluentValidation` | 11.12.0 | Application, Api | Payload-shape validation |
 | `FluentValidation.AspNetCore` | 11.3.1 | Api | `AddFluentValidationAutoValidation()` — validates the bound request type before the action runs |
-| `Scrutor` | 7.0.0 | Api | Only for `services.Decorate<IRecipeRepository, CachedRecipeRepository>()`. Assembly scanning is **not** used — handlers are registered explicitly |
+| `Scrutor` | 7.0.0 | Api | `services.Scan(...)` registers every `ICommandHandler<,>` / `IQueryHandler<,>` from the Application assembly (ADR-008), and `services.Decorate<IRecipeRepository, CachedRecipeRepository>()` adds the caching decorator |
 | `Swashbuckle.AspNetCore` | 10.2.3 | Api | Swagger UI, Development environment only. Note the v10 namespace: `using Microsoft.OpenApi;` (not `Microsoft.OpenApi.Models`) |
-| `Microsoft.Extensions.DependencyInjection` | 10.0.10 | Application | `GetRequiredService` inside the dispatchers |
+| `Microsoft.Extensions.DependencyInjection` | 10.0.12 | Application | `GetRequiredService` inside the dispatchers |
 | `Ardalis.GuardClauses` | 5.0.0 | Domain | **Referenced but never used** — no `Guard.` call exists in the codebase (`DEC-03` in [known-issues.md](known-issues.md)) |
-| `Microsoft.VisualStudio.Azure.Containers.Tools.Targets` | 1.21.0 | Api | Visual Studio Docker tooling for the `Container (Dockerfile)` launch profile |
+| `Microsoft.VisualStudio.Azure.Containers.Tools.Targets` | 1.23.0 | Api | Visual Studio Docker tooling for the `Container (Dockerfile)` launch profile |
 
 `Microsoft.EntityFrameworkCore.SqlServer` was **removed** in the PostgreSQL migration — do not reintroduce it.
 
@@ -48,13 +48,13 @@ failure (`NU1004`) rather than a silent resolution. Changing any package means r
 | Package | Version | Project |
 | --- | --- | --- |
 | `xunit` | 2.9.3 | Unit + Integration |
-| `xunit.runner.visualstudio` | 3.1.5 | Unit + Integration |
-| `Microsoft.NET.Test.Sdk` | 18.8.1 | Unit + Integration |
-| `FluentAssertions` | 8.10.0 | Unit + Integration |
-| `NSubstitute` | 6.0.0 | Unit only — **the mocking library here is NSubstitute, not Moq** |
+| `xunit.runner.visualstudio` | 4.0.0 | Unit + Integration |
+| `Microsoft.NET.Test.Sdk` | 18.10.1 | Unit + Integration |
+| `FluentAssertions` | 8.11.0 | Unit + Integration |
+| `NSubstitute` | 6.2.0 | Unit only — **the mocking library here is NSubstitute, not Moq** |
 | `coverlet.collector` / `coverlet.msbuild` | 10.0.1 | Unit (both), Integration (collector only) |
-| `Microsoft.AspNetCore.Mvc.Testing` | 10.0.10 | Integration — `WebApplicationFactory<Program>` |
-| `Microsoft.EntityFrameworkCore.InMemory` | 10.0.10 | Integration — test database |
+| `Microsoft.AspNetCore.Mvc.Testing` | 10.0.12 | Integration — `WebApplicationFactory<Program>` |
+| `Microsoft.EntityFrameworkCore.InMemory` | 10.0.12 | Integration — test database |
 
 Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implicit.
 

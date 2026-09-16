@@ -54,7 +54,6 @@ kind of negative test.
 | [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 6× the entire JS bundle |
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
 | [BUILD-08](#build-08) | Low | Tooling | `ts-node` is a devDependency nothing uses |
-| [BUILD-09](#build-09) | Low | Docs | Backend package versions in the docs have drifted from `Directory.Packages.props` |
 | [BUILD-10](#build-10) | Low | Tooling | Root tooling files (`vite.config.ts`) are not linted by any rule |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
@@ -153,30 +152,6 @@ Left in place by `R-03`, which added `jiti` — removing an unrelated dependency
 obscured which change made lint work.
 
 **Owner:** `03-senior-react` · **Effort:** ~5 min
-
-### BUILD-09
-**Backend package versions in the docs have drifted from `Directory.Packages.props` — Low**
-
-Dependabot PRs change `RecipeManager/Directory.Packages.props` and the lock files but never the docs, so the
-version tables have fallen behind. Found on 2026-09-13 (`main` @ `aeb1f19`) while upgrading FluentResults:
-
-| Package | Docs say | `Directory.Packages.props` |
-| --- | --- | --- |
-| `Microsoft.EntityFrameworkCore` (+ `.Relational`, `.Design`), `Microsoft.Extensions.DependencyInjection`, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.EntityFrameworkCore.InMemory` | 10.0.10 | 10.0.12 |
-| `FluentValidation` | 11.11.0 | 11.12.0 |
-| `NSubstitute` | 6.0.0 | 6.2.0 |
-| `xunit.runner.visualstudio` | 3.1.5 | 4.0.0 |
-| `Microsoft.NET.Test.Sdk` | 18.8.1 | 18.10.0 |
-| `Microsoft.VisualStudio.Azure.Containers.Tools.Targets` | 1.21.0 | 1.23.0 |
-
-Affected: `docs/tech-stack.md` backend tables and the `CLAUDE.md` stack summary. Separately, the `Scrutor` row
-in `docs/tech-stack.md` still says assembly scanning is not used, which ADR-008 reversed on 2026-08-03.
-
-**Fix.** Correct the tables. To stop recurrence, either drop exact patch versions from prose docs and point at
-`Directory.Packages.props` as the single source, or add the doc update to the Dependabot merge checklist in
-`docs/workflows/release-workflow.md` — the first removes the drift, the second only reminds someone.
-
-**Owner:** `01-architect` · **Effort:** ~15 min
 
 ### BUILD-10
 **Root tooling files (`vite.config.ts`) are not linted by any rule — Low**
@@ -729,6 +704,7 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
 | Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL**, deferred until CI exists. | `R-06` |
 | `BUILD-01`, `BUILD-02` — 7 backend build warnings | **Fixed**, and made unrepeatable by `TreatWarningsAsErrors` in `Directory.Build.props`. **Shipped 2026-08-04.** | ADR-010 |
+| `BUILD-09` — backend package versions in the docs had drifted from `Directory.Packages.props` | **Fixed**: every backend and test row in `docs/tech-stack.md` and the `CLAUDE.md` stack line re-checked against `Directory.Packages.props`, and the `Scrutor` row now describes the assembly scanning ADR-008 introduced. Recurrence is handled by process: release-workflow item 6 now covers Dependabot PRs. That is the weaker of the two proposed fixes (it reminds rather than removes the cause), chosen because exact versions in the docs are worth having while every dependency PR is superseded anyway. **Shipped 2026-09-16.** | release-workflow item 6 |
 | Should warnings-as-errors be Release-only? | **No — every configuration.** There is no CI yet (`INFRA-01`), so a Release-only condition would enforce nothing. | ADR-010 |
 | Package versions duplicated across `.csproj` files | **Central package management.** Ten packages were versioned in two projects each; drift resolved nearest-wins with no diagnostic. **Shipped 2026-08-04.** | ADR-011 |
 | Should a NuGet advisory fail the local build? | **Yes, accepted.** `TreatWarningsAsErrors` elevates `NU1903`, delivering `R-04`'s vulnerability gate earlier. Escape hatch recorded in ADR-010 if it becomes obstructive. | ADR-010 |
