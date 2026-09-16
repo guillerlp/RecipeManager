@@ -42,15 +42,52 @@ Jump to every entry touching a topic.
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Testing | [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
-| Tooling / infrastructure | [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
-| Enforcement vs. convention | [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
-| Dependency management | [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
-| Frontend / React | [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
+| Tooling / infrastructure | [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Enforcement vs. convention | [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Dependency management | [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
+| Frontend / React | [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | Accessibility | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 
 ---
 
 ## Entries
+
+### 2026-09-16 — Replace the tool when its upstream says no
+
+**Context.** Dependabot #19 bumped `typescript` 5.9 → 7.0.2 and failed at `npm ci`: `typescript-eslint` peers on
+`typescript <6.1.0`. That was not a lag waiting to close. TypeScript 7 is a Go rewrite whose npm package ships a
+binary and no JavaScript API, and typescript-eslint's type-aware rules are built on that API. The upstream issues
+asking for TS 7 support were closed as not planned. Two TS 7 errors were genuinely ours (`baseUrl`, `process.env`)
+and were fixed separately in #32, so this change could be purely the tool swap.
+
+**Decision.** Replace ESLint + typescript-eslint with Oxlint in type-aware mode (`oxlint-tsgolint` embeds its own
+typescript-go), move to TypeScript 7.0.2, pin all three exactly, and group them in Dependabot (ADR-016). The rule
+set was translated by `@oxlint/migrate` and then checked mechanically: the committed `.oxlintrc.json` has the same
+71 rules with the same options as the migration output. The PR supersedes #19, and #35 and #36 (ESLint 10),
+which the removal makes moot.
+
+**Rejected.** *Waiting for typescript-eslint* — the maintainers have said it is not planned, so "later" has no
+date. *Biome* — 46 of 72 rules, and none of the `no-unsafe-*` family, which is the reason to lint with types at
+all. *Oxlint without types* — the same loss. *Floating version ranges* — `oxlint-tsgolint@7.0.2001` is named after
+the TypeScript it embeds; `^` ranges would let `tsc` and the linter drift onto different compilers without a
+signal.
+
+**What the translation found.** Listing the rules per file pattern showed the ESLint block for root tooling files
+enabled **nothing**. It only switched typed rules off, and there was no global rule block, so `vite.config.ts` was
+parsed against zero rules while ADR-012 described it as linted. Recorded as `BUILD-10`, and deliberately carried
+over unchanged, so this PR swaps the tool without also changing what is checked.
+
+**Cost.** `prefer-optional-chain` is nursery-only in Oxlint and no longer enforced. Oxlint's type-aware mode has
+been stable only since July 2026, and its rule behaviour is close to, not identical to, typescript-eslint's; the
+negative test (six rules fired on a probe file) samples that, it does not prove it. Rule names in config are
+spelled differently (`typescript/…`, `react/…`). In exchange: 183 → 83 installed packages, and lint in ≈0.7 s instead of ≈3 s.
+
+**Takeaway.** *Distinguish "not yet" from "not ever".* A peer-dependency conflict usually means waiting a few
+weeks; when the blocking project has declined the work, waiting is a decision to stay put indefinitely, and it
+should be taken on purpose or not at all. And a config migration is an audit for free: enumerating what the old
+config *actually* enabled per file is how an unnoticed gap surfaced.
+
+---
 
 ### 2026-09-13 — Compare what a toolchain upgrade produces, not what it prints
 

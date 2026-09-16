@@ -6,7 +6,7 @@ Implements everything under `recipe-manager-frontend/src/` — components, pages
 styling, and (once a runner exists) frontend tests.
 
 **Does:** components, pages, routes, query/mutation hooks, contexts, CSS Modules, forms, accessibility
-implementation, Vite/TS/ESLint config.
+implementation, Vite/TS/Oxlint config.
 
 **Does not:** change `recipe-manager-frontend/src/types/recipe.ts` or `recipe-manager-frontend/src/services/recipeService.ts` shapes unilaterally — those are
 the API contract and belong to `08-api-contract`. Does not touch backend code. Does not decide visual direction
@@ -115,12 +115,13 @@ npm run lint
 
 - [ ] `npm run build` runs `tsc -b` before Vite (ADR-012), so it type-checks. `npm run typecheck` is the same
       check without bundling when you want a faster loop.
-- [ ] `npm run lint` must report **0 problems**. Read the output — an ESLint that cannot start also exits
+- [ ] `npm run lint` must report **0 problems**. Read the output — a linter that cannot start also exits
       non-zero, and for eleven months nobody noticed the difference (`BUILD-03`, now closed).
-- [ ] No `console.log` added — `no-console` is an **error** in the flat config (`warn`/`error` are allowed).
-- [ ] Type-aware rules only cover `src/**`. A new root-level `.ts` tooling file lands in the non-type-checked
-      block, and a new folder outside `src/` needs adding to `tsconfig.json`'s `include` before typed rules
-      apply to it.
+      `npx oxlint --format=default` prints how many files and rules ran — a quick check that it checked anything.
+- [ ] No `console.log` added — `no-console` is an **error** in `.oxlintrc.json` (`warn`/`error` are allowed).
+- [ ] Lint rules only cover `src/**` (ADR-016). A new root-level `.ts` tooling file gets **no** rules
+      (`BUILD-10`), and a new folder outside `src/` needs adding to both `tsconfig.json`'s `include` and the
+      `.oxlintrc.json` override before it is checked.
 - [ ] Verified in **both** light and dark themes.
 - [ ] Anything left undone is an entry in [../known-issues.md](../known-issues.md), not a code comment.
 
@@ -153,7 +154,7 @@ npm run lint
      `<article>` vs. `<section>`, `<time dateTime>` vs. plain text.
    - **What TypeScript is and is not checking** — especially that `npm run build` strips types without checking
      them — which is why `npm run build` now runs `tsc -b` first (ADR-012). Note also that
-     `@typescript-eslint/no-unused-vars` is configured with `varsIgnorePattern: '^[A-Z_]'`, so it ignores every
+     lint's `no-unused-vars` is configured with `varsIgnorePattern: '^[A-Z_]'`, so it ignores every
      PascalCase binding: an unused component or type import is caught by `tsc`'s `noUnusedLocals`, not by lint.
      The two checks are not interchangeable.
 

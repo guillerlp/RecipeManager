@@ -26,7 +26,7 @@ and again after the `SEC-03` dependency remediation. The npm audit row re-measur
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and now type-checks first (`tsc -b && vite build`, ADR-012) |
-| Frontend lint | `npm run lint` | **0 problems** — runs since `jiti` was added (ADR-012, `R-03`) |
+| Frontend lint | `npm run lint` | **0 problems** — Oxlint, type-aware, 71 rules (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
 | Frontend tests | — | **none exist**, no runner installed ([TEST-01](#test-01)) |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
@@ -42,6 +42,8 @@ gates were verified by negative test — a deliberate type error fails the build
 deliberate `console.log` is reported by lint. What this does **not** buy is automatic enforcement: nothing runs
 these commands for you — **until `R-04`, which now does**: `.github/workflows/ci.yml` runs both gates on every
 PR (ADR-013). The remaining gap is that a red run does not yet *block* a merge ([INFRA-07](#infra-07)).
+ADR-016 later replaced ESLint with Oxlint (and `jiti` went with it); the lint gate was re-verified by the same
+kind of negative test.
 
 ---
 
@@ -53,6 +55,7 @@ PR (ADR-013). The remaining gap is that a red run does not yet *block* a merge (
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
 | [BUILD-08](#build-08) | Low | Tooling | `ts-node` is a devDependency nothing uses |
 | [BUILD-09](#build-09) | Low | Docs | Backend package versions in the docs have drifted from `Directory.Packages.props` |
+| [BUILD-10](#build-10) | Low | Tooling | Root tooling files (`vite.config.ts`) are not linted by any rule |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
 | [SEC-04](#sec-04) | **High** | Security | No rate limiting on unauthenticated write endpoints |
@@ -174,6 +177,23 @@ in `docs/tech-stack.md` still says assembly scanning is not used, which ADR-008 
 `docs/workflows/release-workflow.md` — the first removes the drift, the second only reminds someone.
 
 **Owner:** `01-architect` · **Effort:** ~15 min
+
+### BUILD-10
+**Root tooling files (`vite.config.ts`) are not linted by any rule — Low**
+
+Found 2026-09-16 while translating the ESLint config for ADR-016. ADR-012 described the root config files as
+"linted without type information", but the ESLint block for `*.{ts,mts,cts,js,mjs,cjs}` only extended
+`disableTypeChecked` — it turned typed rules *off* and never turned anything on, and there was no global rule
+block. So `eslint.config.ts` and `vite.config.ts` were parsed and checked against zero rules. `.oxlintrc.json`
+preserves that scope exactly (its `correctness` category is off and every rule lives in the `src/**` override),
+so the gap carried over rather than being introduced. `vite.config.ts` is also outside `tsconfig.json`'s
+`include`, so `tsc` does not check it either — only Vite's own config loader does, when it runs.
+
+**Fix.** Give root files a non-type-aware rule set in `.oxlintrc.json` (Oxlint's `correctness` category is the
+obvious candidate), and decide whether `vite.config.ts` should be type-checked — a `tsconfig.node.json`
+reference, as the Vite React-TS template does, would need `@types/node`, which is already installed.
+
+**Owner:** `03-senior-react` · **Effort:** ~30 min
 
 ---
 

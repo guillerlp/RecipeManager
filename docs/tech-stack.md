@@ -13,7 +13,7 @@ from `recipe-manager-frontend/package.json`.
 | Node.js | `24` used, `^20.19.0 \|\| >=22.12.0` supported | `recipe-manager-frontend/.nvmrc`, `engines` in `package.json` |
 | PostgreSQL | 16+ recommended by `README.md` | not enforced anywhere |
 | React | 19.1 | `package.json` |
-| TypeScript | 5.9 | `package.json` |
+| TypeScript | 7.0 | `package.json` |
 
 Both runtimes are now pinned (`BUILD-07` closed by `R-04`/ADR-013). `.nvmrc` says `24` — what is actually used,
 and what CI installs via `node-version-file` — while `engines` says `^20.19.0 || >=22.12.0`, the floor `README.md`
@@ -65,13 +65,13 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `react` / `react-dom` | 19.1 | UI |
 | `vite` | 8.3 | dev server + build; port **3000**, `/api` → `https://localhost:7231` proxy with `secure: false`. Bundles with Rolldown, transforms with Oxc, minifies CSS with Lightning CSS (ADR-015) |
 | `@vitejs/plugin-react` | 6.1 | Fast Refresh via Oxc — no Babel. Its `babel` option no longer exists; Babel plugins would need `@rolldown/plugin-babel` |
-| `typescript` | 5.9 | `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` all on |
+| `typescript` | 7.0.2 (exact) | the Go-native compiler: a `tsc` binary, **no JavaScript API**. `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` all on (ADR-016) |
 | `@tanstack/react-query` | 5.85 | server state (`useRecipes`); client configured in `main.tsx` |
 | `@tanstack/react-query-devtools` | 5.85 | mounted when `import.meta.env.DEV` (Vite's own flag — browser code does not rely on Node's `process` types) |
 | `axios` | 1.19 | single `AxiosInstance` in `services/recipeService.ts` |
 | `react-router-dom` | 7.18 | `BrowserRouter` + 3 routes in `App.tsx` |
-| `eslint` 9 + `typescript-eslint` 8.39 | | flat config, `recommendedTypeChecked` + `stylisticTypeChecked` scoped to `src/**`, plus `no-console` |
-| `jiti` | 2.7 | dev-only loader ESLint 9 uses to evaluate `eslint.config.ts`. Without it ESLint cannot start at all — ADR-012 |
+| `oxlint` | 1.82.0 (exact) | the linter; `.oxlintrc.json` holds the 71 rules ESLint + typescript-eslint enforced before ADR-016, scoped to `src/**`, plus `no-console` |
+| `oxlint-tsgolint` | 7.0.2001 (exact) | Oxlint's type-aware backend. Embeds its own typescript-go and is versioned after it (7.0.2, patch 001) — keep it in step with `typescript`; the `typescript` Dependabot group moves all three together |
 
 ### npm scripts
 
@@ -80,7 +80,7 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `dev` | `vite` | works — port 3000 |
 | `build` | `tsc -b && vite build` | type-checks first, so a type error fails before Vite bundles (ADR-012) |
 | `typecheck` | `tsc --noEmit` | the fast local loop; 0 errors |
-| `lint` | `eslint .` | runs, 0 problems (ADR-012) |
+| `lint` | `oxlint` | type-aware (`options.typeAware` in `.oxlintrc.json`), 0 problems (ADR-016) |
 | `preview` | `vite preview` | works |
 
 There is still no `test` script — no frontend test runner exists (`TEST-01`, planned as `R-07`). And note what

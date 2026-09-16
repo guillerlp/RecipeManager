@@ -26,6 +26,13 @@ updates:
         patterns:
           - vite
           - "@vitejs/*"
+      # oxlint-tsgolint embeds its own TypeScript and versions itself after it (7.0.2001 is
+      # TS 7.0.2, patch 001), so typescript and the linter must move together — ADR-016.
+      typescript:
+        patterns:
+          - typescript
+          - oxlint
+          - oxlint-tsgolint
       npm-minor-and-patch:
         update-types:
           - minor

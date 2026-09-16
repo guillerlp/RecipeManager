@@ -48,7 +48,7 @@ Verified against `main` @ `edfd057` (merge of `dotnet10-postgresql`) on 2026-07-
 | DI helpers | Scrutor 7.0 (`Decorate` for the caching repository) |
 | Caching | `IMemoryCache` behind `ICacheService`, decorator over `IRecipeRepository` |
 | Tests | xUnit 2.9, NSubstitute 6.0, FluentAssertions 8.10, `WebApplicationFactory` + EF InMemory |
-| Frontend | React 19, TypeScript 5.9, Vite 8, TanStack Query 5, Axios, React Router 7, CSS Modules (no component library — ADR-014) |
+| Frontend | React 19, TypeScript 7, Oxlint (type-aware — ADR-016), Vite 8, TanStack Query 5, Axios, React Router 7, CSS Modules (no component library — ADR-014) |
 
 Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
 

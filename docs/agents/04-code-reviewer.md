@@ -25,7 +25,7 @@ required — then security reviews after code review.
 - [ ] `dotnet test RecipeManager.sln` — **84 passing** is the current count. Fewer than before with no
       explanation is a Block.
 - [ ] Frontend touched ⇒ `npm run build` **and** `npm run lint`, both clean (ADR-012). A new
-      `eslint-disable` comment or a rule downgraded in `eslint.config.ts` to get past lint is a **Block** unless
+      `oxlint-disable`/`eslint-disable` comment or a rule downgraded in `.oxlintrc.json` to get past lint is a **Block** unless
       the PR states why the rule is wrong here.
 - [ ] The author's claimed numbers match what you actually observed.
 - [ ] Anything the PR fixes from [../known-issues.md](../known-issues.md) has had its entry **deleted** in the
