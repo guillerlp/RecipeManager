@@ -128,7 +128,8 @@ The `paths` targets start with `./` and there is **no `baseUrl`**: TypeScript 6 
 Stated explicitly so agents do not assume they exist:
 
 - **No frontend test runner.** No Vitest/Jest, no React Testing Library, no `test` script in `package.json`.
-- **No CI.** No `.github/` directory, no pipeline configuration anywhere in the repo.
+- **No deployment pipeline.** `.github/workflows/ci.yml` verifies every PR (ADR-013) but builds no artifact and
+  deploys nothing (`INFRA-04`).
 - **No AutoMapper / MediatR / Serilog / Polly.**
 - **No authentication or authorization packages** — no `Microsoft.AspNetCore.Authentication.*`, no Identity.
 - **No rate limiting** (`AddRateLimiter` is not called).
