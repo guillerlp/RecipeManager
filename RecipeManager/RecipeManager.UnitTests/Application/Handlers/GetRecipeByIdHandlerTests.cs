@@ -5,6 +5,7 @@ using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Handlers.Recipes;
 using RecipeManager.Application.Queries.Recipes;
 using RecipeManager.Domain.Entities;
+using RecipeManager.Domain.Errors;
 using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.UnitTests.Application.Handlers;
@@ -169,7 +170,7 @@ public class GetRecipeByIdHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenRecipeNotFound_ShouldIncludeErrorMetadata()
+    public async Task Handle_WhenRecipeNotFound_ShouldReturnNotFoundKindWithoutHttpCode()
     {
         // Arrange
         var recipeId = Guid.NewGuid();
@@ -185,8 +186,10 @@ public class GetRecipeByIdHandlerTests
         // Assert
         result.IsFailed.Should().BeTrue();
         var error = result.Errors.First();
-        error.Metadata.Should().ContainKey("ErrorCode");
-        error.Metadata["ErrorCode"].Should().Be(404); 
+        error.Should().BeOfType<DomainError>()
+            .Which.Kind.Should().Be(ErrorKind.NotFound);
+        error.Metadata["field"].Should().Be("id");
+        error.Metadata.Should().NotContainKey("ErrorCode");
     }
 
     #endregion

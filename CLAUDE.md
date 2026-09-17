@@ -68,7 +68,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Application/       Commands, Queries, Handlers, Dispatchers, DTOs, Validators, Mappings
     RecipeManager.Infrastructure/    AppDbContext, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
     RecipeManager.Api/               RecipesController, Startup/*, Middlewares/*, Extensions/*
-    RecipeManager.UnitTests/         70 tests — xUnit + NSubstitute (Domain + Application handlers)
+    RecipeManager.UnitTests/         85 tests — xUnit + NSubstitute (Domain + Application handlers + Api result mapping)
     RecipeManager.IntegrationTests/  14 tests — xUnit + WebApplicationFactory (EF InMemory)
     recipe-manager-frontend/         React 19 + Vite SPA
     run-coverage.ps1                 unit-test coverage + HTML report
@@ -113,7 +113,7 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **0 warnings** and **84 tests pass** (70 unit + 14 integration).
+Current state: build succeeds with **0 warnings** and **99 tests pass** (85 unit + 14 integration).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note — and `TargetFramework`, `Nullable`, and `ImplicitUsings` live there too. Never
 re-declare those in a `.csproj`.

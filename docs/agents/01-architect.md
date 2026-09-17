@@ -55,7 +55,7 @@ These were settled on 2026-07-26. Implement towards them; do not re-litigate the
 | --- | --- | --- |
 | Project stance | Practice project **with deployment intent** — production-grade bar, security sequenced behind the [deploy gate](../roadmap.md#deploy-gate), never waived | [roadmap.md](../roadmap.md) |
 | CQRS | Keep hand-rolled; handlers auto-registered with Scrutor (**shipped**) | ADR-008 |
-| Domain error codes | Move HTTP status out of the Domain layer into a semantic error kind | ADR-009, `R-05` |
+| Domain error codes | HTTP status moved out of the Domain into a semantic error kind (**shipped**) | ADR-009, `R-05` |
 | Ingredients | Structure them — the `string[]` shape is an acknowledged temporary shortcut | `R-10` |
 | Integration tests | Testcontainers with real PostgreSQL — **unblocked**, CI now provides Docker (ADR-013) | `R-06` |
 | Frontend tests | Vitest + React Testing Library | `R-07` |
@@ -87,10 +87,6 @@ Do not defer these silently — each will be forced by a feature request sooner 
 - **Hand-rolled CQRS has no pipeline.** Cross-cutting concerns (transactions, logging, validation, retries)
   cannot be added as behaviours. The sanctioned approach is **decorating handlers with Scrutor** — the pattern
   already proven by `CachedRecipeRepository`. Adopting MediatR instead needs a new ADR overriding ADR-001.
-- **`ErrorCode` metadata couples `RecipeErrors` to HTTP** — the one live layering violation, being removed by
-  ADR-009 / `R-05`. Do not add new `.WithCode(<int>)` designs that deepen it.
-- **`ResultExtensions` uses `errors.First()` for the status**, so heterogeneous error kinds in one `Result`
-  surface an arbitrary status. Also fixed by ADR-009.
 - **Startup migrations (`app.MigrateDatabase()`) run in production.** Any destructive migration deploys itself,
   and there is no rollback procedure (`INFRA-03`). Weigh this before approving one, and require an explicit
   callout in the PR description.

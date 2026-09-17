@@ -77,8 +77,8 @@ the reported number, so it understates real coverage — `BUILD-06` in [../known
 
 ### Minimum coverage per change
 
-- [ ] Every new domain invariant: one passing case, one failing case, and the error's `field`/`ErrorCode`
-      metadata asserted where it drives the HTTP status.
+- [ ] Every new domain invariant: one passing case, one failing case, and the error's `field` metadata and
+      `ErrorKind` asserted (the kind drives the HTTP status).
 - [ ] Every new handler: success, not-found, validation failure, `CancellationToken` propagation, and the
       repository interaction.
 - [ ] Every new or changed endpoint: an integration test asserting status code **and** database state.
@@ -144,7 +144,7 @@ Work from this list; tick what is covered, add tests for what is not.
 - `GET` twice: same payload, second served from cache.
 
 **None of these has a dedicated test today** — the existing integration tests assert database state rather than
-issuing a second request through the API, so a broken invalidation would pass all 84 tests. This is the largest
+issuing a second request through the API, so a broken invalidation would pass all 99 tests. This is the largest
 real gap in the suite: `TEST-02` in [../known-issues.md](../known-issues.md).
 
 ### Not reproducible in the current suite — state this in PRs

@@ -27,8 +27,8 @@ Domain/Application/Infrastructure/Api, or backend test work.
 
 - [ ] New invariant goes in `Recipe.ValidateProperties`, **not** in a handler or validator.
 - [ ] Errors are collected into the `List<IError>`, not returned early — a single call reports all violations.
-- [ ] New error factory in `RecipeErrors`: `.WithCode(<status>)` + `.Field("<camelCaseName>")`. Add extra context
-      with `.WithMetadata(...)` (see `ServingsOutOfRange`).
+- [ ] New error factory in `RecipeErrors`: `Validation(...)` or `NotFound(...)` + `.Field("<camelCaseName>")` —
+      never an HTTP status. Add extra context with `.WithMetadata(...)` (see `ServingsOutOfRange`).
 - [ ] Entity stays `sealed`, properties `private set`, constructors private. Do not expose the EF-only
       parameterless constructor.
 - [ ] Collections are exposed as `IReadOnlyList<T>` and assigned with `.ToList().AsReadOnly()`.
@@ -82,8 +82,8 @@ Domain/Application/Infrastructure/Api, or backend test work.
       and `ApplicationInitializer` uses `Console.WriteLine` (`QUAL-02`); both are defects, not precedents.
 - [ ] No exception message reaches the client. Log the exception, return a generic `Result` failure —
       `ErrorHandlerMiddleware` and `DeleteRecipeHandler` currently leak it (`SEC-05`, `SEC-06`).
-- [ ] Verify the resulting status code end-to-end: `ErrorCode` metadata drives it, and only `errors.First()`
-      sets the response status.
+- [ ] Verify the resulting status code end-to-end: the error's `ErrorKind` drives it through
+      `ResultExtensions.Classify`, and the most severe error wins.
 
 ### Packages
 
@@ -110,7 +110,7 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - [ ] New endpoint ⇒ integration test in `RecipeManager.IntegrationTests/RecipesControllerTests.cs` asserting status code
       **and** database state, with `DbContext.ChangeTracker.Clear()` before post-write assertions.
 - [ ] FluentAssertions only, never `Assert.*`. AAA markers required.
-- [ ] `dotnet test RecipeManager.sln` — currently 84 passing. **Zero build warnings, enforced** by
+- [ ] `dotnet test RecipeManager.sln` — currently 99 passing. **Zero build warnings, enforced** by
       `TreatWarningsAsErrors` (ADR-010): a warning fails the build. Fix the cause; do not suppress it.
 
 ### Performance notes for this codebase

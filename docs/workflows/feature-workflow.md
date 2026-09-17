@@ -34,7 +34,8 @@ items in [Known limitations](../domain-model.md#known-limitations).
 **Reads:** [../conventions.md](../conventions.md#backend-c), [../domain-model.md](../domain-model.md).
 
 1. Add/modify the invariant inside `Recipe.ValidateProperties` (never in the handler).
-2. Add the corresponding factory to `RecipeErrors` with `.WithCode(...)` and `.Field("camelCaseName")`.
+2. Add the corresponding factory to `RecipeErrors` as a `DomainError` via `Validation(...)`/`NotFound(...)`,
+   with `.Field("camelCaseName")`.
 3. Extend `Create` and `Update` together — they share the same validation path.
 4. Unit-test the invariant in `RecipeManager.UnitTests/Domain/Entities/RecipeTests.cs` before moving on.
 
@@ -72,8 +73,8 @@ Only if persistence changes.
 1. Action in `RecipesController`: build the command/query, dispatch, return `result.ToActionResult()` or
    `ToCreatedAtActionResult(...)`. No logic in the controller.
 2. Use `{id:guid}` route constraints.
-3. Confirm the status codes the new `RecipeErrors` entries produce — `ErrorCode` metadata drives them, and only
-   `errors.First()` sets the response status.
+3. Confirm the status codes the new `RecipeErrors` entries produce — the `ErrorKind` drives them through
+   `ResultExtensions`, and the most severe error in a `Result` wins. A new kind needs a mapping there.
 
 ## 7. Contract sync — `08-api-contract`
 
@@ -105,7 +106,7 @@ Only if persistence changes.
   interaction (`Received(1)`).
 - Integration test in `RecipesControllerTests` for each new endpoint: status code + database state, with
   `DbContext.ChangeTracker.Clear()` before asserting after a write.
-- Run and compare against the current numbers — 84 passing, 0 build warnings (warnings are errors, ADR-010):
+- Run and compare against the current numbers — 99 passing, 0 build warnings (warnings are errors, ADR-010):
   ```bash
   dotnet test RecipeManager.sln
   ```

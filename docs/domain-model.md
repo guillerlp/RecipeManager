@@ -55,22 +55,24 @@ Table: `"Recipes"` (quoted — PostgreSQL folds unquoted identifiers to lowercas
 
 All violations are collected — a single call can return several errors at once.
 
-| Rule | Error factory | HTTP code | `field` |
+| Rule | Error factory | Kind (→ HTTP) | `field` |
 | --- | --- | --- | --- |
-| `Title` not null/whitespace | `TitleRequired()` | 422 | `title` |
-| `Description` not null/whitespace | `DescriptionRequired()` | 422 | `description` |
-| `PreparationTime >= 0` | `PreparationTimeNegative()` | 422 | `preparationTime` |
-| `CookingTime >= 0` | `CookingTimeNegative()` | 422 | `cookingTime` |
-| **Not both times zero** | `BothTimesZero()` | 422 | `preparationTime,cookingTime` |
-| `Servings >= 1` | `ServingsOutOfRange(1)` | 422 | `servings` (+ `min` metadata) |
-| At least one ingredient | `IngredientsRequired()` | 422 | `ingredients` |
-| No blank ingredient string | `IngredientEmpty()` | 422 | `ingredients` |
-| At least one instruction | `InstructionsRequired()` | 422 | `instructions` |
-| No blank instruction string | `InstructionEmpty()` | 422 | `instructions` |
-| Recipe exists (repository-level, not in the entity) | `RecipeNotFound(id)` | 404 | `id` |
+| `Title` not null/whitespace | `TitleRequired()` | `Validation` (422) | `title` |
+| `Description` not null/whitespace | `DescriptionRequired()` | `Validation` (422) | `description` |
+| `PreparationTime >= 0` | `PreparationTimeNegative()` | `Validation` (422) | `preparationTime` |
+| `CookingTime >= 0` | `CookingTimeNegative()` | `Validation` (422) | `cookingTime` |
+| **Not both times zero** | `BothTimesZero()` | `Validation` (422) | `preparationTime,cookingTime` |
+| `Servings >= 1` | `ServingsOutOfRange(1)` | `Validation` (422) | `servings` (+ `min` metadata) |
+| At least one ingredient | `IngredientsRequired()` | `Validation` (422) | `ingredients` |
+| No blank ingredient string | `IngredientEmpty()` | `Validation` (422) | `ingredients` |
+| At least one instruction | `InstructionsRequired()` | `Validation` (422) | `instructions` |
+| No blank instruction string | `InstructionEmpty()` | `Validation` (422) | `instructions` |
+| Recipe exists (repository-level, not in the entity) | `RecipeNotFound(id)` | `NotFound` (404) | `id` |
 
 Note: an empty-but-present ingredients list produces `IngredientsRequired`; a non-empty list containing a blank
 string produces `IngredientEmpty`. They are mutually exclusive.
+
+The kind is the domain's; the status in brackets is applied by `ResultExtensions` in the API layer.
 
 ## Shape validation (FluentValidation, `RecipeValidationRules`)
 

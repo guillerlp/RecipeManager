@@ -28,7 +28,7 @@ Verified project references:
 | `RecipeManager.Application` | `Domain` |
 | `RecipeManager.Infrastructure` | `Application`, `Domain` |
 | `RecipeManager.Api` | `Application`, `Infrastructure` |
-| `RecipeManager.UnitTests` | `Domain`, `Application` |
+| `RecipeManager.UnitTests` | `Domain`, `Application`, `Api` |
 | `RecipeManager.IntegrationTests` | `Api` |
 
 **Rule:** never add a reference that reverses an arrow. `Domain` must stay dependency-free at the project level.
@@ -46,8 +46,9 @@ Verified project references:
 - `RecipeManager.Domain/Entities/Recipe.cs` — the only aggregate. Private setters, private constructors, static factory
   `Create(...)` returning `Result<Recipe>`, instance `Update(...)` returning `Result`. All invariants live in
   the private `ValidateProperties`.
-- `RecipeManager.Domain/Errors/RecipeErrors.cs` — every domain error as a static factory returning a `FluentResults.Error` carrying
-  `ErrorCode` (HTTP status) and `field` metadata.
+- `RecipeManager.Domain/Errors/RecipeErrors.cs` — every domain error as a static factory returning a `DomainError`
+  (`RecipeManager.Domain/Errors/DomainError.cs`) — a `FluentResults.Error` carrying an `ErrorKind` (`Validation`,
+  `NotFound`) plus `field` metadata. The Domain knows *what* failed, never which HTTP status reports it.
 - `RecipeManager.Domain/Interfaces/Repositories/IRecipeRepository.cs` — the persistence port. **Repository interfaces live in
   Domain, implementations in Infrastructure.**
 
@@ -85,7 +86,8 @@ Verified project references:
 - `RecipeManager.Api/Startup/ServiceInitializer.cs` — all DI registration, as chained `IServiceCollection` extensions.
 - `RecipeManager.Api/Startup/ApplicationInitializer.cs` — Swagger setup, pipeline order, startup migration.
 - `RecipeManager.Api/Startup/CustomObjects/DatabaseConnectionConfiguration.cs` — bound from the `ConnectionStrings` section.
-- `RecipeManager.Api/Extensions/ResultExtensions.cs` — `Result` → `ActionResult` + `ProblemDetails`.
+- `RecipeManager.Api/Extensions/ResultExtensions.cs` — `Result` → `ActionResult` + `ProblemDetails`. Owns the only
+  `ErrorKind` → HTTP status mapping.
 - `RecipeManager.Api/Middlewares/ErrorHandlerMiddleware.cs` — last-resort exception → `ProblemDetails`.
 
 ## Request flow (`PUT /api/recipes/{id}`)
@@ -95,8 +97,8 @@ Verified project references:
 2. `RecipesController.Update` maps the DTO + route id into `UpdateRecipeCommand`.
 3. `ICommandDispatcher.Dispatch<UpdateRecipeCommand, Result>` resolves `UpdateRecipeHandler`.
 4. Handler loads via `IRecipeRepository.GetByIdAsync` — the **`CachedRecipeRepository` decorator** answers first,
-   falling through to `RecipeRepository`. Missing → `RecipeErrors.RecipeNotFound` (**404**).
-5. `recipe.Update(...)` enforces domain invariants → failure returns `RecipeErrors.*` (**422**).
+   falling through to `RecipeRepository`. Missing → `RecipeErrors.RecipeNotFound` (kind `NotFound` → **404**).
+5. `recipe.Update(...)` enforces domain invariants → failure returns `RecipeErrors.*` (kind `Validation` → **422**).
 6. `UpdateAsync` persists, then invalidates `recipes_all` and `recipe_{id}`.
 7. `result.ToActionResult()` → **204 No Content** on success, `ProblemDetails` otherwise.
 
@@ -107,13 +109,14 @@ Verified project references:
 | Channel | Triggered by | Status | Body |
 | --- | --- | --- | --- |
 | FluentValidation auto-validation | null / length / range on the bound type | 400 | `ValidationProblemDetails` |
-| `Result` + `RecipeErrors` → `ResultExtensions` | domain invariants, not-found | 422 / 404 (from `ErrorCode` metadata, default 400) — **⚠ Target:** from a semantic error kind, ADR-009 | `ProblemDetails` + `field`, plus an `errors[]` extension when more than one error |
+| `Result` + `RecipeErrors` → `ResultExtensions` | domain invariants, not-found | 422 / 404 / 400 — `ErrorKind` mapped in `ResultExtensions` (`Validation` 422, `NotFound` 404, no kind 400), ADR-009 | `ProblemDetails` + `field`, plus an `errors[]` extension when more than one error |
 | `ErrorHandlerMiddleware` | unhandled exception | 404 / 400 / 401 / 500 by exception type | `ProblemDetails` |
 
-`ResultExtensions.CreateProblemDetails` derives the status from **`errors.First()`** only; remaining errors are
-appended under the `errors` extension key. Until ADR-009 lands this is a real defect, not just a quirk — a
-`Result` mixing a 404 and a 422 returns an arbitrary status. Order the errors deliberately when returning
-several.
+`ResultExtensions.CreateProblemDetails` derives the status from the **most severe** error — no kind (3) >
+`NotFound` (2) > `Validation` (1), first error on a tie — and takes `Detail` and `field` from that same error.
+Every error is listed under the `errors` extension key, in original order, each with its own mapped `code`.
+Handlers do not need to order their errors. An error that is not a `DomainError` ranks highest and maps to
+400: it is a failure the domain did not model, and must not hide behind a 422.
 
 ### Persistence
 
@@ -186,7 +189,7 @@ endpoint is anonymous and every recipe is world-writable. See
 - **Partially superseded by ADR-009.** Putting the *HTTP status* in domain metadata was a mistake: it makes
   `RecipeManager.Domain` depend on HTTP semantics, which is the one place the layering is violated, and it
   causes a real bug (`ResultExtensions` reads the status from `errors.First()`, so mixed error kinds return an
-  arbitrary status).
+  arbitrary status). Implemented 2026-09-16 (`R-05`).
 - **Status update 2026-09-13 — FluentResults 4.0.** The contract above is unchanged (same `Result`/`Result<T>`,
   same `ErrorCode`/`field` metadata, same `ProblemDetails` mapping). Two library semantics changed and are now
   part of this ADR:
@@ -263,8 +266,8 @@ endpoint is anonymous and every recipe is world-writable. See
 
 ### ADR-009 — Domain errors carry a semantic kind, not an HTTP status
 
-- **Status:** accepted 2026-07-26, **not yet implemented** (`R-05` in [roadmap.md](roadmap.md)). Partially
-  supersedes ADR-002.
+- **Status:** accepted 2026-07-26, **implemented 2026-09-16** (`R-05`, spec [003](specs/003-domain-error-kinds.md)).
+  Partially supersedes ADR-002.
 - **Context:** `RecipeErrors` writes HTTP status codes into domain error metadata
   (`.WithCode(422)`), so `RecipeManager.Domain` — the layer that must depend on nothing — encodes HTTP
   semantics. `ResultExtensions.CreateProblemDetails` then derives the response status from `errors.First()`,
@@ -275,6 +278,12 @@ endpoint is anonymous and every recipe is world-writable. See
   mixed-kind results return a correct status. Requires touching every `RecipeErrors` factory and
   `ResultExtensions`, with the existing integration tests as the regression net — externally visible status
   codes must not change.
+- **Implementation refinements (2026-09-16).** The kind is carried by a typed `sealed DomainError : Error`
+  rather than a metadata key, so a misspelt key cannot silently fall through to a default status. `ErrorKind`
+  holds only `Validation` and `NotFound`; `Conflict` is added with the first feature that produces one. Errors
+  without a kind keep their previous 400 and rank as most severe. An unmapped kind throws, so a new kind
+  cannot ship without a status. `RecipeManager.UnitTests` now references `RecipeManager.Api` to test the
+  mapping directly, because no endpoint can yet produce mixed kinds.
 
 ### ADR-010 — Warnings are errors, and project properties are centralised
 

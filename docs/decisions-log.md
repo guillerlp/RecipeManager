@@ -36,8 +36,8 @@ Jump to every entry touching a topic.
 | Concept | Entries |
 | --- | --- |
 | CQRS / dispatching | [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-08-28 CQRS without MediatR](#2025-08-28--hand-rolled-cqrs-instead-of-mediatr) |
-| Layering / dependency direction | [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain) |
-| Error handling | [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
+| Layering / dependency direction | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain) |
+| Error handling | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
 | Caching | [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Testing | [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
@@ -51,6 +51,32 @@ Jump to every entry touching a topic.
 ---
 
 ## Entries
+
+### 2026-09-16 — Rank errors by what they mean, not by where they sit
+
+**Context.** Implementing ADR-009 (`R-05`, spec [003](specs/003-domain-error-kinds.md)). `RecipeErrors` put HTTP
+statuses in domain metadata, and `ResultExtensions` answered with the first error's status. No handler returned
+mixed kinds yet, so the bug was latent and no integration test could reach it.
+
+**Decision.** A `sealed DomainError : Error` carries an `ErrorKind`; `ResultExtensions.Classify` maps each kind to
+a status and a severity in one `switch` whose default arm throws. The most severe error wins; an error with no
+kind outranks everything and keeps its old 400. `Conflict` waits for its first producer.
+
+**Rejected.** *Kind as a metadata key* — the smallest diff, but a misspelt key silently becomes a 400.
+*One subclass per kind* — FluentResults' usual idiom, but no enumerable set of kinds to prove the mapping
+complete. *Keep `errors.First()` and order errors carefully* — no code at all, but correctness then rests on
+every handler's discipline. *Map a kind-less error to 500* — probably right, but it changes a live status, so it
+went to `SEC-06`.
+
+**Cost.** A new kind needs three coordinated edits. `RecipeManager.UnitTests` now compiles ASP.NET Core. The
+change was staged over three commits (add kinds beside codes, switch the reader, delete codes) so that each one
+left the suite green — slower than one commit, but each step was reviewable on its own.
+
+**Takeaway.** *When a latent bug cannot be reached through the system, test the unit that owns the decision, and
+make the decision exhaustive so the next case cannot be forgotten.* A default arm that throws turns "someone
+forgot to map it" from a wrong status in production into a red test.
+
+---
 
 ### 2026-09-16 — Parity was the bar for the swap, not for what came after
 

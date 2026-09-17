@@ -42,31 +42,6 @@ pipeline reports honestly and can be merged past.
 
 ## Phase 2 — correctness and confidence
 
-### R-05
-**Decouple domain errors from HTTP status codes** · `01-architect` + `02-senior-csharp` · ~3 h
-
-`RecipeErrors` currently bakes HTTP semantics into the Domain layer:
-
-```csharp
-new Error("Title is required").WithCode(422).Field("title");
-```
-
-The Domain project should not know that HTTP exists — this is the one place the layering is violated. It also
-causes a real bug: `ResultExtensions.CreateProblemDetails` takes the status from `errors.First()` only, so a
-`Result` carrying a 404 and a 422 returns whichever happens to be first.
-
-**Target.** Domain errors carry a semantic kind, and the API layer owns the mapping:
-
-```csharp
-// Domain
-public enum ErrorKind { Validation, NotFound, Conflict }
-// Api — ResultExtensions maps ErrorKind -> status, and picks the most severe, not the first
-```
-
-**Acceptance:** no `WithCode(<int>)` in `RecipeManager.Domain`; a `Result` with mixed error kinds returns the
-correct status; existing status codes are unchanged for all current endpoints (covered by the integration
-tests). Supersedes part of ADR-002 — record a new ADR.
-
 ### R-06
 **Testcontainers for integration tests** · `06-qa-tester` + `01-architect` · ~4 h · **decided, deferred**
 
@@ -95,7 +70,7 @@ Unblocked — `R-03` shipped 2026-08-08.
 
 `TEST-02` — the largest gap in the backend suite. Unit tests mock `IRecipeRepository` and so bypass
 `CachedRecipeRepository` entirely; integration tests assert database state rather than re-reading through the
-API. A broken invalidation passes all 84 tests today.
+API. A broken invalidation passes all 99 tests today.
 
 Add integration tests that write and then **re-read through the HTTP client**: create → list contains it;
 update → detail shows new values; delete → detail returns 404.
