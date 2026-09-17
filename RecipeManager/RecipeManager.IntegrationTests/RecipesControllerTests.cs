@@ -7,9 +7,14 @@ using RecipeManager.Domain.Entities;
 
 namespace RecipeManager.IntegrationTests;
 
+[Collection(PostgresCollection.Name)]
 public class RecipesControllerTests : IntegrationTestBase
 {
-    [Fact]
+    public RecipesControllerTests(PostgresContainerFixture postgres) : base(postgres)
+    {
+    }
+
+    [SkippableFact]
     public async Task CreateRecipe_WithValidData_ShouldReturnCreatedStatusAndSaveToDatabase()
     {
         // ==================== ARRANGE ====================
@@ -46,7 +51,7 @@ public class RecipesControllerTests : IntegrationTestBase
         recipeInDb.Title.Should().Be(command.Title);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task CreateRecipe_WithInvalidData_ShouldReturnBadRequest()
     {
         // ==================== ARRANGE ====================
@@ -70,7 +75,7 @@ public class RecipesControllerTests : IntegrationTestBase
         recipesInDb.Should().BeEmpty();
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetRecipeById_WhenRecipeExists_ShouldReturnOkWithRecipe()
     {
         // ==================== ARRANGE ====================
@@ -100,7 +105,7 @@ public class RecipesControllerTests : IntegrationTestBase
         retrievedRecipe.Description.Should().Be(existingRecipe.Description);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetRecipeById_WhenRecipeDoesNotExist_ShouldReturnNotFound()
     {
         // ==================== ARRANGE ====================
@@ -113,7 +118,7 @@ public class RecipesControllerTests : IntegrationTestBase
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task GetAllRecipes_WhenRecipesExist_ShouldReturnOkWithAllRecipes()
     {
         // ==================== ARRANGE ====================
@@ -160,7 +165,7 @@ public class RecipesControllerTests : IntegrationTestBase
         retrievedRecipes.Should().Contain(r => r.Title == "title3");
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task UpdateRecipe_WithValidData_ShouldReturnOkAndUpdateDatabase()
     {
         // ==================== ARRANGE ====================
@@ -206,7 +211,7 @@ public class RecipesControllerTests : IntegrationTestBase
         updatedRecipe.Instructions.Should().BeEquivalentTo(updateRecipeDto.Instructions);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task DeleteRecipe_WhenRecipeExists_ShouldReturnNoContentAndRemoveFromDatabase()
     {
         // ==================== ARRANGE ====================
@@ -235,7 +240,7 @@ public class RecipesControllerTests : IntegrationTestBase
         deletedRecipe.Should().BeNull();
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task DeleteRecipe_WhenRecipeDoesNotExist_ShouldReturnNotFound()
     {
         // ==================== ARRANGE ====================

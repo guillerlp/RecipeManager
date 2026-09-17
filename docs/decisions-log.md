@@ -40,7 +40,7 @@ Jump to every entry touching a topic.
 | Error handling | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
 | Caching | [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
-| Testing | [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Testing | [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
 | Tooling / infrastructure | [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Enforcement vs. convention | [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
@@ -51,6 +51,36 @@ Jump to every entry touching a topic.
 ---
 
 ## Entries
+
+### 2026-09-17 — A test that cannot run is not a test that passes
+
+**Context.** Implementing `R-06` (spec [004](specs/004-testcontainers-integration-tests.md), ADR-017): swapping
+EF InMemory for real PostgreSQL via Testcontainers. The 2026-07-26 entry below had already settled *that* it
+should happen; this is what doing it taught.
+
+**Decision.** One container per test assembly with a database per test class, schema by `Database.Migrate()`,
+and — the part that needed deciding on the day — **skip rather than fail** when Docker is missing, since the
+author's machine has none and `INFRA-06` had already made CI the authority for these tests.
+
+**Rejected.** Failing hard without Docker, which is the honest option and was rejected anyway: a suite that is
+red for an environment reason gets ignored, and an ignored red suite is worse than a loud skip. Also rejected:
+`EnsureCreated()`, which would have tested a schema that is not the deployed one.
+
+**Cost.** Three things, all bought knowingly. A skipped test is silent — locally `dotnet test` now reports 85
+passed and 14 skipped, and nothing stops someone reading only the first number. xUnit 2.x has **no dynamic
+skip** (`Assert.Skip` is v3 only), so the skip cost a second dependency, `Xunit.SkippableFact`, and an
+attribute change on every integration test. And the first implementation skipped nothing at all: Testcontainers
+probes Docker in `PostgreSqlBuilder.Build()`, not in `StartAsync()`, so building the container in a field
+initialiser threw in the fixture constructor and failed all 14 tests — the exact failure mode the design was
+meant to avoid, shipped and then found by running it.
+
+**Takeaway.** *Verify the failure path by running it, not by reasoning about it.* The plan named the skip
+mechanism as its one unknown and named a fallback — and both the assumption and the fallback turned out to rest
+on an API that does not exist in this xUnit version. Two minutes of running the thing replaced two plausible
+paragraphs. The corollary for reading results: a green suite is only evidence about the tests that actually
+executed, so the skip count is part of the result, not a footnote to it.
+
+---
 
 ### 2026-09-16 — Rank errors by what they mean, not by where they sit
 

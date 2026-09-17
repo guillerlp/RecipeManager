@@ -47,7 +47,7 @@ Verified against `main` @ `edfd057` (merge of `dotnet10-postgresql`) on 2026-07-
 | Result/validation | FluentResults 4.0, FluentValidation 11.12 |
 | DI helpers | Scrutor 7.0 (`Decorate` for the caching repository) |
 | Caching | `IMemoryCache` behind `ICacheService`, decorator over `IRecipeRepository` |
-| Tests | xUnit 2.9, NSubstitute 6.2, FluentAssertions 8.11, `WebApplicationFactory` + EF InMemory |
+| Tests | xUnit 2.9, NSubstitute 6.2, FluentAssertions 8.11, `WebApplicationFactory` + Testcontainers PostgreSQL (ADR-017) |
 | Frontend | React 19, TypeScript 7, Oxlint (type-aware — ADR-016), Vite 8, TanStack Query 5, Axios, React Router 7, CSS Modules (no component library — ADR-014) |
 
 Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
@@ -69,7 +69,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Infrastructure/    AppDbContext, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
     RecipeManager.Api/               RecipesController, Startup/*, Middlewares/*, Extensions/*
     RecipeManager.UnitTests/         85 tests — xUnit + NSubstitute (Domain + Application handlers + Api result mapping)
-    RecipeManager.IntegrationTests/  14 tests — xUnit + WebApplicationFactory (EF InMemory)
+    RecipeManager.IntegrationTests/  14 tests — xUnit + WebApplicationFactory (real PostgreSQL in a container)
     recipe-manager-frontend/         React 19 + Vite SPA
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
@@ -113,7 +113,8 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **0 warnings** and **99 tests pass** (85 unit + 14 integration).
+Current state: build succeeds with **0 warnings** and **99 tests pass** (85 unit + 14 integration) — the 14
+need Docker, and are reported as skipped without it (ADR-017).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note — and `TargetFramework`, `Nullable`, and `ImplicitUsings` live there too. Never
 re-declare those in a `.csproj`.
@@ -158,8 +159,8 @@ API first; there is no mock backend.
 - `Program.cs` calls `app.MigrateDatabase()` at startup, so pending EF migrations apply automatically. The API
   **fails to start** if PostgreSQL is unreachable or the `ConnectionStrings` section is missing.
 - **There is no seed mechanism.** The database starts empty; create recipes via `POST /api/recipes` or Swagger.
-  Integration tests seed through `IntegrationTestBase.SeedDatabase<T>(...)` against EF InMemory only
-  (`INFRA-05`; a Development-only seeder is planned as `R-13`).
+  Integration tests seed through `IntegrationTestBase.SeedDatabase<T>(...)` into their own throwaway database on
+  the test container only (`INFRA-05`; a Development-only seeder is planned as `R-13`).
 - PostgreSQL folds unquoted identifiers to lowercase while EF creates `"Recipes"` — quote it in psql:
   `SELECT * FROM "Recipes";`
 

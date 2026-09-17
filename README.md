@@ -9,7 +9,7 @@ RecipeManager/
   RecipeManager.Infrastructure/    EF Core DbContext, migrations
   RecipeManager.Api/               controllers, DI/startup, Swagger
   RecipeManager.UnitTests/         xUnit + NSubstitute
-  RecipeManager.IntegrationTests/  xUnit + WebApplicationFactory (EF InMemory)
+  RecipeManager.IntegrationTests/  xUnit + WebApplicationFactory (PostgreSQL via Testcontainers)
   recipe-manager-frontend/         React 19 + Vite + CSS Modules
 ```
 
@@ -19,6 +19,7 @@ RecipeManager/
 | --- | --- | --- |
 | .NET SDK | **10.0** | All projects target `net10.0`. Pinned in `RecipeManager/global.json` with `rollForward: latestFeature`. |
 | PostgreSQL | 16 or newer | Accessed via Npgsql. Default host/port `localhost:5432`. |
+| Docker | any current version | Only needed for the **integration tests**, which start a real PostgreSQL container (ADR-017). Without it they are reported as skipped and everything else still runs. |
 | Node.js | 20.19+ or 22.12+; **24 recommended** | Only needed for the frontend. `engines` declares `^20.19.0 \|\| >=22.12.0`, the floor Vite 8 itself requires; `recipe-manager-frontend/.nvmrc` pins **24**, which is what CI installs and what the project is tested on. `nvm use` in that folder picks it up. |
 
 Install on Windows:
@@ -110,6 +111,11 @@ dotnet dev-certs https --trust
 ```bash
 dotnet test RecipeManager.sln
 ```
+
+99 tests: 85 unit and 14 integration. The integration tests start a real PostgreSQL container (ADR-017), so
+**with Docker running** you get 99 passed; **without it** you get 85 passed and 14 skipped, each naming Docker
+as the reason. The skip is deliberate — see the troubleshooting entry below — but it means a green run is only
+as complete as its skip count says.
 
 Unit tests with an HTML coverage report (requires `dotnet tool install --global dotnet-reportgenerator-globaltool`):
 
@@ -208,6 +214,12 @@ PostgreSQL folds unquoted identifiers to lowercase, and EF creates the table as 
 
 **Frontend requests fail with a certificate error**
 Run `dotnet dev-certs https --trust`.
+
+**The 14 integration tests are reported as skipped**
+Docker is not running or not installed. The integration tests start a PostgreSQL container (ADR-017), and
+without a Docker endpoint they skip rather than fail, so the unit tests still give a usable result. The skip
+message names the endpoint it tried, e.g. `npipe://./pipe/docker_engine` on Windows. Start Docker Desktop and
+re-run, or rely on CI, which always has Docker.
 
 **`dotnet run` fails with "An Application Control policy has blocked this file"**
 A Windows Application Control policy (Smart App Control is a common source) refused to start

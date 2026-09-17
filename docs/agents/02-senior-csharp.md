@@ -120,8 +120,8 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - `CachedRecipeRepository.GetAllAsync` stores the whole list under one key; a large table makes that entry huge.
 - `Recipe.Create` allocates two new lists per call (`ToList().AsReadOnly()`); fine at this scale, worth knowing
   in a bulk path.
-- EF InMemory (integration tests) does not reproduce Npgsql behaviour — verify `text[]`, collation, and
-  concurrency questions against real PostgreSQL.
+- Integration tests run against real PostgreSQL (ADR-017), so `text[]`, identifier folding and constraints are
+  exercised. Concurrency still is not — there is no optimistic concurrency to test.
 
 ## Inputs it needs
 

@@ -22,12 +22,18 @@ though QA can block on missing coverage).
 
 | Suite | Tests | Location |
 | --- | --- | --- |
-| Unit | **70** | `RecipeManager.UnitTests` |
-| Integration | **8** | `RecipeManager.IntegrationTests` |
+| Unit | **85** | `RecipeManager.UnitTests` |
+| Integration | **14** | `RecipeManager.IntegrationTests` |
 | Frontend | **0 — no runner installed** | — |
 
-Unit-test breakdown: `RecipeTests` 18, `CreateRecipeHandlerTests` 11, `GetAllRecipesHandlerTests` 8,
-`EntityTests` 8, `DeleteRecipeHandlerTests` 7, `GetRecipeByIdHandlerTests` 7, `UpdateRecipeHandlerTest` 6.
+Unit-test breakdown: `RecipeTests` 23, `ResultExtensionsTests` 13, `CreateRecipeHandlerTests` 11,
+`GetAllRecipesHandlerTests` 8, `EntityTests` 8, `DeleteRecipeHandlerTests` 7, `GetRecipeByIdHandlerTests` 7,
+`UpdateRecipeHandlerTest` 6, `RecipeErrorsTests` 2.
+
+Integration breakdown: `RecipesControllerTests` 8, `CqrsHandlerRegistrationTests` 6.
+
+Counts are `dotnet test --list-tests` output, not a count of `[Fact]` attributes — a `[Theory]` contributes one
+test per data case, which is why `CqrsHandlerRegistrationTests` has two methods and six tests.
 
 Build: **0 warnings**, enforced — `TreatWarningsAsErrors` in `Directory.Build.props` (ADR-010). Test code is
 where warnings historically accumulated, so two idioms exist to keep it clean: null-guard inside an
@@ -71,8 +77,11 @@ the reported number, so it understates real coverage — `BUILD-06` in [../known
       `await repo.Received(1).Method(Arg.Is<T>(…), Arg.Any<CancellationToken>())`.
 - [ ] Dependencies built in the test-class constructor, held in readonly fields.
 - [ ] `#region Success Scenarios` / `#region Failure Scenarios` in the larger unit files.
-- [ ] Integration tests derive from `IntegrationTestBase` (fresh `TestDb_{Guid}` per test), seed via
+- [ ] Integration tests derive from `IntegrationTestBase` (a fresh `TestDb_{Guid}` per test **class**, on the
+      PostgreSQL container shared through `[Collection(PostgresCollection.Name)]`), seed via
       `SeedDatabase(...)`, and call `DbContext.ChangeTracker.Clear()` before asserting post-write state.
+- [ ] Integration test methods are `[SkippableFact]` / `[SkippableTheory]`, never `[Fact]` / `[Theory]` — a
+      plain `[Fact]` fails instead of skipping when Docker is missing (ADR-017).
 - [ ] Build entities through `Recipe.Create(...).Value` — never reflection or the EF constructor.
 
 ### Minimum coverage per change
@@ -149,13 +158,13 @@ real gap in the suite: `TEST-02` in [../known-issues.md](../known-issues.md).
 
 ### Not reproducible in the current suite — state this in PRs
 
-- **Anything Npgsql-specific.** Integration tests use EF InMemory: `text[]` semantics, identifier folding,
-  collation, and real constraint violations do not surface. Verify manually against PostgreSQL.
-  **EF InMemory is not a supported integration-test target** — the EF Core team recommends against it precisely
-  for this reason. Replacing it with Testcontainers + real PostgreSQL is **decided** (`R-06` in
-  [../roadmap.md](../roadmap.md)), and **now unblocked** — it was deferred until CI existed because it needs
-  Docker in both places, and the `ubuntu-latest` runner provides it (ADR-013). Until `R-06` actually lands,
-  every PR touching persistence must still state what was verified against a real database.
+- **Nothing Npgsql-specific, any more.** Integration tests run against real PostgreSQL in a container
+  (ADR-017), so `text[]` semantics, identifier folding, collation, real constraint violations and the
+  migrations themselves are all exercised. `TEST-06` is closed, and the standing "verify this by hand" caveat
+  on persistence PRs is gone with it.
+- **Anything at all, on a machine without Docker.** There the 14 integration tests are **skipped**, not run, so
+  a green local `dotnet test` can mean "the 85 unit tests passed". Read the skip count, and trust CI — which
+  always has Docker — before claiming an endpoint works.
 - **Concurrency.** No optimistic concurrency exists; concurrent `PUT`s are last-write-wins and untested.
 - **Startup migration behaviour** (`app.MigrateDatabase()`) is skipped in the `IntegrationTest` environment.
 - **Performance / volume.** No load test; `GET /api/recipes` is unpaginated.
@@ -200,13 +209,17 @@ Tracked as `TEST-01` in [../known-issues.md](../known-issues.md), planned as `R-
 2. A coverage statement: what is covered, what is explicitly not, and why.
 3. Updates to this catalogue when a new edge case is discovered, and to
    [../known-issues.md](../known-issues.md) when a gap is found or closed.
-4. `dotnet test` output — pass count against the current 78, and warning count (currently 7, target 0).
+4. `dotnet test` output — pass count against the current 99, **plus the skip count**, since 14 skipped
+   integration tests and 14 passing ones both leave the run green. Warnings are 0 and a new one fails the build
+   (ADR-010), so there is no count to report there any more.
 5. **An explanation of the testing reasoning** ([../learning-mode.md](../learning-mode.md)):
    - **Why this level.** Unit tests mock `IRecipeRepository` and therefore never exercise
      `CachedRecipeRepository` at all — that is precisely why cache bugs need an integration test. Choosing the
      level is the skill; the assertions are the easy part.
-   - **What the chosen level cannot catch.** Every test gives false confidence somewhere. EF InMemory not
-     reproducing `text[]`, identifier folding, or concurrency is the live example (`TEST-06`).
+   - **What the chosen level cannot catch.** Every test gives false confidence somewhere. The live example used
+     to be EF InMemory not reproducing `text[]` or identifier folding; since ADR-017 it is the skip path — on a
+     machine without Docker the integration tests report as skipped, and a suite whose skip count nobody reads
+     looks green for the wrong reason.
    - **Why this assertion.** `BeEquivalentTo` is order-insensitive and `Equal` is not — a test that "passes"
      while ignoring instruction order is worse than no test, because it looks like coverage.
    - **Why an edge case matters in the domain**, not just as a boundary value: "both times zero" is invalid

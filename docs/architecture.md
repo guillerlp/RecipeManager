@@ -227,8 +227,12 @@ endpoint is anonymous and every recipe is world-writable. See
 - **Status:** accepted (commit `898c9ce` "Fix security issues integration tests").
 - **Decision:** `Program.Main` skips DbContext registration and startup migration when
   `EnvironmentName == "IntegrationTest"`, and **throws in RELEASE builds** if that environment name is used.
-- **Consequences:** tests can inject EF InMemory through `WebApplicationFactory`; the escape hatch cannot be
-  abused in production. Do not remove the `#if DEBUG` guard.
+- **Consequences:** tests can inject their own `AppDbContext` registration through `WebApplicationFactory`; the
+  escape hatch cannot be abused in production. Do not remove the `#if DEBUG` guard.
+- **Still current after ADR-017.** What the tests inject is now a real PostgreSQL container's connection rather
+  than EF InMemory, and they apply the migrations themselves because `Program` still does not. ADR-017
+  considered routing the connection string through configuration so the normal startup path would run, and
+  rejected it precisely to leave this guard alone.
 
 ### ADR-006 — No unit-of-work abstraction
 
@@ -488,6 +492,50 @@ endpoint is anonymous and every recipe is world-writable. See
   overrides cannot set categories, so `src/` gains the category's 88 rules too; they found nothing. Keeping
   `vite.config.ts` in its own tsconfig, rather than adding Node types to `tsconfig.json`, is what stops
   `process` from type-checking in browser code again (#32).
+
+### ADR-017 — Integration tests run against real PostgreSQL in a container
+
+- **Status:** accepted and **implemented 2026-09-17** (`R-06`,
+  [specs/004-testcontainers-integration-tests.md](specs/004-testcontainers-integration-tests.md)). Closes
+  `TEST-06`.
+- **Context:** `IntegrationTestBase` used `Microsoft.EntityFrameworkCore.InMemory`, which is not a relational
+  provider — no SQL, no constraints, no collation, no `text[]`. The 14 integration tests proved the pipeline
+  (routing, binding, validation, DI, handlers) and nothing about the database the application actually runs on.
+  The EF Core team recommends against InMemory for exactly this use. The item was deferred until CI existed,
+  because a Docker-backed suite needs Docker in both places; ADR-013 closed that, since `ubuntu-latest`
+  provides Docker.
+- **Decision:** `Testcontainers.PostgreSql` starts **one** `postgres:18-alpine` container per test assembly,
+  owned by an xUnit collection fixture. Each test class gets its own database on that container, created
+  together with the schema by `Database.Migrate()` — the project's own migrations, not `EnsureCreated()`, so
+  the tests run against the schema that is actually deployed. When Docker is unavailable the integration tests
+  **skip** with a message naming Docker; the unit tests are unaffected.
+  `Microsoft.EntityFrameworkCore.InMemory` is removed rather than left installed.
+- **Skipping needs a second package.** xUnit 2.x has no dynamic skip — `Assert.Skip` is v3 only — so
+  `Xunit.SkippableFact` supplies it: `Skip.If(...)` in the base constructor throws, and `[SkippableFact]` /
+  `[SkippableTheory]` translate that failure into a skip. This is the entire reason the integration tests carry
+  those attributes instead of `[Fact]`/`[Theory]`. Moving the test stack to xUnit v3 would delete the
+  dependency; that is not this decision.
+- **ADR-005 is unchanged and still stands.** The `IntegrationTest` environment still skips DbContext
+  registration and `app.MigrateDatabase()`, and the `#if DEBUG` guard stays. The alternative — injecting
+  `ConnectionStrings__DefaultConnection` so `Program`'s normal path runs — would also cover the startup
+  migration, but it changes production code and erodes that guard for a test-only benefit.
+- **Alternatives:** *(a)* stay on InMemory — fast and Docker-free, but `TEST-06` is unfixable and `BUG-11`
+  unverifiable. *(b)* SQLite in-memory — real SQL, but a different dialect with no `text[]`, so the mapping
+  this exists to exercise still would not run. *(c)* a GitHub Actions `services:` container — configures CI
+  only, so the local and CI setups diverge, which is what `.nvmrc` and `--locked-mode` were adopted to prevent.
+  *(d)* one container per test class (the roadmap's sketch) — pays a container start per class for isolation a
+  per-class database already gives. *(e)* a shared database reset by Respawn — a second dependency for 14 tests
+  that do not need it. *(f)* failing hard without Docker — turns an environment constraint into a red local
+  suite (`INFRA-06`), which teaches developers to ignore red.
+- **Consequences:** `text[]`, identifier folding, real constraints, and the migrations themselves are now
+  exercised on every run — a broken migration fails the suite instead of surfacing when someone next starts the
+  API. What it costs: the suite needs Docker, and a developer without it sees skips rather than results, which
+  is a silent test by design; CI pays one image pull and one container start; the PostgreSQL version becomes a
+  string literal in test code that Dependabot does not manage and that can drift from `README.md` and from
+  production; the image is pinned by tag, weaker than the SHA pinning `ci.yml` applies to third-party actions;
+  and a migration mistake now presents as 14 failures at once. `app.MigrateDatabase()` itself remains untested,
+  by the ADR-005 decision above. This is also the repo's first xUnit fixture of any kind — `conventions.md`
+  previously recorded that none were in use.
 
 ---
 
