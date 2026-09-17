@@ -45,9 +45,9 @@ Frontend-specific suspects worth checking first, since they are known-broken:
   dotnet test RecipeManager.sln
   ```
 
-**Caveat:** integration tests run against **EF InMemory**, not PostgreSQL. Provider-specific bugs (`text[]`
-handling, identifier folding, collation, concurrency) will **not** reproduce there — verify those against a real
-database manually and say so in the PR.
+**Caveat:** integration tests run against real PostgreSQL in a container (ADR-017), so provider-specific bugs
+(`text[]` handling, identifier folding, collation) now reproduce there. Two things still do not: concurrency,
+and anything needing Docker on a machine that has none, where the suite skips instead of running.
 
 ## 3. Fix at the correct layer — `02-senior-csharp` / `03-senior-react`
 

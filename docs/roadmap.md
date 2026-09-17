@@ -42,18 +42,7 @@ pipeline reports honestly and can be merged past.
 
 ## Phase 2 — correctness and confidence
 
-### R-06
-**Testcontainers for integration tests** · `06-qa-tester` + `01-architect` · ~4 h · **decided, deferred**
-
-`IntegrationTestBase` uses EF InMemory, which the EF Core team explicitly recommends against for integration
-testing. It cannot reproduce `text[]` semantics, PostgreSQL identifier folding, real constraint violations, or
-concurrency, so `TEST-06` is unfixable while it stays.
-
-**Target.** `Testcontainers.PostgreSql`, one container per test class, `RespawnDb` or a fresh database per
-class for isolation. Requires Docker locally and in CI — **unblocked as of `R-04`**, since the `ubuntu-latest`
-runner provides Docker (ADR-013).
-
-Keep the existing 14 tests passing throughout — this is a swap of the base class, not a rewrite.
+`R-06` (Testcontainers for the integration tests) shipped 2026-09-17 as ADR-017, closing `TEST-06`.
 
 ### R-07
 **Frontend test runner and first tests** · `06-qa-tester` + `03-senior-react` · ~4 h

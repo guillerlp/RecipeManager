@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `004` |
-| **Status** | draft |
+| **Status** | in progress — implemented, awaiting a green CI run (see section 11) |
 | **Author** | `00-leader` |
 | **Created** | 2026-09-17 |
 | **Branch** | `chore/testcontainers-integration-tests` |
@@ -34,15 +34,16 @@ project's own EF migrations, and the 14 existing tests keep passing unchanged.
 
 ## 3. In scope
 
-- [ ] `Testcontainers.PostgreSql` added to `Directory.Packages.props` (test-only group) and to
+- [x] `Testcontainers.PostgreSql` added to `Directory.Packages.props` (test-only group) and to
       `RecipeManager.IntegrationTests.csproj`.
-- [ ] `Microsoft.EntityFrameworkCore.InMemory` removed from both.
-- [ ] `RecipeManager.IntegrationTests/packages.lock.json` regenerated.
-- [ ] A shared `PostgresContainerFixture` (one container per test assembly) exposed through an xUnit collection.
-- [ ] `IntegrationTestBase` creates its own database on that container, registers `UseNpgsql`, and applies
+- [x] `Microsoft.EntityFrameworkCore.InMemory` removed from both.
+- [x] `RecipeManager.IntegrationTests/packages.lock.json` regenerated.
+- [x] A shared `PostgresContainerFixture` (one container per test assembly) exposed through an xUnit collection.
+- [x] `IntegrationTestBase` creates its own database on that container, registers `UseNpgsql`, and applies
       migrations.
-- [ ] Integration tests are skipped, with a message naming Docker, when Docker is unavailable.
-- [ ] Docs updated (section 16), `R-06` deleted from the roadmap, `TEST-06` deleted from known issues,
+- [x] Integration tests are skipped, with a message naming Docker, when Docker is unavailable — which needs
+      `Xunit.SkippableFact`, because xUnit 2.x has no dynamic skip (section 14).
+- [x] Docs updated (section 16), `R-06` deleted from the roadmap, `TEST-06` deleted from known issues,
       ADR-017 recorded, decisions-log entry appended.
 
 ## 4. Out of scope
@@ -77,9 +78,11 @@ None.
 
 - **ADR required:** yes — **ADR-017**, "Integration tests run against real PostgreSQL in a container". A new
   test-only dependency with a Docker prerequisite is a structural commitment, not an implementation detail.
-- **New dependency:** `Testcontainers.PostgreSql@4.15.0` (test-only). It **replaces**
-  `Microsoft.EntityFrameworkCore.InMemory@10.0.12`, which is removed rather than left installed — a fake
-  provider that is still referenced is a fake provider the next test will reach for.
+- **New dependencies:** `Testcontainers.PostgreSql@4.15.0`, which **replaces**
+  `Microsoft.EntityFrameworkCore.InMemory@10.0.12` — removed rather than left installed, because a fake
+  provider that is still referenced is a fake provider the next test will reach for — and
+  `Xunit.SkippableFact@1.5.85`, which exists only because xUnit 2.x cannot skip a test dynamically
+  (section 14). Both are test-only.
 - **Layer/dependency changes:** none. Only `RecipeManager.IntegrationTests` changes.
 - **New DI registrations:** none in production. The test `ConfigureTestServices` call swaps
   `UseInMemoryDatabase` for `UseNpgsql`.
@@ -165,19 +168,21 @@ unconditionally, so the skip path can never be the one that matters for a merge 
 
 ## 10. Acceptance criteria
 
-- [ ] `Microsoft.EntityFrameworkCore.InMemory` appears in no `.csproj`, no `Directory.Packages.props`, and no
+- [x] `Microsoft.EntityFrameworkCore.InMemory` appears in no `.csproj`, no `Directory.Packages.props`, and no
       `packages.lock.json`.
 - [ ] Given Docker is available, when `dotnet test RecipeManager.sln` runs, then 99 tests pass (85 unit + 14
-      integration) and the integration tests execute against PostgreSQL.
-- [ ] Given Docker is unavailable, when `dotnet test RecipeManager.sln` runs, then the 85 unit tests pass, the
+      integration) and the integration tests execute against PostgreSQL. **CI only — no Docker on the author's
+      machine.**
+- [x] Given Docker is unavailable, when `dotnet test RecipeManager.sln` runs, then the 85 unit tests pass, the
       14 integration tests are reported **skipped** with a message naming Docker, and the command exits 0.
+      *Verified: 85 passed, 14 skipped, exit code 0, and the reason prints at detailed verbosity.*
 - [ ] Given a test class runs, then its schema was created by `Database.Migrate()` — a migration that fails to
-      apply fails the suite.
-- [ ] Given the suite runs twice consecutively, then both runs report identical results (no state leaks
-      between runs or between test classes).
-- [ ] `git diff` for this PR touches only `RecipeManager.IntegrationTests/`, `Directory.Packages.props`, that
+      apply fails the suite. **CI only.**
+- [x] Given the suite runs twice consecutively, then both runs report identical results (no state leaks
+      between runs or between test classes). *Verified on the skip path only; the real path is CI's.*
+- [x] `git diff` for this PR touches only `RecipeManager.IntegrationTests/`, `Directory.Packages.props`, that
       project's lock file, and documentation.
-- [ ] `dotnet build` reports 0 warnings, and `dotnet restore --locked-mode` succeeds.
+- [x] `dotnet build` reports 0 warnings, and `dotnet restore --locked-mode` succeeds.
 - [ ] CI is green on the PR.
 
 ## 11. Test plan
@@ -226,11 +231,16 @@ input, output, or secret handling — section 9 is recorded for the record, not 
   improvement worth stating rather than a side effect.
 - Testcontainers' random port and generated credentials are used as-is; nothing in the tests depends on a
   fixed port.
-- xUnit 2.9's dynamic skip is expected to work from the base class's `InitializeAsync`. **This is the one
-  technical unknown in the plan** — dynamic skip is designed around the test body, and a fixture-time skip may
-  be reported as a failure instead. It is verifiable locally, since no Docker here means the skip path is the
-  path that runs. Fallback if it does not hold: a one-line guard at the top of each of the 14 tests, which is
-  uglier and still correct.
+- ~~xUnit 2.9's dynamic skip is expected to work from the base class.~~ **Wrong, and so was the fallback.**
+  `Assert.Skip` does not exist in xUnit 2.x at all — dynamic skip is a v3 feature — so a per-test guard line
+  would have failed for the same reason. Resolved by adding `Xunit.SkippableFact@1.5.85`: `Skip.If(...)` throws
+  and the `[SkippableFact]` / `[SkippableTheory]` attributes translate that failure into a skip. The cost is a
+  second test-only dependency and 14 attribute changes; it disappears if the test stack ever moves to xUnit v3,
+  where `Assert.Skip` is native.
+- **`PostgreSqlBuilder.Build()`, not `StartAsync()`, is what probes Docker.** The first implementation built
+  the container in a field initialiser and guarded only `StartAsync`, so without Docker the fixture's
+  constructor threw and all 14 tests failed instead of skipping. Both calls now sit inside the guard. This is
+  why the skip path is worth running rather than reasoning about.
 
 ## 15. Follow-ups
 

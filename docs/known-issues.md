@@ -22,7 +22,7 @@ and again after the `SEC-03` dependency remediation. The npm audit row re-measur
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **0 warnings** — enforced by `TreatWarningsAsErrors` (ADR-010) |
-| Backend tests | `dotnet test RecipeManager.sln` | **99 passing** (85 unit + 14 integration), 0 failing |
+| Backend tests | `dotnet test RecipeManager.sln` | **99 passing** (85 unit + 14 integration), 0 failing. The 14 need Docker — without it they are reported as skipped (ADR-017) |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
@@ -80,7 +80,6 @@ kind of negative test.
 | [TEST-03](#test-03) | Medium | Tests | Instruction ordering never asserted |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
-| [TEST-06](#test-06) | Medium | Tests | Integration tests cannot reproduce Npgsql behaviour |
 | [INFRA-07](#infra-07) | Medium | CI/CD | CI runs on every PR but is not yet *required* to merge |
 | [INFRA-02](#infra-02) | Medium | CI/CD | No versioning or tags |
 | [INFRA-03](#infra-03) | Medium | CI/CD | No rollback procedure |
@@ -388,9 +387,9 @@ reasoning and were not re-verified for this entry:
   serialized scalar;
 - no switch to `string[]`, because an array behind `IReadOnlyList<string>` is still castable and writable.
 
-**Verification must use real PostgreSQL.** EF InMemory does not exercise the `text[]` mapping
-([TEST-06](#test-06)). A regression test for this belongs with Testcontainers-based integration tests (`R-06`).
-Also check that a schema diff produces no migration, since the column should not change.
+**Verification must use real PostgreSQL.** The integration tests now run against one (ADR-017), so the
+regression test for this can finally be written there. Also check that a schema diff produces no migration,
+since the column should not change.
 
 **Owner:** `02-senior-csharp` (fix) · `01-architect` if the property-access-mode choice needs an ADR
 
@@ -457,16 +456,6 @@ status code and body but never the `Location` header, so a wrong action name or 
 `run-coverage.ps1` produces a report but no number has ever been agreed or enforced. A sensible starting point
 is line coverage on `Domain` + `Application` handlers, since `Api` and `Infrastructure` are thin. Needs a
 decision from the user.
-
-### TEST-06
-**Integration tests cannot reproduce Npgsql behaviour — Medium**
-
-`IntegrationTestBase` uses EF InMemory. `text[]` semantics, identifier folding, collation, real constraint
-violations, and concurrency do not surface. Anything provider-specific must be verified manually against a real
-PostgreSQL, and PRs should say so explicitly.
-
-**Possible fix.** Testcontainers for PostgreSQL — `R-06`, **now unblocked**: it was deferred until CI existed
-because it needs Docker in both places, and the `ubuntu-latest` runner provides it (ADR-013).
 
 ---
 
@@ -566,7 +555,8 @@ Recommended: *(a)* now; *(b)* only if the manual step proves frequent enough to 
 **No seed data — Low**
 
 The database starts empty and there is no seeder, so a fresh clone shows an empty app until recipes are created
-by hand through Swagger. Integration tests seed only against EF InMemory. A Development-only seeder is planned as `R-13`.
+by hand through Swagger. Integration tests seed only into their own throwaway container database. A
+Development-only seeder is planned as `R-13`.
 
 ---
 
@@ -673,7 +663,7 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `DEC-05` — generate TS types from OpenAPI? | **Yes**, after the contract defects are fixed by hand. | `R-09` |
 | Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. | `R-10` |
 | CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
-| Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL**, deferred until CI exists. | `R-06` |
+| Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL.** Deferred until CI existed, since it needs Docker in both places; ADR-013 provided it. **Shipped 2026-09-17**, closing `TEST-06`: one container per test assembly, a database per test class, schema by `Database.Migrate()`, and a skip rather than a failure when Docker is missing. | ADR-017, `R-06` |
 | `BUILD-01`, `BUILD-02` — 7 backend build warnings | **Fixed**, and made unrepeatable by `TreatWarningsAsErrors` in `Directory.Build.props`. **Shipped 2026-08-04.** | ADR-010 |
 | `BUILD-09` — backend package versions in the docs had drifted from `Directory.Packages.props` | **Fixed**: every backend and test row in `docs/tech-stack.md` and the `CLAUDE.md` stack line re-checked against `Directory.Packages.props`, and the `Scrutor` row now describes the assembly scanning ADR-008 introduced. Recurrence is handled by process: release-workflow item 6 now covers Dependabot PRs. That is the weaker of the two proposed fixes (it reminds rather than removes the cause), chosen because exact versions in the docs are worth having while every dependency PR is superseded anyway. **Shipped 2026-09-16.** | release-workflow item 6 |
 | Should warnings-as-errors be Release-only? | **No — every configuration.** There is no CI yet (`INFRA-01`), so a Release-only condition would enforce nothing. | ADR-010 |

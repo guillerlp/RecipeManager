@@ -11,7 +11,7 @@ from `recipe-manager-frontend/package.json`.
 | .NET | `net10.0` (all six projects) | `Directory.Build.props` `<TargetFramework>` (ADR-010) |
 | .NET SDK | `10.0.302`, `rollForward: latestFeature` | `RecipeManager/global.json` |
 | Node.js | `24` used, `^20.19.0 \|\| >=22.12.0` supported | `recipe-manager-frontend/.nvmrc`, `engines` in `package.json` |
-| PostgreSQL | 16+ recommended by `README.md` | not enforced anywhere |
+| PostgreSQL | 16+ recommended by `README.md`; `18-alpine` in the integration tests | enforced only by the image tag in `PostgresContainerFixture` |
 | React | 19.3 | `package.json` |
 | TypeScript | 7.0 | `package.json` |
 
@@ -54,7 +54,8 @@ failure (`NU1004`) rather than a silent resolution. Changing any package means r
 | `NSubstitute` | 6.2.0 | Unit only — **the mocking library here is NSubstitute, not Moq** |
 | `coverlet.collector` / `coverlet.msbuild` | 10.0.1 | Unit (both), Integration (collector only) |
 | `Microsoft.AspNetCore.Mvc.Testing` | 10.0.12 | Integration — `WebApplicationFactory<Program>` |
-| `Microsoft.EntityFrameworkCore.InMemory` | 10.0.12 | Integration — test database |
+| `Testcontainers.PostgreSql` | 4.15.0 | Integration — real PostgreSQL per test run (ADR-017). Replaced `Microsoft.EntityFrameworkCore.InMemory`, which must not come back |
+| `Xunit.SkippableFact` | 1.5.85 | Integration — xUnit 2.x has no dynamic skip, so this is what lets the suite skip when Docker is missing. Removable once the test stack moves to xUnit v3 |
 
 Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implicit.
 

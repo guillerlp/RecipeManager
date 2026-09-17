@@ -261,13 +261,15 @@ on images.
 - Assertions use FluentAssertions (`result.IsSuccess.Should().BeTrue()`), never `Assert.*`.
 - Mocks use **NSubstitute**: `Substitute.For<IRecipeRepository>()`, `.Returns(...)`,
   `await repo.Received(1).AddAsync(Arg.Is<Recipe>(r => …), Arg.Any<CancellationToken>())`.
-- Dependencies are created in the test-class constructor and stored in readonly fields (no `IClassFixture` in
-  use today).
+- Dependencies are created in the test-class constructor and stored in readonly fields. The only xUnit fixture
+  in the repo is `PostgresContainerFixture`, an `ICollectionFixture` shared by the integration tests (ADR-017).
 - `#region Success Scenarios` / `#region Failure Scenarios` grouping is used in the larger unit-test files —
   follow the surrounding file.
-- Integration tests derive from `IntegrationTestBase`, get a fresh InMemory database per test
-  (`TestDb_{Guid}`), seed via `SeedDatabase(...)`, and call `DbContext.ChangeTracker.Clear()` before asserting
-  post-write state.
+- Integration tests derive from `IntegrationTestBase`, get a fresh PostgreSQL database per test class
+  (`TestDb_{Guid}` on the container shared by `PostgresCollection`, schema applied by `Database.Migrate()`),
+  seed via `SeedDatabase(...)`, and call `DbContext.ChangeTracker.Clear()` before asserting post-write state.
+  They are marked `[SkippableFact]` / `[SkippableTheory]` so the suite skips rather than fails when Docker is
+  absent — see ADR-017.
 - **Zero warnings, enforced.** `TreatWarningsAsErrors` is on for every project (ADR-010), so a warning fails the
   build rather than accumulating. Two idioms exist because of this, both from the NSubstitute 6 / xUnit analyser
   set:
