@@ -30,12 +30,12 @@ severe error rather than the first.
 
 ## 3. In scope
 
-- [ ] `ErrorKind` enum and `DomainError` class in `RecipeManager.Domain/Errors/`.
-- [ ] All 11 `RecipeErrors` factories build a `DomainError`; the private `WithCode` helper is deleted.
-- [ ] `ResultExtensions` maps kind → status and selects the primary error by severity.
-- [ ] `RecipeManager.UnitTests` references `RecipeManager.Api`; new `ResultExtensionsTests`.
-- [ ] The two unit tests asserting `Metadata["ErrorCode"]` assert the kind instead.
-- [ ] Docs updated (section 16), `R-05` deleted from the roadmap, ADR-009 marked implemented, decisions-log entry.
+- [x] `ErrorKind` enum and `DomainError` class in `RecipeManager.Domain/Errors/`.
+- [x] All 11 `RecipeErrors` factories build a `DomainError`; the private `WithCode` helper is deleted.
+- [x] `ResultExtensions` maps kind → status and selects the primary error by severity.
+- [x] `RecipeManager.UnitTests` references `RecipeManager.Api`; new `ResultExtensionsTests`.
+- [x] The two unit tests asserting `Metadata["ErrorCode"]` assert the kind instead.
+- [x] Docs updated (section 16), `R-05` deleted from the roadmap, ADR-009 marked implemented, decisions-log entry.
 
 ## 4. Out of scope
 
@@ -140,16 +140,16 @@ None. The SPA does not read `errors[]` or `code`.
 
 ## 10. Acceptance criteria
 
-- [ ] `RecipeManager.Domain` contains no `WithCode`, no `"ErrorCode"` key, and no HTTP status literal.
-- [ ] Given a `Result` with a `Validation` and a `NotFound` error (in that order), when converted, then the
+- [x] `RecipeManager.Domain` contains no `WithCode`, no `"ErrorCode"` key, and no HTTP status literal.
+- [x] Given a `Result` with a `Validation` and a `NotFound` error (in that order), when converted, then the
       response is 404 and `Detail`/`field` come from the `NotFound` error.
-- [ ] Given a `Result` with a kind-less error and a `Validation` error, when converted, then the response is 400.
-- [ ] Given two `Validation` errors, when converted, then the response is 422 with the first error's
+- [x] Given a `Result` with a kind-less error and a `Validation` error, when converted, then the response is 400.
+- [x] Given two `Validation` errors, when converted, then the response is 422 with the first error's
       `Detail`/`field`, and `errors[]` lists both with `code` 422.
-- [ ] Every `ErrorKind` value maps to a status without throwing.
-- [ ] Every `RecipeErrors` factory returns a `DomainError` with the kind listed in section 5.
-- [ ] All 14 integration tests pass unchanged — the regression net for the endpoint status codes in section 6.
-- [ ] `dotnet build` reports 0 warnings; `dotnet test` passes with 84 + the new tests.
+- [x] Every `ErrorKind` value maps to a status without throwing.
+- [x] Every `RecipeErrors` factory returns a `DomainError` with the kind listed in section 5.
+- [x] All 14 integration tests pass unchanged — the regression net for the endpoint status codes in section 6.
+- [x] `dotnet build` reports 0 warnings; `dotnet test` passes with 84 + the new tests.
 
 ## 11. Test plan
 
