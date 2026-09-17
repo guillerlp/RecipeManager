@@ -11,9 +11,14 @@ namespace RecipeManager.IntegrationTests.DependencyInjection;
 /// in the source code shows that a handler is registered. These tests are what keeps that verifiable: a handler
 /// the container cannot resolve fails here rather than on the first request that dispatches it.
 /// </summary>
+[Collection(PostgresCollection.Name)]
 public class CqrsHandlerRegistrationTests : IntegrationTestBase
 {
     private static readonly Assembly ApplicationAssembly = typeof(CreateRecipeCommandValidator).Assembly;
+
+    public CqrsHandlerRegistrationTests(PostgresContainerFixture postgres) : base(postgres)
+    {
+    }
 
     public static TheoryData<Type> HandlerServiceTypes()
     {
@@ -27,7 +32,7 @@ public class CqrsHandlerRegistrationTests : IntegrationTestBase
         return data;
     }
 
-    [Theory]
+    [SkippableTheory]
     [MemberData(nameof(HandlerServiceTypes))]
     public void EveryCqrsHandler_ShouldBeResolvableFromTheContainer(Type handlerServiceType)
     {
@@ -43,7 +48,7 @@ public class CqrsHandlerRegistrationTests : IntegrationTestBase
             handlerServiceType);
     }
 
-    [Fact]
+    [SkippableFact]
     public void HandlerDiscovery_ShouldFindEveryHandlerInTheApplicationAssembly()
     {
         // ==================== ARRANGE ====================

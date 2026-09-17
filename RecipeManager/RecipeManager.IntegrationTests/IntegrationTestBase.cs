@@ -8,17 +8,25 @@ using RecipeManager.Infrastructure.Context;
 
 namespace RecipeManager.IntegrationTests;
 
+/// <summary>
+/// Runs the real ASP.NET Core pipeline through <see cref="WebApplicationFactory{TEntryPoint}"/> against a real
+/// PostgreSQL database (ADR-017): a fresh <c>TestDb_{Guid}</c> on the container shared by
+/// <see cref="PostgresCollection"/>, one per test class.
+/// </summary>
 public class IntegrationTestBase : IDisposable
 {
     protected readonly HttpClient Client;
     protected readonly WebApplicationFactory<Program> Factory;
     protected readonly IServiceScope Scope;
     protected readonly AppDbContext DbContext;
-    private readonly string _testDbName;
 
-    public IntegrationTestBase()
+    protected IntegrationTestBase(PostgresContainerFixture postgres)
     {
-        _testDbName = $"TestDb_{Guid.NewGuid()}";
+        // xUnit 2.x has no dynamic skip (Assert.Skip is v3 only), so Xunit.SkippableFact provides it: this
+        // throws, and the [SkippableFact]/[SkippableTheory] attributes turn the failure into a skip.
+        Skip.If(postgres.SkipReason is not null, postgres.SkipReason);
+
+        string connectionString = postgres.ConnectionStringFor($"TestDb_{Guid.NewGuid():N}");
 
         Factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -29,7 +37,7 @@ public class IntegrationTestBase : IDisposable
                 {
                     services.AddDbContext<AppDbContext>(options =>
                     {
-                        options.UseInMemoryDatabase(_testDbName);
+                        options.UseNpgsql(connectionString);
                     });
                 });
             });
@@ -38,6 +46,11 @@ public class IntegrationTestBase : IDisposable
 
         Scope = Factory.Services.CreateScope();
         DbContext = Scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // Creates the database and applies the committed migrations — the same ones a deployment applies, which
+        // is why this is Migrate() and not EnsureCreated(). Program skips its own MigrateDatabase() call under
+        // the IntegrationTest environment (ADR-005), so the schema is this class's responsibility.
+        DbContext.Database.Migrate();
     }
 
     protected async Task SeedDatabase<T>(params T[] entities) where T : class
