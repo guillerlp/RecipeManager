@@ -71,6 +71,7 @@ All violations are collected — a single call can return several errors at once
 
 Note: an empty-but-present ingredients list produces `IngredientsRequired`; a non-empty list containing a blank
 string produces `IngredientEmpty`. They are mutually exclusive.
+
 The kind is the domain's; the status in brackets is applied by `ResultExtensions` in the API layer.
 
 ## Shape validation (FluentValidation, `RecipeValidationRules`)
