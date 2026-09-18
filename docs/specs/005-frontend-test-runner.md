@@ -32,8 +32,8 @@ priority areas listed in `06-qa-tester.md`.
 
 ## 3. In scope
 
-- [x] Dev dependencies, exact versions: `vitest@5.0.1`, `jsdom@30.1.0`, `@testing-library/react@16.3.3`, and its
-      required peer `@testing-library/dom@10.4.2`. `package-lock.json` regenerated.
+- [x] Dev dependencies, caret ranges resolved and pinned by `package-lock.json`: `vitest@^5.0.1`,
+      `jsdom@^30.1.0`, `@testing-library/react@^16.3.3`, and its required peer `@testing-library/dom@^10.4.2`.
 - [x] A `test` block in `vite.config.ts` (`environment: 'jsdom'`, `setupFiles: ['./src/test/setup.ts']`), with
       `defineConfig` imported from `vitest/config` so the key type-checks.
 - [x] `src/test/setup.ts` registering RTL's `cleanup()` in `afterEach`.

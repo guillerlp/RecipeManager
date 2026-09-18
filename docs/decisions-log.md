@@ -58,8 +58,9 @@ Jump to every entry touching a topic.
 (`recipe-manager-frontend/src/components/ui/Recipe/RecipeCard/RecipeCard.tsx`), unreachable except by rendering
 a card. They were the top item on the first frontend test list (`R-07`).
 
-**Decision.** Move both into `src/utils/duration.ts` and unit-test them directly, writing the tests first
-against the new path and reading the expected values off the old implementation (ADR-018).
+**Decision.** Move both into `recipe-manager-frontend/src/utils/duration.ts` and unit-test them directly,
+writing the tests first against the new path and reading the expected values off the old implementation
+(ADR-018).
 
 **Rejected.** Testing through rendering — zero production change and closer to what users see, which is what a
 competent engineer choosing it would be optimising for. But eight-plus boundary cases would each render a

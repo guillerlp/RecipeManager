@@ -547,8 +547,9 @@ endpoint is anonymous and every recipe is world-writable. See
   Vitest is configured by a `test` block in `vite.config.ts` (with `defineConfig` imported from
   `vitest/config`), so tests resolve aliases, the React plugin, CSS Modules, and assets exactly as the build
   does. Globals are **off**: tests import `describe`/`it`/`expect`/`vi` from `vitest`, which keeps them
-  ordinary TypeScript that `tsc -b` and the type-aware Oxlint rules already understand; `src/test/setup.ts`
-  registers RTL's `cleanup()` because RTL auto-cleans only when globals are on. Tests are colocated
+  ordinary TypeScript that `tsc -b` and the type-aware Oxlint rules already understand;
+  `recipe-manager-frontend/src/test/setup.ts` registers RTL's `cleanup()` because RTL auto-cleans only when
+  globals are on. Tests are colocated
   (`Foo.test.tsx` beside `Foo.tsx`). CI runs `npm test` (`vitest run`) between `Lint` and `Build`.
 - **Data seam:** component tests that fetch mock `@/services` with `vi.mock` and render inside a fresh
   `QueryClient`, so the real hooks and TanStack Query's state machine run. `useRecipes` hard-codes `retry: 2`,
@@ -564,7 +565,7 @@ endpoint is anonymous and every recipe is world-writable. See
   `include`, so a type error in a test fails `npm run build` — deliberate, but coupling; the `RecipeList`
   error-state test is coupled to `useRecipes`' retry policy and changes with it; jsdom has no layout engine, so
   nothing visual, and no real browser behaviour, is covered. `formatDuration`/`getISODuration` moved from
-  `RecipeCard` into `src/utils/duration.ts`, the repo's first `utils/` module.
+  `RecipeCard` into `recipe-manager-frontend/src/utils/duration.ts`, the repo's first `utils/` module.
 
 ---
 

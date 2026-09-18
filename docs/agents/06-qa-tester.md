@@ -177,10 +177,10 @@ real gap in the suite: `TEST-02` in [../known-issues.md](../known-issues.md).
 
 | Area | File | What it pins |
 | --- | --- | --- |
-| Duration formatting | `src/utils/duration.test.ts` | 0, 59, 60, 61, 120, `NaN`, `Infinity`, negatives |
-| `RecipeList` | `src/components/ui/Recipe/RecipeList/RecipeList.test.tsx` | title/description/ingredient match, case, trim, empty query; loading, error, both empties, populated |
-| Theme | `src/contexts/ThemeProvider.test.tsx` | initial theme from `localStorage`, `data-theme`, persistence on toggle, guard hook throws |
-| `NavLink` | `src/components/ui/NavLink/NavLink.test.tsx` | exact, trailing slash, prefix at a segment boundary, `/` |
+| Duration formatting | `recipe-manager-frontend/src/utils/duration.test.ts` | 0, 59, 60, 61, 120, `NaN`, `Infinity`, negatives |
+| `RecipeList` | `recipe-manager-frontend/src/components/ui/Recipe/RecipeList/RecipeList.test.tsx` | title/description/ingredient match, case, trim, empty query; loading, error, both empties, populated |
+| Theme | `recipe-manager-frontend/src/contexts/ThemeProvider.test.tsx` | initial theme from `localStorage`, `data-theme`, persistence on toggle, guard hook throws |
+| `NavLink` | `recipe-manager-frontend/src/components/ui/NavLink/NavLink.test.tsx` | exact, trailing slash, prefix at a segment boundary, `/` |
 
 **What this level cannot catch:** real HTTP and axios configuration (the service is mocked), anything visual
 (jsdom has no layout engine), and real browser behaviour. The `RecipeList` error test is coupled to
