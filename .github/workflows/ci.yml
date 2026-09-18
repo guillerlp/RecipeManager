@@ -120,6 +120,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # R-07 / ADR-018. `vitest run`, not `vitest`: a single run that exits, never watch mode.
+      # Before Build so a behavioural regression stops the job before anything is bundled.
+      - name: Test
+        run: npm test
+
       # `tsc -b && vite build` — type errors fail before Vite bundles anything (ADR-012).
       - name: Build
         run: npm run build

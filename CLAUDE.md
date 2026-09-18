@@ -47,7 +47,7 @@ Verified against `main` @ `edfd057` (merge of `dotnet10-postgresql`) on 2026-07-
 | Result/validation | FluentResults 4.0, FluentValidation 11.12 |
 | DI helpers | Scrutor 7.0 (`Decorate` for the caching repository) |
 | Caching | `IMemoryCache` behind `ICacheService`, decorator over `IRecipeRepository` |
-| Tests | xUnit 2.9, NSubstitute 6.2, FluentAssertions 8.11, `WebApplicationFactory` + Testcontainers PostgreSQL (ADR-017) |
+| Tests | xUnit 2.9, NSubstitute 6.2, FluentAssertions 8.11, `WebApplicationFactory` + Testcontainers PostgreSQL (ADR-017); Vitest 5 + React Testing Library under jsdom for the SPA (ADR-018) |
 | Frontend | React 19, TypeScript 7, Oxlint (type-aware — ADR-016), Vite 8, TanStack Query 5, Axios, React Router 7, CSS Modules (no component library — ADR-014) |
 
 Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
@@ -70,7 +70,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Api/               RecipesController, Startup/*, Middlewares/*, Extensions/*
     RecipeManager.UnitTests/         85 tests — xUnit + NSubstitute (Domain + Application handlers + Api result mapping)
     RecipeManager.IntegrationTests/  14 tests — xUnit + WebApplicationFactory (real PostgreSQL in a container)
-    recipe-manager-frontend/         React 19 + Vite SPA
+    recipe-manager-frontend/         React 19 + Vite SPA — 40 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
 
@@ -114,14 +114,14 @@ dotnet test RecipeManager.sln
 ```
 
 Current state: build succeeds with **0 warnings** and **99 tests pass** (85 unit + 14 integration) — the 14
-need Docker, and are reported as skipped without it (ADR-017).
+need Docker, and are reported as skipped without it (ADR-017). The frontend has 40 Vitest tests (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note — and `TargetFramework`, `Nullable`, and `ImplicitUsings` live there too. Never
 re-declare those in a `.csproj`.
 
 Frontend checks work as of `R-03`/ADR-012: `npm run lint` runs and reports 0 problems, `npm run build`
-type-checks `src/` and `vite.config.ts` before bundling so a type error fails it, and `npm run typecheck` exists for the fast local loop. What
-they are now also *automatic*: `.github/workflows/ci.yml` runs all three on every PR (`R-04`/ADR-013). Run them
+type-checks `src/` and `vite.config.ts` before bundling so a type error fails it, `npm run typecheck` exists for the fast local loop, and `npm test` (ADR-018) runs the Vitest suite. What
+they are now also *automatic*: `.github/workflows/ci.yml` runs all four on every PR (`R-04`/ADR-013). Run them
 locally from `RecipeManager/recipe-manager-frontend/` anyway — a failure found in seconds beats one found on a
 runner. Note the checks are not yet **required** to merge (`INFRA-07`), so a red run can still be merged past.
 
@@ -235,8 +235,8 @@ API first; there is no mock backend.
    deliberately password-free template — keep it that way.
 3. **Tests must pass and the build must stay warning-free before a PR.** `dotnet test RecipeManager.sln` from
    `RecipeManager/`. Warnings are errors (ADR-010), so a new one breaks the build rather than merely being a
-   blocking review finding. Suppressing one to get moving needs a stated reason. There is no frontend
-   test runner yet — see [docs/agents/06-qa-tester.md](docs/agents/06-qa-tester.md).
+   blocking review finding. Suppressing one to get moving needs a stated reason. Frontend changes also need
+   `npm test` green, from `RecipeManager/recipe-manager-frontend/`.
 4. **Respect the dependency direction.** `Domain ← Application ← Infrastructure ← Api`. Domain references no
    project. Any deviation is an architecture decision, not an implementation detail.
 5. **Business rules live in the domain.** `Recipe.Create` / `Recipe.Update` own the invariants; FluentValidation

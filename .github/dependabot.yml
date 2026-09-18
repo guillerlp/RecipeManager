@@ -38,7 +38,7 @@ updates:
           - minor
           - patch
     # Other majors arrive as individual PRs — React and react-router majors each need manual
-    # verification, and there are no frontend tests to catch a regression (TEST-01, R-07).
+    # verification: the Vitest suite (ADR-018) covers logic and render states, not the whole app.
 
   - package-ecosystem: nuget
     directory: /RecipeManager

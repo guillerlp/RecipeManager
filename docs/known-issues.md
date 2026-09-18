@@ -5,7 +5,8 @@ Every **defect and gap in what already exists**. Planned work that does not exis
 
 Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code. Build and
 test numbers re-measured on 2026-08-04 after `R-02`, and the frontend rows re-measured on 2026-08-08 after `R-03`
-and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12.
+and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12. The frontend
+tests row was added 2026-09-18 after `R-07`.
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -28,7 +29,7 @@ and again after the `SEC-03` dependency remediation. The npm audit row re-measur
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
 | Frontend lint | `npm run lint` | **0 problems** — Oxlint, 159 rules: the 71 type-aware ones on `src/**` plus the `correctness` category everywhere (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
-| Frontend tests | — | **none exist**, no runner installed ([TEST-01](#test-01)) |
+| Frontend tests | `npm test` | 40 pass — Vitest + RTL under jsdom (ADR-018) |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
@@ -75,7 +76,7 @@ kind of negative test.
 | [BUG-10](#bug-10) | Medium | Frontend | No recipe detail route, so cards are not clickable |
 | [BUG-11](#bug-11) | Low | Domain | Recipes loaded from the database expose a mutable `List<string>` ([#8](https://github.com/guillerlp/RecipeManager/issues/8)) |
 | [BUG-12](#bug-12) | Low | Frontend | A paused recipe query renders "No recipes available" |
-| [TEST-01](#test-01) | **High** | Tests | No frontend test runner or tests |
+| [BUG-13](#bug-13) | Low | Frontend | Whitespace-only search query shows a misleading "matching" heading |
 | [TEST-02](#test-02) | **High** | Tests | Cache invalidation has no dedicated test |
 | [TEST-03](#test-03) | Medium | Tests | Instruction ordering never asserted |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
@@ -413,18 +414,17 @@ pattern.
 
 **Owner:** `03-senior-react` · **Effort:** ~15 min
 
+### BUG-13
+**Whitespace-only search query shows a misleading heading — Low**
+
+`RecipeList` trims the query before filtering, so `"   "` is treated as no filter and every recipe is shown —
+but the render path tests the raw `searchQuery` for truthiness, so the list is headed
+`Found N recipes matching "   "`. Found while writing `R-07`'s tests; deliberately not pinned by a test.
+Fix: derive one trimmed query and use it for both the filter and the render branches.
+
 ---
 
 ## Testing gaps
-
-### TEST-01
-**No frontend test runner — High**
-
-No Vitest, no Jest, no React Testing Library, no `test` script. Zero frontend tests exist.
-
-Recommended: **Vitest + React Testing Library + jsdom** (Vitest reuses `vite.config.ts` aliases directly).
-Needs `01-architect` sign-off for the dependency. First tests worth writing are listed in
-[agents/06-qa-tester.md](agents/06-qa-tester.md#frontend-testing--not-set-up).
 
 ### TEST-02
 **Cache invalidation has no dedicated test — High**

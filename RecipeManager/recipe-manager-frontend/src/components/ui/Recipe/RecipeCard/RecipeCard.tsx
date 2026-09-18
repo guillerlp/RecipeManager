@@ -1,4 +1,5 @@
 import { Recipe } from "@/types";
+import { formatDuration, getISODuration } from "@/utils/duration";
 import React from "react";
 import Logo from '../../../../assets/mainPhoto.png';
 import styles from './RecipeCard.module.css';
@@ -9,28 +10,6 @@ interface RecipeCardProps {
 }
 
 export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
-
-    const formatDuration = (minutes: number): string => {
-        const safeMinutes = Math.max(0, Number.isFinite(minutes) ? minutes : 0);
-
-        if(safeMinutes < 60) return `${safeMinutes} min`;
-
-        const hours = Math.floor(safeMinutes / 60);
-        const remainingMinutes = safeMinutes % 60;
-
-        return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
-    }
-
-    const getISODuration = (minutes: number): string => {
-        const safeMinutes = Math.max(0, Number.isFinite(minutes) ? minutes : 0);
-
-        if (safeMinutes < 60) return `PT${safeMinutes}M`;
-
-        const hours = Math.floor(safeMinutes / 60);
-        const remainingMinutes = safeMinutes % 60;
-
-        return remainingMinutes > 0 ? `PT${hours}H${remainingMinutes}M` : `PT${hours}H`;
-    };
 
     const handleClick = () => {
         if(onClick){

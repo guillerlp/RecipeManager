@@ -3,7 +3,7 @@
 ## Role
 
 Implements everything under `recipe-manager-frontend/src/` — components, pages, hooks, contexts, routing,
-styling, and (once a runner exists) frontend tests.
+styling, and frontend tests (Vitest + RTL, ADR-018).
 
 **Does:** components, pages, routes, query/mutation hooks, contexts, CSS Modules, forms, accessibility
 implementation, Vite/TS/Oxlint config.
@@ -112,17 +112,22 @@ npm run build
 ```bash
 npm run lint
 ```
+```bash
+npm test
+```
 
 - [ ] `npm run build` runs `tsc -b` before Vite (ADR-012), so it type-checks. `npm run typecheck` is the same
       check without bundling when you want a faster loop.
 - [ ] `npm run lint` must report **0 problems**. Read the output — a linter that cannot start also exits
       non-zero, and for eleven months nobody noticed the difference (`BUILD-03`, now closed).
       `npx oxlint --format=default` prints how many files and rules ran — a quick check that it checked anything.
+- [ ] `npm test` (Vitest + RTL under jsdom, ADR-018) must pass — currently **40**.
 - [ ] No `console.log` added — `no-console` is an **error** in `.oxlintrc.json` (`warn`/`error` are allowed).
 - [ ] The type-aware lint rules only cover `src/**` (ADR-016); every other file gets only Oxlint's
-      `correctness` category. A new root-level tooling file (a Vitest config, say) belongs in
-      `tsconfig.node.json`'s `include`, and a new folder of app code outside `src/` needs adding to both
-      `tsconfig.json`'s `include` and the `.oxlintrc.json` override before it is fully checked.
+      `correctness` category. A new root-level tooling file (Vitest is configured inside the existing
+      `recipe-manager-frontend/vite.config.ts`, not a file of its own — ADR-018) belongs in `tsconfig.node.json`'s `include`, and a new
+      folder of app code outside `src/` needs adding to both `tsconfig.json`'s `include` and the
+      `.oxlintrc.json` override before it is fully checked.
 - [ ] Verified in **both** light and dark themes.
 - [ ] Anything left undone is an entry in [../known-issues.md](../known-issues.md), not a code comment.
 
@@ -137,7 +142,7 @@ npm run lint
 
 1. Components/hooks/pages with barrels updated.
 2. CSS Modules using theme variables, verified light and dark.
-3. `npm run build` and `npm run lint` output.
+3. `npm run build`, `npm run lint`, and `npm test` output.
 4. A note on which of the four states (loading/error/empty/populated) were implemented.
 5. New entries in [../known-issues.md](../known-issues.md) for anything you had to leave undone — never a
    inline TODO marker in the source or the docs.

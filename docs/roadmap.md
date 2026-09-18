@@ -42,17 +42,8 @@ pipeline reports honestly and can be merged past.
 
 ## Phase 2 — correctness and confidence
 
-`R-06` (Testcontainers for the integration tests) shipped 2026-09-17 as ADR-017, closing `TEST-06`.
-
-### R-07
-**Frontend test runner and first tests** · `06-qa-tester` + `03-senior-react` · ~4 h
-
-Zero frontend tests exist (`TEST-01`). **Vitest + React Testing Library + jsdom** — Vitest reuses
-`vite.config.ts` aliases directly, so setup is minimal.
-
-First tests, in priority order: `RecipeCard.formatDuration`/`getISODuration` boundaries; `RecipeList` filtering
-and its four states; `ThemeProvider` persistence and the `useTheme` guard; `NavLink` active-state matching.
-Unblocked — `R-03` shipped 2026-08-08.
+`R-06` (Testcontainers for the integration tests) shipped 2026-09-17 as ADR-017, closing `TEST-06`. `R-07`
+(frontend test runner) shipped 2026-09-18 as ADR-018, closing `TEST-01`.
 
 ### R-08
 **Close the cache-invalidation test gap** · `06-qa-tester` · ~2 h

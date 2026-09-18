@@ -537,6 +537,36 @@ endpoint is anonymous and every recipe is world-writable. See
   by the ADR-005 decision above. This is also the repo's first xUnit fixture of any kind — `conventions.md`
   previously recorded that none were in use.
 
+### ADR-018 — Frontend tests run on Vitest + React Testing Library under jsdom
+
+- **Status:** accepted and **implemented 2026-09-18** (`R-07`,
+  [specs/005-frontend-test-runner.md](specs/005-frontend-test-runner.md)). Closes `TEST-01`.
+- **Context:** the SPA had no test runner and no tests. CI's frontend job proved the code type-checked, linted,
+  and bundled — never that it behaved — and Dependabot's npm majors were merged on that evidence alone.
+- **Decision:** `vitest`, `jsdom`, `@testing-library/react` and its peer `@testing-library/dom`, all dev-only.
+  Vitest is configured by a `test` block in `recipe-manager-frontend/vite.config.ts` (with `defineConfig` imported from
+  `vitest/config`), so tests resolve aliases, the React plugin, CSS Modules, and assets exactly as the build
+  does. Globals are **off**: tests import `describe`/`it`/`expect`/`vi` from `vitest`, which keeps them
+  ordinary TypeScript that `tsc -b` and the type-aware Oxlint rules already understand;
+  `recipe-manager-frontend/src/test/setup.ts` registers RTL's `cleanup()` because RTL auto-cleans only when
+  globals are on. Tests are colocated
+  (`Foo.test.tsx` beside `Foo.tsx`). CI runs `npm test` (`vitest run`) between `Lint` and `Build`.
+- **Data seam:** component tests that fetch mock `@/services` with `vi.mock` and render inside a fresh
+  `QueryClient`, so the real hooks and TanStack Query's state machine run. `useRecipes` hard-codes `retry: 2`,
+  which overrides any client default, so error-state tests advance fake timers through the backoff.
+- **Alternatives:** *(a)* Jest — the largest ecosystem, but a separate transform and a second copy of the eight
+  path aliases. *(b)* happy-dom — faster, less spec-complete; immeasurable at this size. *(c)* a separate
+  `vitest.config.ts` — cleaner split, but one more tooling file and a `mergeConfig` indirection that can drift.
+  *(d)* mocking `useRecipes` itself — simplest, but tests the component against a hand-written hook shape.
+  *(e)* MSW — most realistic, most setup; reconsider when mutation hooks exist. *(f)* `jest-dom` and
+  `user-event` — not needed by any current test; `getBy*` already throws on no match.
+- **Consequences:** behaviour of the five highest-value frontend areas is asserted on every PR. What it costs:
+  `npm ci` installs jsdom's tree and the CI frontend job is slower; test files sit inside `recipe-manager-frontend/tsconfig.json`'s
+  `include`, so a type error in a test fails `npm run build` — deliberate, but coupling; the `RecipeList`
+  error-state test is coupled to `useRecipes`' retry policy and changes with it; jsdom has no layout engine, so
+  nothing visual, and no real browser behaviour, is covered. `formatDuration`/`getISODuration` moved from
+  `RecipeCard` into `recipe-manager-frontend/src/utils/duration.ts`, the repo's first `utils/` module.
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001
