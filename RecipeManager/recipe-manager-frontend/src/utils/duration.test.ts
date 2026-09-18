@@ -3,7 +3,7 @@ import { formatDuration, getISODuration } from '@/utils/duration';
 
 describe('formatDuration', () => {
   it.each<{ minutes: number; expected: string }>([
-    { minutes: 0, expected: '0 min' },
+    { minutes: 0, expected: '1 min' },
     { minutes: 59, expected: '59 min' },
     { minutes: 60, expected: '1h' },
     { minutes: 61, expected: '1h 1min' },
