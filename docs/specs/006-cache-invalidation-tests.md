@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `006` |
-| **Status** | approved |
+| **Status** | in progress — implemented, awaiting a green CI run on the PR |
 | **Author** | `00-leader`, owned by `06-qa-tester` |
 | **Created** | 2026-09-18 |
 | **Branch** | `test/cache-invalidation-tests` |
@@ -30,10 +30,10 @@ invalidation is removed. A separate test proves caching is actually on.
 
 ## 3. In scope
 
-- [ ] `RecipeManager.IntegrationTests/RecipeCacheTests.cs`: a new class holding the four tests in section 12.
-- [ ] Manual mutation check: remove each invalidation line in turn, confirm the matching test fails, restore
-      the line. The results are reported in the PR description.
-- [ ] Docs listed in section 16.
+- [x] `RecipeManager.IntegrationTests/RecipeCacheTests.cs`: a new class holding the four tests in section 12.
+- [x] Mutation check: remove each invalidation line in turn, confirm the matching test fails, restore the line.
+      The results are reported in the PR description.
+- [x] Docs listed in section 16.
 
 ## 4. Out of scope
 
@@ -127,15 +127,15 @@ infrastructure and changes no decision.
 
 ## 11. Acceptance criteria
 
-- [ ] Given the list was fetched, when a row changes directly in the database, then a second `GET /api/recipes`
+- [x] Given the list was fetched, when a row changes directly in the database, then a second `GET /api/recipes`
       still returns the old value.
-- [ ] Given the list was fetched, when `POST /api/recipes` succeeds, then `GET /api/recipes` contains the new
+- [x] Given the list was fetched, when `POST /api/recipes` succeeds, then `GET /api/recipes` contains the new
       recipe.
-- [ ] Given the list and the detail were fetched, when `PUT /api/recipes/{id}` succeeds, then both
+- [x] Given the list and the detail were fetched, when `PUT /api/recipes/{id}` succeeds, then both
       `GET /api/recipes` and `GET /api/recipes/{id}` show the new values.
-- [ ] Given the list and the detail were fetched, when `DELETE /api/recipes/{id}` succeeds, then
+- [x] Given the list and the detail were fetched, when `DELETE /api/recipes/{id}` succeeds, then
       `GET /api/recipes/{id}` returns 404 and `GET /api/recipes` no longer contains it.
-- [ ] With any single invalidation line in `CachedRecipeRepository` removed, at least one of these tests fails.
+- [x] With any single invalidation line in `CachedRecipeRepository` removed, at least one of these tests fails.
 
 ## 12. Test plan
 
@@ -153,8 +153,24 @@ makes the test sensitive: it fills the entry that a missing invalidation would l
   ARRANGE/ACT/ASSERT banners, entities built with `Recipe.Create(...).Value`, FluentAssertions only.
 - **Isolation:** xUnit builds a new class instance per test, so each test has its own factory, cache, and
   database. There is no cross-test leakage.
-- **Mutation check (manual, reported in the PR):** comment out each of the five invalidation calls in turn,
-  plus the `Decorate` line, run `dotnet test --filter RecipeCacheTests`, and record which test failed.
+- **Mutation check (reported in the PR):** comment out each of the five invalidation calls in turn, plus the
+  `Decorate` line, run `dotnet test --filter RecipeCacheTests`, and record which test failed. The author's
+  machine had no Docker, so this ran in CI instead. A throwaway branch carried a temporary workflow that applied
+  the six `sed` mutations one at a time in a single job, and the branch was deleted afterwards. The workflow
+  also failed if a mutation did not apply or a test skipped, so "no test failed" could only mean "mutation
+  survived".
+
+  **Result** (Actions run `35399787990`): baseline 4 passed, 0 skipped. All six mutations were killed, each by
+  exactly the predicted tests:
+
+  | Mutation | Killed by |
+  | --- | --- |
+  | M1 — no `Decorate` | test 1 |
+  | M2 — `AddAsync` keeps `recipes_all` | test 2 |
+  | M3 — `UpdateAsync` invalidates nothing | test 3 |
+  | M4 — `DeleteAsync` invalidates nothing | test 4 |
+  | M5 — writes keep `recipes_all` | tests 3, 4 |
+  | M6 — writes keep `recipe_{id}` | test 4 only. Test 3 stayed green, which confirms the `BUG-14` prediction. |
 - **Not covered, and why:**
   - Per-id invalidation on **update**, because of `BUG-14`. It becomes testable once aliasing is fixed.
   - Expiry and cache-failure paths: see section 4.

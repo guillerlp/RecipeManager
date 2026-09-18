@@ -23,7 +23,7 @@ tests row was added 2026-09-18 after `R-07`.
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **0 warnings** — enforced by `TreatWarningsAsErrors` (ADR-010) |
-| Backend tests | `dotnet test RecipeManager.sln` | **99 passing** (85 unit + 14 integration), 0 failing. The 14 need Docker — without it they are reported as skipped (ADR-017) |
+| Backend tests | `dotnet test RecipeManager.sln` | **103 passing** (85 unit + 18 integration), 0 failing. The 18 need Docker — without it they are reported as skipped (ADR-017) |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
@@ -77,7 +77,7 @@ kind of negative test.
 | [BUG-11](#bug-11) | Low | Domain | Recipes loaded from the database expose a mutable `List<string>` ([#8](https://github.com/guillerlp/RecipeManager/issues/8)) |
 | [BUG-12](#bug-12) | Low | Frontend | A paused recipe query renders "No recipes available" |
 | [BUG-13](#bug-13) | Low | Frontend | Whitespace-only search query shows a misleading "matching" heading |
-| [TEST-02](#test-02) | **High** | Tests | Cache invalidation has no dedicated test |
+| [BUG-14](#bug-14) | Medium | Caching | An update mutates the cached `Recipe` instance before it is persisted |
 | [TEST-03](#test-03) | Medium | Tests | Instruction ordering never asserted |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
@@ -128,7 +128,7 @@ card fallback rather than reusing the hero image. Consider `srcset` for the hero
 ### BUILD-06
 **`run-coverage.ps1` measures only the unit-test project — Low**
 
-The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 14 integration tests
+The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 18 integration tests
 contribute nothing and the reported percentage understates real coverage — particularly for `Api` and
 `Infrastructure`, which unit tests never touch.
 
@@ -422,19 +422,27 @@ but the render path tests the raw `searchQuery` for truthiness, so the list is h
 `Found N recipes matching "   "`. Found while writing `R-07`'s tests; deliberately not pinned by a test.
 Fix: derive one trimmed query and use it for both the filter and the render branches.
 
+### BUG-14
+**An update mutates the cached `Recipe` instance before it is persisted — Medium**
+
+`IMemoryCache` stores object references, not copies. `UpdateRecipeHandler` loads the recipe through
+`GetByIdAsync`. On a cache hit, `CachedRecipeRepository` returns *the instance held in the `recipe_{id}` entry*,
+and `Recipe.Update(...)` then mutates it in place before `UpdateAsync` saves anything. If `SaveChangesAsync`
+throws, the exception skips `InvalidateRecipeRelatedCaches`, so `GET /api/recipes/{id}` serves values that were
+never persisted until the entry expires (`CacheDuration`, up to 10 minutes). The same instance is also shared
+across concurrent requests, because the cache is a singleton while the repository is scoped.
+
+Found while designing `R-08` (spec 006). It is also why `RecipeCacheTests` cannot prove that `UpdateAsync`
+removes `recipe_{id}`: the cached object already holds the new values, so the detail read passes either way.
+
+**Fix.** Never hand out a cached entity for mutation. Either load the entity for writes from the undecorated
+repository, or cache an immutable read model (for example `RecipeDto`) instead of the entity. Then tighten the
+detail assertion in `RecipeCacheTests.UpdateRecipe_AfterListAndDetailWereCached_ShouldReturnNewValuesFromBoth`
+so it detects a missing `recipe_{id}` invalidation.
+
 ---
 
 ## Testing gaps
-
-### TEST-02
-**Cache invalidation has no dedicated test — High**
-
-The largest gap in the backend suite. Unit tests mock `IRecipeRepository`, so they bypass `CachedRecipeRepository`
-entirely; the integration tests assert **database** state after a write rather than issuing a second request
-through the API. A broken invalidation in `CachedRecipeRepository` would pass all 99 tests.
-
-**Fix.** Integration tests that write, then re-read **through the HTTP client**: create → `GET /api/recipes`
-contains it; update → `GET /api/recipes/{id}` shows new values; delete → `GET /api/recipes/{id}` returns 404.
 
 ### TEST-03
 **Instruction ordering never asserted — Medium**

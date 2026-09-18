@@ -23,14 +23,14 @@ though QA can block on missing coverage).
 | Suite | Tests | Location |
 | --- | --- | --- |
 | Unit | **85** | `RecipeManager.UnitTests` |
-| Integration | **14** | `RecipeManager.IntegrationTests` |
+| Integration | **18** | `RecipeManager.IntegrationTests` |
 | Frontend | **40** | colocated `*.test.ts(x)` in `recipe-manager-frontend/src/` |
 
 Unit-test breakdown: `RecipeTests` 23, `ResultExtensionsTests` 13, `CreateRecipeHandlerTests` 11,
 `GetAllRecipesHandlerTests` 8, `EntityTests` 8, `DeleteRecipeHandlerTests` 7, `GetRecipeByIdHandlerTests` 7,
 `UpdateRecipeHandlerTest` 6, `RecipeErrorsTests` 2.
 
-Integration breakdown: `RecipesControllerTests` 8, `CqrsHandlerRegistrationTests` 6.
+Integration breakdown: `RecipesControllerTests` 8, `CqrsHandlerRegistrationTests` 6, `RecipeCacheTests` 4.
 
 Counts are `dotnet test --list-tests` output, not a count of `[Fact]` attributes — a `[Theory]` contributes one
 test per data case, which is why `CqrsHandlerRegistrationTests` has two methods and six tests.
@@ -49,7 +49,7 @@ pwsh ./run-coverage.ps1
 ```
 
 `run-coverage.ps1` covers **only `RecipeManager.UnitTests`** and requires
-`dotnet tool install --global dotnet-reportgenerator-globaltool`. The 14 integration tests contribute nothing to
+`dotnet tool install --global dotnet-reportgenerator-globaltool`. The 18 integration tests contribute nothing to
 the reported number, so it understates real coverage — `BUILD-06` in [../known-issues.md](../known-issues.md).
 
 ---
@@ -147,14 +147,22 @@ Work from this list; tick what is covered, add tests for what is not.
 
 ### Caching (integration level only)
 
-- Create → immediately `GET /api/recipes`: the new recipe must appear (`recipes_all` was invalidated).
-- Update → `GET /api/recipes/{id}`: updated values, not the cached ones.
-- Delete → `GET /api/recipes/{id}`: 404, not a stale cached hit.
-- `GET` twice: same payload, second served from cache.
+All covered in `RecipeManager.IntegrationTests/RecipeCacheTests.cs` (`R-08`, spec 006):
 
-**None of these has a dedicated test today** — the existing integration tests assert database state rather than
-issuing a second request through the API, so a broken invalidation would pass all 99 tests. This is the largest
-real gap in the suite: `TEST-02` in [../known-issues.md](../known-issues.md).
+- [x] `GET` twice, with the row changed in the database between the two: the second response is stale, which
+      proves it came from the cache. Without this test, every test below would pass with caching disabled.
+- [x] Create → `GET /api/recipes`: the new recipe appears (`recipes_all` was invalidated).
+- [x] Update → `GET /api/recipes`: new values. `GET /api/recipes/{id}` is asserted too, but **cannot** detect a
+      missing `recipe_{id}` invalidation, because the handler mutates the cached instance in place (`BUG-14`).
+- [x] Delete → `GET /api/recipes/{id}`: 404 rather than a stale cached hit, and the list excludes it.
+
+**The rule that makes these tests work: prime before you write.** A cold cache cannot go stale. If nothing read
+the list before the create, the re-read goes to the database, and the test passes with the invalidation deleted.
+Each test therefore issues the `GET` that fills the cache entry a broken invalidation would leave stale.
+
+**How sensitivity was proven:** a mutation check removed each invalidation call, and the `Decorate`
+registration, one at a time. Each removal failed at least one of these tests (results in the `R-08` PR). Repeat
+the check whenever `CachedRecipeRepository` gains a write method.
 
 ### Not reproducible in the current suite — state this in PRs
 
@@ -162,7 +170,7 @@ real gap in the suite: `TEST-02` in [../known-issues.md](../known-issues.md).
   (ADR-017), so `text[]` semantics, identifier folding, collation, real constraint violations and the
   migrations themselves are all exercised. `TEST-06` is closed, and the standing "verify this by hand" caveat
   on persistence PRs is gone with it.
-- **Anything at all, on a machine without Docker.** There the 14 integration tests are **skipped**, not run, so
+- **Anything at all, on a machine without Docker.** There the 18 integration tests are **skipped**, not run, so
   a green local `dotnet test` can mean "the 85 unit tests passed". Read the skip count, and trust CI — which
   always has Docker — before claiming an endpoint works.
 - **Concurrency.** No optimistic concurrency exists; concurrent `PUT`s are last-write-wins and untested.
@@ -202,8 +210,8 @@ not tested, because the test would pin the wrong heading.
 2. A coverage statement: what is covered, what is explicitly not, and why.
 3. Updates to this catalogue when a new edge case is discovered, and to
    [../known-issues.md](../known-issues.md) when a gap is found or closed.
-4. `dotnet test` output — pass count against the current 99, **plus the skip count**, since 14 skipped
-   integration tests and 14 passing ones both leave the run green. Warnings are 0 and a new one fails the build
+4. `dotnet test` output — pass count against the current 103, **plus the skip count**, since 18 skipped
+   integration tests and 18 passing ones both leave the run green. Warnings are 0 and a new one fails the build
    (ADR-010), so there is no count to report there any more. For frontend changes, the `npm test` pass count.
 5. **An explanation of the testing reasoning** ([../learning-mode.md](../learning-mode.md)):
    - **Why this level.** Unit tests mock `IRecipeRepository` and therefore never exercise
