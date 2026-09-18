@@ -160,8 +160,8 @@ npm run build
 
 `npm run build` type-checks `src/` and `vite.config.ts` (`tsc -b tsconfig.json tsconfig.node.json`) before
 Vite bundles anything, so a type error fails it. For a faster
-loop while working, `npm run typecheck` runs the same check without producing `dist/`. There is no `npm test` —
-no frontend test runner exists yet.
+loop while working, `npm run typecheck` runs the same check without producing `dist/`. `npm test` runs the
+Vitest suite once; `npm run test:watch` re-runs on save.
 
 ## Continuous integration
 
@@ -171,7 +171,7 @@ on `ubuntu-latest`:
 | Job | Steps |
 | --- | --- |
 | **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (99) → vulnerable-package check |
-| **Frontend** | `npm ci` → `npm run typecheck` → `npm run lint` → `npm run build` → `npm audit --audit-level=high` |
+| **Frontend** | `npm ci` → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` |
 
 Two things are worth knowing before a run surprises you:
 

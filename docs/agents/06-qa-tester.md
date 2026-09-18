@@ -24,7 +24,7 @@ though QA can block on missing coverage).
 | --- | --- | --- |
 | Unit | **85** | `RecipeManager.UnitTests` |
 | Integration | **14** | `RecipeManager.IntegrationTests` |
-| Frontend | **0 — no runner installed** | — |
+| Frontend | **40** | colocated `*.test.ts(x)` in `recipe-manager-frontend/src/` |
 
 Unit-test breakdown: `RecipeTests` 23, `ResultExtensionsTests` 13, `CreateRecipeHandlerTests` 11,
 `GetAllRecipesHandlerTests` 8, `EntityTests` 8, `DeleteRecipeHandlerTests` 7, `GetRecipeByIdHandlerTests` 7,
@@ -171,30 +171,23 @@ real gap in the suite: `TEST-02` in [../known-issues.md](../known-issues.md).
 
 ---
 
-## Frontend testing — not set up
+## Frontend testing
 
-There is no Vitest, no Jest, no React Testing Library, and no `test` script in `package.json`.
+**Vitest + React Testing Library + jsdom** (ADR-018). Conventions: [../conventions.md](../conventions.md#frontend).
 
-**Decided stack: Vitest + React Testing Library + jsdom** (`R-07` in [../roadmap.md](../roadmap.md)) — the
-project is already Vite-based and Vitest reuses `vite.config.ts` aliases directly. **Unblocked** — `R-03`
-shipped the working toolchain on 2026-08-08 (ADR-012). Note that Vitest's own config file is Node-side tooling:
-add it to `tsconfig.node.json`'s `include` so it is type-checked. Lint reaches it only through Oxlint's
-`correctness` category, not the type-aware `src/**` rules.
+| Area | File | What it pins |
+| --- | --- | --- |
+| Duration formatting | `src/utils/duration.test.ts` | 0, 59, 60, 61, 120, `NaN`, `Infinity`, negatives |
+| `RecipeList` | `src/components/ui/Recipe/RecipeList/RecipeList.test.tsx` | title/description/ingredient match, case, trim, empty query; loading, error, both empties, populated |
+| Theme | `src/contexts/ThemeProvider.test.tsx` | initial theme from `localStorage`, `data-theme`, persistence on toggle, guard hook throws |
+| `NavLink` | `src/components/ui/NavLink/NavLink.test.tsx` | exact, trailing slash, prefix at a segment boundary, `/` |
 
-First tests worth writing, in priority order:
+**What this level cannot catch:** real HTTP and axios configuration (the service is mocked), anything visual
+(jsdom has no layout engine), and real browser behaviour. The `RecipeList` error test is coupled to
+`useRecipes`' `retry: 2`.
 
-1. `RecipeCard.formatDuration` / `getISODuration` — pure logic with real boundaries (0, 59, 60, 61, 120, `NaN`,
-   negatives; both functions already guard with `Math.max(0, …)` and `Number.isFinite`).
-2. `RecipeList` filtering — matches on title, description, and ingredients; case-insensitive; trims;
-   empty-query returns everything.
-3. `RecipeList` states — loading, error, empty-with-query vs. empty-without-query, populated.
-4. `ThemeProvider` / `useTheme` — persists to `localStorage`, sets `data-theme` on `<html>`, and the guard hook
-   throws outside a provider. That last case only became testable in `R-03`: the context previously had a
-   default value, so `useContext` never returned `undefined` and the guard could not fire.
-5. `NavLink` active-state logic — trailing-slash normalisation and prefix matching (`/recipes` active on
-   `/recipes/123`).
-
-Tracked as `TEST-01` in [../known-issues.md](../known-issues.md), planned as `R-07`.
+Next worth covering: `SearchBar`, `Header`'s theme switch, the pages. A whitespace-only query is `BUG-13` —
+not tested, because the test would pin the wrong heading.
 
 ## Inputs it needs
 
@@ -211,7 +204,7 @@ Tracked as `TEST-01` in [../known-issues.md](../known-issues.md), planned as `R-
    [../known-issues.md](../known-issues.md) when a gap is found or closed.
 4. `dotnet test` output — pass count against the current 99, **plus the skip count**, since 14 skipped
    integration tests and 14 passing ones both leave the run green. Warnings are 0 and a new one fails the build
-   (ADR-010), so there is no count to report there any more.
+   (ADR-010), so there is no count to report there any more. For frontend changes, the `npm test` pass count.
 5. **An explanation of the testing reasoning** ([../learning-mode.md](../learning-mode.md)):
    - **Why this level.** Unit tests mock `IRecipeRepository` and therefore never exercise
      `CachedRecipeRepository` at all — that is precisely why cache bugs need an integration test. Choosing the

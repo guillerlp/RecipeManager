@@ -172,6 +172,5 @@ deploy — `INFRA-03` in [../known-issues.md](../known-issues.md).
 | No versioning or tags | `INFRA-02` | `01-architect` |
 | No rollback or database-restore procedure | `INFRA-03` | `01-architect` |
 | No frontend deployment target or production `VITE_API_URL` | `INFRA-04`, `SEC-12` | `03-senior-react` + `01-architect` |
-| No frontend test runner, so nothing to gate on | `TEST-01` | `06-qa-tester` |
 
 Full detail for each: [../known-issues.md](../known-issues.md).

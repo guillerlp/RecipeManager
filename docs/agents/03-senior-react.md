@@ -3,7 +3,7 @@
 ## Role
 
 Implements everything under `recipe-manager-frontend/src/` — components, pages, hooks, contexts, routing,
-styling, and (once a runner exists) frontend tests.
+styling, and frontend tests (Vitest + RTL, ADR-018).
 
 **Does:** components, pages, routes, query/mutation hooks, contexts, CSS Modules, forms, accessibility
 implementation, Vite/TS/Oxlint config.
@@ -120,9 +120,10 @@ npm run lint
       `npx oxlint --format=default` prints how many files and rules ran — a quick check that it checked anything.
 - [ ] No `console.log` added — `no-console` is an **error** in `.oxlintrc.json` (`warn`/`error` are allowed).
 - [ ] The type-aware lint rules only cover `src/**` (ADR-016); every other file gets only Oxlint's
-      `correctness` category. A new root-level tooling file (a Vitest config, say) belongs in
-      `tsconfig.node.json`'s `include`, and a new folder of app code outside `src/` needs adding to both
-      `tsconfig.json`'s `include` and the `.oxlintrc.json` override before it is fully checked.
+      `correctness` category. A new root-level tooling file (Vitest is configured inside the existing
+      `vite.config.ts`, not a file of its own — ADR-018) belongs in `tsconfig.node.json`'s `include`, and a new
+      folder of app code outside `src/` needs adding to both `tsconfig.json`'s `include` and the
+      `.oxlintrc.json` override before it is fully checked.
 - [ ] Verified in **both** light and dark themes.
 - [ ] Anything left undone is an entry in [../known-issues.md](../known-issues.md), not a code comment.
 

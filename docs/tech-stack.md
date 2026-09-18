@@ -73,6 +73,9 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `react-router-dom` | 7.18 | `BrowserRouter` + 3 routes in `App.tsx` |
 | `oxlint` | 1.82.0 (exact) | the linter. `.oxlintrc.json` holds the 71 type-aware rules ESLint + typescript-eslint enforced before ADR-016, scoped to `src/**` (plus `no-console`), and turns on Oxlint's `correctness` category for every file so root tooling files are checked too — 159 rules in all (`BUILD-10`) |
 | `oxlint-tsgolint` | 7.0.2001 (exact) | Oxlint's type-aware backend. Embeds its own typescript-go and is versioned after it (7.0.2, patch 001) — keep it in step with `typescript`; the `typescript` Dependabot group moves all three together |
+| `vitest` | 5.0 | test runner; configured by the `test` block in `vite.config.ts` (ADR-018) |
+| `jsdom` | 30.1 | DOM implementation Vitest runs component tests in |
+| `@testing-library/react` | 16.3 | renders components and queries them by role/text; `@testing-library/dom` 10.4 is its required peer |
 
 ### npm scripts
 
@@ -82,10 +85,12 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `build` | `tsc -b tsconfig.json tsconfig.node.json && vite build` | type-checks first, so a type error fails before Vite bundles (ADR-012) |
 | `typecheck` | `tsc -b tsconfig.json tsconfig.node.json` | the same check without bundling; 0 errors. `tsconfig.json` covers `src/` (browser, no Node types); `tsconfig.node.json` covers `vite.config.ts` (Node types) — kept apart so `process` can never creep back into browser code |
 | `lint` | `oxlint` | type-aware (`options.typeAware` in `.oxlintrc.json`), 0 problems (ADR-016) |
+| `test` | `vitest run` | single run, exits — what CI calls; 40 tests (ADR-018) |
+| `test:watch` | `vitest` | watch mode for the local loop |
 | `preview` | `vite preview` | works |
 
-There is still no `test` script — no frontend test runner exists (`TEST-01`, planned as `R-07`). And note what
-the three working scripts do *not* give you on their own — but CI now runs all of them on every PR
+`npm test` runs the Vitest suite (`R-07`/ADR-018). And note what
+the four checking scripts do *not* give you on their own — but CI now runs all of them on every PR
 (`R-04`/ADR-013), pinned to the Node version in `.nvmrc`.
 
 `npm audit` reports **0 vulnerabilities** as of 2026-08-08, and the NuGet side is clean by both
@@ -127,7 +132,6 @@ The `paths` targets start with `./` and there is **no `baseUrl`**: TypeScript 6 
 
 Stated explicitly so agents do not assume they exist:
 
-- **No frontend test runner.** No Vitest/Jest, no React Testing Library, no `test` script in `package.json`.
 - **No deployment pipeline.** `.github/workflows/ci.yml` verifies every PR (ADR-013) but builds no artifact and
   deploys nothing (`INFRA-04`).
 - **No AutoMapper / MediatR / Serilog / Polly.**

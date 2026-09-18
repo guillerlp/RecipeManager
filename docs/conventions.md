@@ -282,4 +282,21 @@ on images.
 
 ### Frontend
 
-None exist. See [agents/06-qa-tester.md](agents/06-qa-tester.md) before writing the first one.
+Vitest + React Testing Library under jsdom (ADR-018). `npm test` runs once; `npm run test:watch` for the local
+loop.
+
+- **Colocated:** `Foo.test.tsx` beside `Foo.tsx`, `bar.test.ts` beside `bar.ts`. No `__tests__/` folders.
+- **Explicit imports:** `import { describe, expect, it, vi } from 'vitest'`. Globals are off — do not enable them.
+- **Names read as sentences:** `describe('<Unit>')` + `it('<does what, when>')`. The backend's
+  `<Method>_<Scenario>_<ExpectedOutcome>` form does not carry over.
+- **Tables use `it.each`** with a typed row (`it.each<{ … }>([...])`) and `$field` interpolation in the title —
+  the frontend equivalent of `[Theory]` + `[InlineData]`.
+- **Assert what a user or assistive technology perceives:** text, roles, ARIA attributes. Never CSS Module class
+  names — they are styling detail.
+- **Query by role first** (`getByRole('heading', { level: 3 })`), text second. `getBy*` throws when nothing
+  matches; `findBy*` waits for async rendering.
+- **Mock at the service seam:** `vi.mock('@/services', …)` plus a fresh `QueryClient` per render, never a
+  shared one. Do not mock hooks.
+- **Fake timers only where a real delay is under test**, restored in `afterEach` with `vi.useRealTimers()`; with
+  them on, assert with `getBy*`, not `findBy*`.
+- **Test files are type-checked and linted** like production code — a type error in a test fails the build.

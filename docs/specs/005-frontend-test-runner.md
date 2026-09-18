@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `005` |
-| **Status** | approved — awaiting implementation |
+| **Status** | in progress — implemented, awaiting a green CI run |
 | **Author** | `00-leader` |
 | **Created** | 2026-09-18 |
 | **Branch** | `feat/frontend-test-runner` |
@@ -32,18 +32,18 @@ priority areas listed in `06-qa-tester.md`.
 
 ## 3. In scope
 
-- [ ] Dev dependencies, exact versions: `vitest@5.0.1`, `jsdom@30.1.0`, `@testing-library/react@16.3.3`, and its
+- [x] Dev dependencies, exact versions: `vitest@5.0.1`, `jsdom@30.1.0`, `@testing-library/react@16.3.3`, and its
       required peer `@testing-library/dom@10.4.2`. `package-lock.json` regenerated.
-- [ ] A `test` block in `vite.config.ts` (`environment: 'jsdom'`, `setupFiles: ['./src/test/setup.ts']`), with
+- [x] A `test` block in `vite.config.ts` (`environment: 'jsdom'`, `setupFiles: ['./src/test/setup.ts']`), with
       `defineConfig` imported from `vitest/config` so the key type-checks.
-- [ ] `src/test/setup.ts` registering RTL's `cleanup()` in `afterEach`.
-- [ ] Scripts: `"test": "vitest run"` (single run, exits — what CI calls) and `"test:watch": "vitest"`.
-- [ ] `formatDuration` and `getISODuration` extracted from `RecipeCard` into `src/utils/duration.ts`, sharing one
+- [x] `src/test/setup.ts` registering RTL's `cleanup()` in `afterEach`.
+- [x] Scripts: `"test": "vitest run"` (single run, exits — what CI calls) and `"test:watch": "vitest"`.
+- [x] `formatDuration` and `getISODuration` extracted from `RecipeCard` into `src/utils/duration.ts`, sharing one
       private `toSafeMinutes` guard. `RecipeCard` imports them. Behaviour-preserving.
-- [ ] Colocated tests: `src/utils/duration.test.ts`, `RecipeList.test.tsx`, `ThemeProvider.test.tsx`,
+- [x] Colocated tests: `src/utils/duration.test.ts`, `RecipeList.test.tsx`, `ThemeProvider.test.tsx`,
       `NavLink.test.tsx` — see section 12.
-- [ ] `.github/workflows/ci.yml`: a `Test` step running `npm test`, after `Lint` and before `Build`.
-- [ ] Docs: ADR-018, frontend Tests section in `conventions.md`, and the updates listed in section 16.
+- [x] `.github/workflows/ci.yml`: a `Test` step running `npm test`, after `Lint` and before `Build`.
+- [x] Docs: ADR-018, frontend Tests section in `conventions.md`, and the updates listed in section 16.
 
 ## 4. Out of scope
 
