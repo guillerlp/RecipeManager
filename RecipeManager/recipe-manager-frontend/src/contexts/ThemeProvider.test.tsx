@@ -52,9 +52,10 @@ describe('useTheme', () => {
   it('throws outside a ThemeProvider', () => {
     // React logs the render error before rethrowing it; silence that so the expected throw is not noise.
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-
-    expect(() => renderHook(() => useTheme())).toThrow('useTheme must be used within a ThemeProvider');
-
-    consoleError.mockRestore();
+    try {
+      expect(() => renderHook(() => useTheme())).toThrow('useTheme must be used within a ThemeProvider');
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });
