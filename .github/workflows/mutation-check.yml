@@ -24,7 +24,7 @@ jobs:
       - name: Mutate and test
         shell: bash
         run: |
-          set -uo pipefail
+          set +e -uo pipefail  # Actions runs bash with -e; a killed mutation must not end the loop
           SVC=RecipeManager.Api/Startup/ServiceInitializer.cs
           REPO=RecipeManager.Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs
           declare -A FILE SED
