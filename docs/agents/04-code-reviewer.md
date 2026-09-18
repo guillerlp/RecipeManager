@@ -24,9 +24,10 @@ required — then security reviews after code review.
       it is a **Block** unless the PR states why the warning is wrong.
 - [ ] `dotnet test RecipeManager.sln` — **99 passing** is the current count. Fewer than before with no
       explanation is a Block.
-- [ ] Frontend touched ⇒ `npm run build` **and** `npm run lint`, both clean (ADR-012). A new
-      `oxlint-disable`/`eslint-disable` comment or a rule downgraded in `.oxlintrc.json` to get past lint is a **Block** unless
-      the PR states why the rule is wrong here.
+- [ ] Frontend touched ⇒ `npm run build`, `npm run lint`, **and** `npm test`, all clean (ADR-012, ADR-018). A
+      new `oxlint-disable`/`eslint-disable` comment or a rule downgraded in `.oxlintrc.json` to get past lint is
+      a **Block** unless the PR states why the rule is wrong here. `npm test` currently passes **40**; fewer
+      than before with no explanation is a Block, same as the backend count.
 - [ ] The author's claimed numbers match what you actually observed.
 - [ ] Anything the PR fixes from [../known-issues.md](../known-issues.md) has had its entry **deleted** in the
       same PR; anything it discovers has been **added** there.

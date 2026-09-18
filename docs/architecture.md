@@ -544,7 +544,7 @@ endpoint is anonymous and every recipe is world-writable. See
 - **Context:** the SPA had no test runner and no tests. CI's frontend job proved the code type-checked, linted,
   and bundled — never that it behaved — and Dependabot's npm majors were merged on that evidence alone.
 - **Decision:** `vitest`, `jsdom`, `@testing-library/react` and its peer `@testing-library/dom`, all dev-only.
-  Vitest is configured by a `test` block in `vite.config.ts` (with `defineConfig` imported from
+  Vitest is configured by a `test` block in `recipe-manager-frontend/vite.config.ts` (with `defineConfig` imported from
   `vitest/config`), so tests resolve aliases, the React plugin, CSS Modules, and assets exactly as the build
   does. Globals are **off**: tests import `describe`/`it`/`expect`/`vi` from `vitest`, which keeps them
   ordinary TypeScript that `tsc -b` and the type-aware Oxlint rules already understand;
@@ -561,7 +561,7 @@ endpoint is anonymous and every recipe is world-writable. See
   *(e)* MSW — most realistic, most setup; reconsider when mutation hooks exist. *(f)* `jest-dom` and
   `user-event` — not needed by any current test; `getBy*` already throws on no match.
 - **Consequences:** behaviour of the five highest-value frontend areas is asserted on every PR. What it costs:
-  `npm ci` installs jsdom's tree and the CI frontend job is slower; test files sit inside `tsconfig.json`'s
+  `npm ci` installs jsdom's tree and the CI frontend job is slower; test files sit inside `recipe-manager-frontend/tsconfig.json`'s
   `include`, so a type error in a test fails `npm run build` — deliberate, but coupling; the `RecipeList`
   error-state test is coupled to `useRecipes`' retry policy and changes with it; jsdom has no layout engine, so
   nothing visual, and no real browser behaviour, is covered. `formatDuration`/`getISODuration` moved from

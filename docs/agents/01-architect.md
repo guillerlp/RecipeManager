@@ -58,7 +58,7 @@ These were settled on 2026-07-26. Implement towards them; do not re-litigate the
 | Domain error codes | HTTP status moved out of the Domain into a semantic error kind (**shipped**) | ADR-009, `R-05` |
 | Ingredients | Structure them — the `string[]` shape is an acknowledged temporary shortcut | `R-10` |
 | Integration tests | Testcontainers with real PostgreSQL — **unblocked**, CI now provides Docker (ADR-013) | `R-06` |
-| Frontend tests | Vitest + React Testing Library | `R-07` |
+| Frontend tests | Vitest + React Testing Library (**shipped**) | ADR-018, `R-07` |
 
 ### Recipe-domain questions still to answer
 

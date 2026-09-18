@@ -5,7 +5,8 @@ Every **defect and gap in what already exists**. Planned work that does not exis
 
 Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code. Build and
 test numbers re-measured on 2026-08-04 after `R-02`, and the frontend rows re-measured on 2026-08-08 after `R-03`
-and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12.
+and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12. The frontend
+tests row was added 2026-09-18 after `R-07`.
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
