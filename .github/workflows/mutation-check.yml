@@ -1,0 +1,70 @@
+# THROWAWAY — R-08 mutation check (spec 006). Never merged; lives only on throwaway/r08-mutation-check.
+name: Mutation check
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: RecipeManager
+
+jobs:
+  mutations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: RecipeManager/global.json
+      - run: dotnet restore RecipeManager.sln --locked-mode
+      - name: Mutate and test
+        shell: bash
+        run: |
+          set -uo pipefail
+          SVC=RecipeManager.Api/Startup/ServiceInitializer.cs
+          REPO=RecipeManager.Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs
+          declare -A FILE SED
+          FILE[M1]=$SVC;  SED[M1]='s|services.Decorate<IRecipeRepository, CachedRecipeRepository>();|// &|'
+          FILE[M2]=$REPO; SED[M2]='s|await RemoveCache(CacheKeys.AllRecipes, cancellationToken);|// &|'
+          FILE[M3]=$REPO; SED[M3]='/public async Task UpdateAsync/,/^    }/ s|await InvalidateRecipeRelatedCaches|// &|'
+          FILE[M4]=$REPO; SED[M4]='/public async Task DeleteAsync/,/^    }/ s|await InvalidateRecipeRelatedCaches|// &|'
+          FILE[M5]=$REPO; SED[M5]='s|RemoveCache(CacheKeys.AllRecipes, cancellationToken),|Task.CompletedTask,|'
+          FILE[M6]=$REPO; SED[M6]='s|RemoveCache(CacheKeys.GetRecipeKey(recipeId), cancellationToken)|Task.CompletedTask|'
+
+          run_tests() {
+            dotnet test RecipeManager.IntegrationTests --filter "FullyQualifiedName~RecipeCacheTests" 2>&1 | tee /tmp/out.log
+          }
+
+          echo "| Mutation | Result | Failing tests |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          status=0
+
+          run_tests
+          if ! grep -qE "Passed!.*Passed: +4, Skipped: +0" /tmp/out.log; then
+            echo "| baseline | **NOT GREEN** | |" >> "$GITHUB_STEP_SUMMARY"; exit 1
+          fi
+          echo "| baseline | 4 passed, 0 skipped | — |" >> "$GITHUB_STEP_SUMMARY"
+
+          for m in M1 M2 M3 M4 M5 M6; do
+            git checkout -- .
+            sed -i "${SED[$m]}" "${FILE[$m]}"
+            if git diff --quiet; then
+              echo "| $m | **NOT APPLIED** | |" >> "$GITHUB_STEP_SUMMARY"; status=1; continue
+            fi
+            git diff -U0 | grep '^[-+] ' || true
+            run_tests
+            failed=$(grep -oE "Failed RecipeManager[^ ]*RecipeCacheTests\.[A-Za-z_]+" /tmp/out.log | sed 's/.*\.//' | sort -u | paste -sd ',' - | sed 's/,/, /g')
+            if grep -qE "Skipped: +[1-9]" /tmp/out.log; then
+              echo "| $m | **SKIPPED — no Docker?** | |" >> "$GITHUB_STEP_SUMMARY"; status=1
+            elif [ -n "$failed" ]; then
+              echo "| $m | killed | $failed |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "| $m | **SURVIVED** | |" >> "$GITHUB_STEP_SUMMARY"; status=1
+            fi
+          done
+          git checkout -- .
+          exit $status
