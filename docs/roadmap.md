@@ -53,7 +53,56 @@ namespaces now fail the build, and it opened `QUAL-05` for the frontend.
 
 ---
 
-## Phase 3 — domain evolution
+## Phase 3 — the editorial app and domain evolution
+
+Re-sequenced on 2026-09-19 around the **editorial design**: the canonical visual reference for every screen,
+kept in Claude Design (see [agents/07-ux-ui.md](agents/07-ux-ui.md#canonical-design-reference)). It covers six
+screens (Home, Recipes, Detail, Add/Edit, Profile & settings, Cooking mode) in light and dark, plus mobile for
+three of them. It assumes structured ingredients throughout, so most of its screens **depend on** `R-10` rather
+than preceding it. The reasoning is in [decisions-log.md](decisions-log.md#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise).
+
+Build order. Each item names what it waits on, so a later item can move up if its dependencies are met:
+
+| Order | Item | Waits on |
+| --- | --- | --- |
+| 1 | `R-16` Editorial design system and shell | — |
+| 2 | `R-10` Structured ingredients (ADR also settles the instructions shape) | — |
+| 3 | `R-17` Structured instructions | `R-10` ADR |
+| 4 | `R-18` Recipe detail screen | `R-10` |
+| 5 | `R-19` Draft recipes | `R-10` |
+| 6 | `R-20` Tags | — |
+| 7 | `R-21` Add/edit form | `R-10`, `R-17`, `R-19`, `R-20` |
+| 8 | `R-22` Cook log | — |
+| 9 | `R-23` Cooking mode | `R-17`, `R-22` |
+| 10 | `R-24` Export and import | `SEC-08`, `SEC-09` |
+
+`R-11`, `R-12`, `R-13`, and `R-14` keep their IDs and are unordered relative to the list above; each notes what
+the design asks of it. `R-13` is worth doing early, since every screen above is easier to check against realistic
+data.
+
+### R-16
+**Editorial design system and shell** · `07-ux-ui` → `03-senior-react` · `01-architect` (ADR for fonts and
+tokens) · ~2 days
+
+The only part of the design with no data-model dependency, so it goes first.
+
+- **Tokens.** Replace the palette with the design's paper/ink set (`--paper`, `--paper-2`, `--ink`, `--ink-2`,
+  `--ink-3`, `--rule`, `--accent`, `--danger`), in both `light.css` and `dark.css`. Add a real type scale and
+  shared breakpoints, which closes `UX-02` and `UX-03`. Recheck status-colour contrast in dark (`UX-01`).
+- **Typography.** Newsreader for user-written content (titles, descriptions, steps), `system-ui` for interface
+  text, monospace for small-caps labels and tabular quantities.
+- **Fonts and icons are self-hosted.** Newsreader ships as committed `woff2` files or an `@fontsource` package.
+  Icons stay inline SVG in `components/ui/Icon/` (ADR-014), with the glyphs the design uses added by hand. No
+  runtime request to Google Fonts: the app is meant to be self-hosted, the future CSP (`SEC-10`) stays
+  `self`-only, and visitor IPs are not sent to a third party.
+- **Shell.** New header, pill buttons, hairline rules instead of bordered cards, and a bottom navigation bar on
+  mobile with a 44px minimum touch target.
+- **Screens on the current contract.** Home and Recipes restyled. Home's "Last cooked" rail and the stats
+  wait for `R-22`, and tag chips wait for `R-20`, so both are left out rather than stubbed.
+- **Settings.** The theme control moves from the footer to Settings and gains **System**, which follows
+  `prefers-color-scheme` (settles `DEC-06`). Browser-only preferences (default servings, keep screen awake) persist in
+  `localStorage` until `R-14` gives them an owner. The metric/imperial switch waits for `R-10`'s conversion
+  policy.
 
 ### R-10
 **Structured ingredients** · `01-architect` (ADR required) → `02-senior-csharp` → full stack · ~2–3 days · **decided**
@@ -68,17 +117,98 @@ client-side instead).
 - An `Ingredient` value object or entity: `Quantity` (decimal), `Unit`, `Name`, optional `Notes`.
 - A `Unit` value object or enum covering metric and imperial, with an explicit conversion policy — decide
   whether conversion is a domain service or a presentation concern, and what the canonical stored unit is.
-- Whether an ingredient **catalogue** exists (a shared `Ingredient` table enabling "what can I cook with X")
-  or ingredients stay owned by their recipe.
+- ~~Whether an ingredient **catalogue** exists~~ — **settled 2026-09-19: no catalogue.** Ingredients are value
+  objects owned by their recipe. `Recipe` stays the only aggregate and each write stays one repository call
+  (ADR-006 holds). "Recipes containing tomato" becomes a name match in SQL. The cost is that "tomato" and
+  "tomatoes" are different ingredients, with no shared identity to join on.
 - Migration for existing rows: `text[]` free text cannot be parsed reliably into structured data. Decide
   between a best-effort parse, a nullable structured column alongside the text one, or accepting data loss.
+  If `Quantity` and `Unit` are optional (needed anyway for "salt to taste"), every old string migrates
+  losslessly as a name-only ingredient.
 
-**Knock-on effects to plan in the same ADR:** the recipe form becomes substantially more complex
-(see [agents/07-ux-ui.md](agents/07-ux-ui.md)); serving-scaling becomes possible and will be requested;
-`RecipeDto` changes, so `R-09` (shipped) will flag every client site the change touches.
+**Knock-on effects to plan in the same ADR:** the recipe form is now `R-21`, and its ingredient input parses
+one line ("2 tbsp butter, cold") into quantity, unit, and name on the client, so the parser's rules belong
+in the ADR too. Serving scaling is `R-18`. The metric/imperial preference in `R-16`'s Settings needs the
+conversion policy. `RecipeDto` changes, so `R-09` (shipped) will flag every client site the change touches.
 
-Consider doing the same for `Instructions` (per-step duration, image, grouping) — decide together, implement
-separately.
+The same ADR settles the `Instructions` shape. It is no longer optional: cooking mode (`R-23`) needs per-step
+durations and to know which ingredients each step uses. Decided here, implemented as `R-17`.
+
+### R-17
+**Structured instructions** · `01-architect` (shape decided in `R-10`'s ADR) → `02-senior-csharp` → full stack ·
+~1–2 days
+
+`Instructions` becomes an ordered list of steps: text, an optional duration, and references to the ingredients
+the step uses. Those references are what cooking mode's "For this step" and "Already used" lists are built
+from. Referencing an ingredient needs something stable to point at. A value object has no identity, so the ADR
+must choose between an index into the ingredient list (breaks when the list is reordered), a step-local id,
+or making `Ingredient` a child entity. Fix `TEST-03` (step order never asserted) before or with this: reshaping
+the steps is exactly the change an order-insensitive assertion would let through.
+
+### R-18
+**Recipe detail screen** · `07-ux-ui` → `03-senior-react` · ~1 day
+
+Design screen 3c: method in the wide column, ingredients in a sticky rail, and a servings stepper that
+rescales every quantity on the client. Closes `BUG-10` (no detail route). Rescaling is presentation only and
+never writes back. Quantities without a number ("to taste") stay unscaled.
+
+### R-19
+**Draft recipes** · `01-architect` (ADR required) → `02-senior-csharp` → full stack · ~1 day
+
+The design lets a recipe be saved with only a title and finished later. Today `Recipe.ValidateProperties`
+also requires a description, a non-zero time, servings, and at least one ingredient and one step (`UX-05`).
+Decided 2026-09-19: add an explicit Draft/Published status. A draft needs only a title. The full invariants
+apply on publish and on every update to a published recipe.
+
+The ADR must decide whether drafts appear in `GET /api/recipes` (and the `recipes_all` cache key), whether a
+published recipe can return to draft, and what the existing rows become (published, since they already
+satisfy the full invariants). The rejected alternatives were keeping the rules and drafting in the browser
+only, and relaxing the aggregate to require only a title.
+
+### R-20
+**Tags** · `01-architect` → full stack · ~1 day
+
+Freeform labels ("roast", "breakfast", "feeds a table") on a recipe, shown in the list and on the detail
+screen, and edited in the form. Removes known limitation #7. Decide the storage (`text[]` like today's
+ingredients, or a child table) and normalisation (case, whitespace, duplicates) in the ADR. Comes before
+`R-21` so the form is built once.
+
+### R-21
+**Add/edit form** · `07-ux-ui` → `03-senior-react` · ~2 days
+
+Design screen 3d. The title field is typeset as the page title, there is a live preview of the list row, and
+ingredients are entered one per line and parsed into quantity, unit, and name. Adds the SPA's first mutation
+hooks (the `['recipes']` invalidation pattern in the feature workflow) and closes `BUG-06` (`/recipes/new`
+has no route). The existing checklist in [agents/07-ux-ui.md](agents/07-ux-ui.md) still applies: keyboard
+reorder, visible limits, cross-field errors, and 400/422 mapping. "Draft saved" in the design depends on
+`R-19`. The photo field depends on `R-12`.
+
+### R-22
+**Cook log** · `01-architect` (ADR required) → full stack · ~1–2 days
+
+Record each time a recipe is cooked. This feeds "Cooked 11 times", Home's "Last cooked" rail and
+"never cooked yet" view, and the Profile stats (total cooks, most cooked). It is probably a child collection
+of `Recipe` or a separate aggregate. If it is a separate aggregate, it forces the unit-of-work decision
+ADR-006 deferred, so plan that here, not after. Decide whether logging a cook invalidates the recipe's cache
+entries.
+
+### R-23
+**Cooking mode** · `07-ux-ui` → `03-senior-react` · ~2 days
+
+Design screen 3f. It deliberately breaks the paper palette: warm near-black with an amber accent, for reading
+at arm's length. One step at a time with a large type size, only that step's ingredients, and the ones
+already used struck through. It has a step timer, and uses the Screen Wake Lock API behind the Settings
+preference. Finishing logs a cook (`R-22`). The accent pair must be contrast-checked as its own palette,
+since it is not a theme.
+
+### R-24
+**Export and import** · `01-architect` + `05-security-reviewer` (both required) → full stack · ~1–2 days
+
+Export the whole catalogue as JSON, and import it back. Import is a bulk write from a user-supplied file, so
+the database-level length limits (`SEC-08`, `SEC-09`) must exist first. Otherwise one crafted file stores
+values no API request could. It also needs a size cap, schema versioning of the export format, and a
+duplicate policy (skip, replace, or copy). "Print the whole catalogue" in the design is a print stylesheet
+and belongs with `R-18`, not here.
 
 ### R-11
 **Pagination and server-side search** · `01-architect` → `02-senior-csharp` + `03-senior-react` · ~1 day
@@ -89,6 +219,10 @@ key (`SEC-07`), and the SPA filters it in the browser. This is fine at 20 recipe
 Design the pagination contract and the cache-key strategy **together** — paginating invalidates the current
 single-key `recipes_all` approach. PostgreSQL `text[]` is queryable, so ingredient search can move server-side
 here even before `R-10`.
+
+The editorial design asks for "Load the rest" on the Recipes screen, and three saved views on Home ("under 30
+minutes", "feeds a table", "never cooked yet"). Design the query contract so those are filters on the same
+endpoint, not three new endpoints. The last one needs `R-22`.
 
 ### R-12
 **Recipe images** · `01-architect` + `05-security-reviewer` (both required) → full stack · ~1 day
@@ -103,7 +237,8 @@ content validation by magic bytes, server-side re-encode, size and rate limits, 
 filenames, storage outside the web root, EXIF stripping.
 
 Decide first whether images are uploaded or referenced by URL — a URL field is a fraction of the work and may
-be enough.
+be enough. The editorial design leans that way: its photo slot reads "drop or paste a URL", is optional on every
+screen, and no screen needs a photo to look finished.
 
 ### R-13
 **Development-only data seeder** · `02-senior-csharp` · ~2 h
@@ -137,7 +272,8 @@ definition of ready-to-deploy. Re-read this list before the first deployment.
 `R-14` **Authentication and ownership** · `01-architect` + `05-security-reviewer` · ~3–5 days — the largest
 single item on this list. Requires choosing the identity source (ASP.NET Core Identity vs. an external IdP),
 adding a `User` aggregate, adding `OwnerId` to `Recipe` with a migration for existing rows, filtering every
-query, and wiring auth through the SPA. Do not start it as a side effect of another feature.
+query, and wiring auth through the SPA. Do not start it as a side effect of another feature. The editorial
+design reserves an "Account" block in Profile & settings (design screen 3e), shown disabled until this exists.
 
 ---
 

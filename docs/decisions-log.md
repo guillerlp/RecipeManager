@@ -39,19 +39,53 @@ Jump to every entry touching a topic.
 | Layering / dependency direction | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain) |
 | Error handling | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
 | Caching | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
-| Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
+| Domain modelling | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Testing | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
-| Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
+| Project direction | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
 | Tooling / infrastructure | [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Enforcement vs. convention | [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Dependency management | [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
-| Frontend / React | [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
+| Frontend / React | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | Accessibility | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | API contract | [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript) |
 
 ---
 
 ## Entries
+
+### 2026-09-19 — A UI design is a dependency graph in disguise
+
+**Context.** Phase 3 was about to start with `R-10` (structured ingredients) when a complete redesign of the SPA
+arrived: the editorial design, six screens in light and dark. The obvious question was whether to land the new
+frontend first and return to the domain afterwards, on the theory that the UI and the data model are
+independent.
+
+**Decision.** Neither "frontend first" nor "domain first". Each screen of the design was mapped to the data it
+needs, and the roadmap was re-sequenced from that. Only the design system and the shell (`R-16`) turned out to
+be independent. Detail, Add/Edit, and Cooking mode are all built on quantities, units, and per-step
+ingredients, so they come after `R-10` and the new `R-17`. The design also brought in four domain concepts the
+roadmap had never mentioned (drafts, tags, a cook log, export/import), which became `R-19`–`R-24`. Two were
+decided on the spot: ingredients stay owned by their recipe with no catalogue, and "only the title is
+required" becomes draft recipes rather than a weaker aggregate.
+
+**Rejected.** *(a)* Building the screens first on today's `string[]` contract. It looks faster and gives visible
+progress, but every screen that shows an ingredient would be built twice, and the domain model warns against
+exactly this ("do not build features that entrench free-text ingredients"). *(b)* Treating the design's copy as
+a specification. Its Add/Edit screen claims the validator requires only a title, which is false (`UX-05`).
+Building to it would have produced a form whose submissions the API rejects. *(c)* Loading fonts and icons the
+way the prototype does, from Google Fonts. A prototype's implementation choices are not decisions. Self-hosting
+fits an app meant to run on its owner's server, and keeps the future CSP simple.
+
+**Cost.** Visible frontend progress is limited to the shell until `R-10` and `R-17` ship, and those are
+backend-heavy. The roadmap grew by nine items, each needing its own spec, and most of them need an ADR as well. The design now lives outside the repo, so it can drift from what is documented here, and
+`UX-05` is the first example.
+
+**Takeaway.** *Read a mockup as a list of the data it assumes.* Every number, badge, and button on a screen is a
+claim about what the backend can answer. Listing those claims per screen turns "which goes first, UI or
+domain?" from a matter of taste into a topological sort. It also flushes out the features a design adds
+without saying so, and the places where its copy has quietly drifted from the rules.
+
+---
 
 ### 2026-09-19 — Measure a latch before you arm it
 

@@ -26,6 +26,29 @@ Not needed for: pure logic changes in a hook, or a component whose visuals do no
 
 ---
 
+## Canonical design reference
+
+The target visual design for the whole app is the **editorial design** in Claude Design:
+[Recipe Manager - Editorial App](https://claude.ai/design/p/01d38965-d8a7-4a03-8a5b-84c32973a5cf?file=Recipe+Manager+-+Editorial+App.dc.html)
+(frames 3a–3g). It covers six screens (Home, Recipes, Detail, Add/Edit, Profile & settings, Cooking mode), each in
+light and dark, plus mobile at 390×844 for Recipes, Detail, and Cooking mode. The same project holds
+`Recipe Manager - Current UI` (the app as it stood on 2026-09-13) and `Recipe Manager - New Screens` (earlier,
+superseded explorations).
+
+How to use it:
+
+- **It is the target, not the current state.** The rest of this file describes what exists. The design is where
+  `R-16`–`R-24` in [../roadmap.md](../roadmap.md) are heading, and each item says which frames it implements.
+- **The design does not overrule the domain.** Where its copy or behaviour contradicts
+  [../domain-model.md](../domain-model.md), the domain wins until a roadmap item changes it. The known case is
+  `UX-05`: the design says only the title is required.
+- **Its implementation choices are not decisions.** The design loads Newsreader and Material Symbols from Google
+  Fonts. The project self-hosts fonts and keeps inline SVG icons instead (`R-16`).
+- **It is external and can change.** A frame's link can go stale or be edited. When a screen is specified from it,
+  copy the relevant decisions (tokens, copy, states) into the spec, not only the link.
+
+---
+
 ## The design system as it exists
 
 ### Tokens — `recipe-manager-frontend/src/styles/themes/`
@@ -68,9 +91,9 @@ is `light`; the value is read synchronously in the `useState` initialiser and ap
 toggle lives in the `Footer`.
 
 - [ ] Never read or set `data-theme` directly from a component — go through `useTheme()`.
-- [ ] There is **no `prefers-color-scheme` detection**; the default is always light. Whether it should follow
-      the OS preference on first visit is an open decision — `DEC-06` in
-      [../known-issues.md](../known-issues.md).
+- [ ] There is **no `prefers-color-scheme` detection**; the default is always light. Settled 2026-09-19: the
+      control moves to Settings with Light / Dark / System, and System follows the OS (`R-16` in
+      [../roadmap.md](../roadmap.md)). Until `R-16` ships, the toggle stays in the footer.
 
 ### Styling approach
 
