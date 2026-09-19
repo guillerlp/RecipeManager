@@ -38,9 +38,9 @@ Jump to every entry touching a topic.
 | CQRS / dispatching | [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-08-28 CQRS without MediatR](#2025-08-28--hand-rolled-cqrs-instead-of-mediatr) |
 | Layering / dependency direction | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain) |
 | Error handling | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
-| Caching | [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
+| Caching | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
-| Testing | [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Testing | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
 | Tooling / infrastructure | [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Enforcement vs. convention | [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
@@ -51,6 +51,34 @@ Jump to every entry touching a topic.
 ---
 
 ## Entries
+
+### 2026-09-18 — A cold cache cannot go stale, so prime it before testing invalidation
+
+**Context.** `TEST-02`: nothing verified that `CachedRecipeRepository` invalidates its entries on writes. The
+roadmap described the fix as "create → list contains it; update → detail shows new values; delete → detail
+returns 404" (`R-08`, spec 006).
+
+**Decision.** Every test reads through the API *before* the write (the priming read), writes, then reads again.
+A fourth test proves a cache hit happens, by changing the row directly in the database between two `GET`s and
+asserting the stale value. Each test's sensitivity was proven by a mutation check: each invalidation call and
+the `Decorate` registration were removed one at a time, and at least one test had to fail.
+
+**Rejected.** The roadmap's scenarios taken literally. They look correct and cannot fail: without a priming read
+the cache entry does not exist, so the re-read goes to the database whether or not invalidation works. With
+caching removed altogether, all three would still pass. Also rejected: unit-testing the decorator with a mocked
+`ICacheService`. It is fast and precise, but it pins key names and call order rather than what a client sees.
+
+**Cost.** The cache-hit test asserts stale data on purpose and writes behind the API's back, which reads like
+a bug without its comment. Designing the tests also exposed `BUG-14`: the update handler mutates the cached
+instance in place, so "update → detail shows new values" passes even when `recipe_{id}` is never invalidated.
+That one assertion is honest about being insensitive rather than pretending to cover it.
+
+**Takeaway.** *Before trusting a test, ask what change to the code would make it fail. If the answer is
+"none", it is not a test.* For caches specifically, a test has to put the system into the state where the bug
+would show (a warm entry) before triggering the code that should fix it. Removing the line under test and
+watching the test go red (mutation testing, done by hand) is the cheapest way to know.
+
+---
 
 ### 2026-09-18 — Extract logic out of a component to test it, rather than test it through rendering
 

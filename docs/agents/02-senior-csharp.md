@@ -110,7 +110,7 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - [ ] New endpoint ⇒ integration test in `RecipeManager.IntegrationTests/RecipesControllerTests.cs` asserting status code
       **and** database state, with `DbContext.ChangeTracker.Clear()` before post-write assertions.
 - [ ] FluentAssertions only, never `Assert.*`. AAA markers required.
-- [ ] `dotnet test RecipeManager.sln` — currently 99 passing. **Zero build warnings, enforced** by
+- [ ] `dotnet test RecipeManager.sln` — currently 103 passing. **Zero build warnings, enforced** by
       `TreatWarningsAsErrors` (ADR-010): a warning fails the build. Fix the cause; do not suppress it.
 
 ### Performance notes for this codebase

@@ -153,8 +153,8 @@ The kind of answer this project wants, for a change as small as adding a cache t
 > **Rejected:** shorter TTLs — that degrades every read to fix a write-path problem. Also rejected: invalidating
 > only the per-id key, which leaves the list endpoint serving the old title.
 >
-> **Cost:** every new write method must remember to invalidate, and nothing enforces it. That is exactly why
-> `TEST-02` (no cache-invalidation test) is rated High.
+> **Cost:** every new write method must remember to invalidate, and nothing in the compiler enforces it. What
+> catches a forgotten one is `RecipeCacheTests` — but only if a test is added for the new method (`R-08`).
 >
 > **Pattern / read more:** cache-aside with explicit invalidation, implemented as a decorator —
 > `RecipeManager.Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs`, ADR-003.
