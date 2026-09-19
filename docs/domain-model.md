@@ -187,8 +187,8 @@ project intends to replace it with structured data:
 - An `Ingredient` value object or entity carrying at minimum `Quantity`, `Unit`, and `Name`.
 - A `Unit` value object or enum covering metric and imperial, with an explicit conversion policy and a
   canonical stored unit.
-- A decision on whether an ingredient **catalogue** exists (shared across recipes, enabling "what can I cook
-  with X") or ingredients remain owned by their recipe.
+- **No ingredient catalogue** (settled 2026-09-19). Ingredients are value objects owned by their recipe, so
+  `Recipe` remains the only aggregate.
 - A migration strategy for existing `text[]` rows, which cannot be parsed into structured data reliably.
 
 **Consequences for anyone working today:**
@@ -199,8 +199,19 @@ project intends to replace it with structured data:
   merely awkward. Say so rather than implementing a string-parsing workaround.
 - `RecipeDto` will change, and `R-09` (shipped, ADR-019) will flag every client site the change touches.
 
-Consider the same treatment for `Instructions` (per-step duration, image, grouping) — decide together with
-ingredients, implement separately.
+`Instructions` get the same treatment: an ordered list of steps with an optional duration and references to
+the ingredients each step uses. The shape is decided in `R-10`'s ADR and implemented as `R-17`.
+
+### Also decided, not yet designed (2026-09-19)
+
+Brought in by the editorial design ([agents/07-ux-ui.md](agents/07-ux-ui.md#canonical-design-reference)). None
+of these exists today. Each needs its own ADR before code:
+
+- **Draft recipes** (`R-19`): a Draft/Published status. A draft needs only a title, and the invariants above
+  apply on publish. Until this ships, the invariants table is the whole truth (`UX-05`).
+- **Tags** (`R-20`): freeform labels on a recipe.
+- **Cook log** (`R-22`): a record of each time a recipe was cooked. If it becomes a separate aggregate, it forces
+  the unit-of-work decision (ADR-006).
 
 ### Ownership (`R-14`, on the deploy gate)
 

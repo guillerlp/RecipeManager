@@ -57,6 +57,9 @@ These were settled on 2026-07-26. Implement towards them; do not re-litigate the
 | CQRS | Keep hand-rolled; handlers auto-registered with Scrutor (**shipped**) | ADR-008 |
 | Domain error codes | HTTP status moved out of the Domain into a semantic error kind (**shipped**) | ADR-009, `R-05` |
 | Ingredients | Structure them — the `string[]` shape is an acknowledged temporary shortcut | `R-10` |
+| Ingredient catalogue | None — ingredients are value objects owned by their recipe (2026-09-19) | `R-10` |
+| "Only a title required" | Draft recipes with a Draft/Published status, not a relaxed aggregate (2026-09-19) | `R-19` |
+| Fonts and icons | Self-hosted; icons stay inline SVG (ADR-014), no runtime Google Fonts (2026-09-19) | `R-16` |
 | Integration tests | Testcontainers with real PostgreSQL — **unblocked**, CI now provides Docker (ADR-013) | `R-06` |
 | Frontend tests | Vitest + React Testing Library (**shipped**) | ADR-018, `R-07` |
 
@@ -66,8 +69,9 @@ Do not defer these silently — each will be forced by a feature request sooner 
 
 - **Structured ingredients: the design, not the direction.** The direction is decided (`R-10`); the shape is
   not. Settle in the ADR: the `Ingredient` shape, whether `Unit` is an enum or a value object, the canonical
-  stored unit and conversion policy, whether an ingredient **catalogue** exists, and how existing free-text
-  `text[]` rows migrate. Do not let this arrive incrementally through small features.
+  stored unit and conversion policy, how existing free-text `text[]` rows migrate, and the `Instructions`
+  shape (`R-17`). Settled 2026-09-19: **no ingredient catalogue**, so ingredients are owned by their recipe.
+  Do not let this arrive incrementally through small features.
 - **Ownership / multi-tenancy.** Requires a `User` aggregate, `OwnerId` on `Recipe`, a filter on every query, a
   migration for existing rows, and an auth stack. Choose the identity source (ASP.NET Core Identity vs. an
   external IdP) *before* touching the schema. `R-14`, on the deploy gate.

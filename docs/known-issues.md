@@ -91,9 +91,9 @@ kind of negative test.
 | [UX-01](#ux-01) | Medium | UX | Dark-theme status colours never contrast-checked |
 | [UX-02](#ux-02) | Medium | UX | Global heading sizes ignore the type scale; `h3` clips descenders |
 | [UX-03](#ux-03) | Low | UX | No shared breakpoint tokens |
+| [UX-05](#ux-05) | Medium | UX | The canonical design says only the title is required; the domain requires more |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
-| [DEC-06](#dec-06) | — | Decision | Follow OS colour-scheme preference on first visit? |
 | [DEC-07](#dec-07) | — | Decision | 24 h cap excludes slow-cooked and fermented recipes |
 | [DEC-08](#dec-08) | — | Decision | Split the reconstructed ADRs into individual files? |
 
@@ -273,7 +273,7 @@ Full detail on the contract seam is in [agents/08-api-contract.md](agents/08-api
 `/`, `/recipes`, and `/profile`. Clicking "Add Recipe" navigates to a blank page — no route, no 404 fallback.
 
 **Fix.** Build the create-recipe screen (see the form requirements in
-[agents/07-ux-ui.md](agents/07-ux-ui.md)), or remove the link. Adding a catch-all `*` route with a NotFound page
+[agents/07-ux-ui.md](agents/07-ux-ui.md)), or remove the link. The screen is planned as `R-21`. Adding a catch-all `*` route with a NotFound page
 is worthwhile regardless.
 
 ### BUG-07
@@ -300,7 +300,7 @@ as an action, and doing nothing when activated. Removing the debug log (`BUG-08`
 `onClick` was dropped and cards now render as `<article>`, which is what `RecipeCard`'s element switch is for.
 
 **Fix.** Build the detail screen, add the `/recipes/:id` route, and pass `onClick` again — `RecipeCard` already
-switches to `<button>` when it receives one.
+switches to `<button>` when it receives one. The screen is planned as `R-18`.
 
 **Owner:** `03-senior-react` + `07-ux-ui`
 
@@ -604,6 +604,21 @@ should not be done incidentally.
 Each CSS module defines its own media queries with ad-hoc values. Define `--breakpoint-*` tokens, or document
 the standard breakpoints, before the next screen is built.
 
+### UX-05
+**The canonical design states a validation rule the domain does not enforce — Medium**
+
+The editorial design's Add/Edit screen (3d, see [agents/07-ux-ui.md](agents/07-ux-ui.md#canonical-design-reference))
+says: "Nothing here is required except the title — the same rule your validator already enforces." That is
+false. `Recipe.ValidateProperties` also requires a description, at least one non-zero time, `Servings >= 1`, and
+at least one ingredient and one instruction ([domain-model.md](domain-model.md#invariants-recipevalidateproperties)).
+A form built to the design as drawn would let the user save something the API rejects with 422.
+
+This is contract drift of a new kind. It sits between the design and the domain rather than between the C# and
+TypeScript types, so neither `R-09`'s generated types nor any test can catch it.
+
+**Fix.** `R-19` (draft recipes) makes the claim true for drafts. Until it ships, `R-21` must not be built to the
+design's copy. Update the design's helper text when `R-19` lands, so it describes drafts and publishing.
+
 ---
 
 ## Open decisions
@@ -623,11 +638,6 @@ it in `Recipe`/`Entity` or drop the reference. Currently it is a dependency payi
 `ConfigurePipeline` order is `UseCors` → `UseHttpsRedirection` → `UseErrorHandler` → `UseRouting` →
 `UseAuthorization` → `MapControllers`. Because the error handler sits before `UseRouting`, exceptions thrown in
 routing or CORS are not wrapped into `ProblemDetails`. Confirm this is intentional.
-
-### DEC-06
-**Follow OS colour-scheme preference on first visit?**
-
-`ThemeProvider` defaults to `light` and only reads `localStorage`. There is no `prefers-color-scheme` detection.
 
 ### DEC-07
 **24 h cap excludes slow-cooked and fermented recipes**
@@ -654,6 +664,9 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `DEC-02` — Development-only seeder? | **Yes**, gated on `IsDevelopment()`. | `R-13` |
 | `DEC-05` — generate TS types from OpenAPI? | **Yes**, after the contract defects are fixed by hand. **Shipped 2026-09-19.** | ADR-019 |
 | Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. | `R-10` |
+| Ingredients: shared catalogue or owned by the recipe? | **Owned by the recipe**, as value objects. No second aggregate, so ADR-006 (no unit of work) still holds. The cost is that "tomato" and "tomatoes" are unrelated names. Settled 2026-09-19. | `R-10` |
+| `DEC-06` — follow the OS colour-scheme preference on first visit? | **Yes, as an explicit choice.** The theme control moves to Settings with Light / Dark / **System**, and System follows `prefers-color-scheme`. Settled 2026-09-19 by the editorial design (screen 3e). | `R-16` |
+| Only a title required (design) vs. full invariants (domain)? | **Draft recipes**: an explicit Draft/Published status, where drafts need only a title. Chosen over drafting only in the browser, and over relaxing the aggregate. Settled 2026-09-19. | `R-19`, `UX-05` |
 | CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
 | Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL.** Deferred until CI existed, since it needs Docker in both places; ADR-013 provided it. **Shipped 2026-09-17**, closing `TEST-06`: one container per test assembly, a database per test class, schema by `Database.Migrate()`, and a skip rather than a failure when Docker is missing. | ADR-017, `R-06` |
 | `BUILD-01`, `BUILD-02` — 7 backend build warnings | **Fixed**, and made unrepeatable by `TreatWarningsAsErrors` in `Directory.Build.props`. **Shipped 2026-08-04.** | ADR-010 |
