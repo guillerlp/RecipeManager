@@ -1,25 +1,16 @@
 [data-theme="light"] {
-  /* Text colors */
-  --color-text-primary: #1a1a1a;
-  --color-text-secondary: #6b7280;
-  --color-text-muted: #9ca3af;
+  /* Editorial palette (spec 009 §8.2). Ratios measured against --paper / --paper-2. */
+  --paper: #faf8f4;
+  --paper-2: #f2eee7;
 
-  /* Background colors */
-  --color-background: #ffffff;
-  --color-surface: #f9fafb;
-  --color-surface-hover: #f3f4f6;
+  --ink: #1c1b19;        /* 16.23 / 14.88 */
+  --ink-2: #57534c;      /*  7.21 /  6.61 */
+  --ink-3: #6b655c;      /*  5.44 /  4.99 */
 
-  /* Border colors */
-  --color-border: #9ca3af;
-  --color-border-hover: #2563eb;
+  --rule: #e2dcd2;       /* decorative hairline only — 1.29, never a control boundary */
+  --field-border: #8a8275; /* 3.58 / 3.28 — WCAG 1.4.11 boundary for inputs and controls */
 
-  /* Brand colors */
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
-  --color-primary-text: #ffffff;
-
-  /* Status colors */
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
+  --accent: #1d4ed8;     /*  6.32 /  5.80 — the design's #2563eb measured 4.47 on --paper-2 */
+  --accent-text: #ffffff; /* 6.70 on --accent */
+  --danger: #b42318;     /*  6.20 on --paper */
 }
