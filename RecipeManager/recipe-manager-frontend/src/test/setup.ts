@@ -6,3 +6,18 @@ import { afterEach } from 'vitest';
 afterEach(() => {
   cleanup();
 });
+
+// jsdom implements no matchMedia, and ThemeProvider calls it on first render (ADR-018 setup file).
+// Defaults to "OS prefers light"; a test wanting dark overrides window.matchMedia itself.
+if (!window.matchMedia) {
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    dispatchEvent: () => false,
+  });
+}
