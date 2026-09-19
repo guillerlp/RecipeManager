@@ -8,6 +8,7 @@
         int CookingTime,
         int Servings,
         List<string> Ingredients,
-        List<string> Instructions
+        List<string> Instructions,
+        int Rating = 0
     );
 }
