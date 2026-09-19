@@ -28,7 +28,7 @@ export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
         <CardComponent className={`${styles.recipesList} ${onClick ? styles.clickable : ''}`} {...cardProps}> 
             <div className={styles.imageBox}>
                 <img
-                    src={recipe.image ?? Logo}
+                    src={Logo}
                     className={styles.heroImage}
                     alt={`${recipe.title} photo`}
                     loading="lazy"
