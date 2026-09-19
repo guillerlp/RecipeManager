@@ -1,5 +1,5 @@
 import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useTheme } from '@/hooks/useTheme';
 import { ThemeProvider } from './ThemeProvider';
 
@@ -33,7 +33,9 @@ function ThemeProbe() {
     <>
       <span data-testid="preference">{preference}</span>
       <button onClick={toggleTheme}>{theme}</button>
-      <button name="dark" onClick={() => setPreference('dark')}>dark</button>
+      {/* Labelled distinctly from the toggle button above, whose own label IS the theme value
+          ('light'/'dark') — a name of 'dark' would collide with it whenever theme is dark. */}
+      <button onClick={() => setPreference('dark')}>set dark</button>
     </>
   );
 }
@@ -47,9 +49,18 @@ const renderWithProvider = () =>
 
 const dataTheme = () => document.documentElement.getAttribute('data-theme');
 
+// mockMatchMedia overwrites window.matchMedia globally with no built-in restore; without this,
+// correctness depends on describes running in declaration order (so later ones inherit an
+// earlier test's mock), which breaks under sequence.shuffle or any reorder.
+const originalMatchMedia = window.matchMedia;
+
 beforeEach(() => {
   localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
+});
+
+afterEach(() => {
+  window.matchMedia = originalMatchMedia;
 });
 
 describe('ThemeProvider', () => {
@@ -129,10 +140,15 @@ describe('system preference', () => {
   });
 
   it('ignores the OS after the preference moves away from system', () => {
-    const media = mockMatchMedia(false);
+    // OS starts dark, so pinning the preference to 'dark' below is not yet distinguishable from
+    // "still following the OS" — the discriminating step is flipping the OS to light afterwards.
+    const media = mockMatchMedia(true);
     renderWithProvider();
 
-    fireEvent.click(screen.getByRole('button', { name: 'dark' }));
+    fireEvent.click(screen.getByRole('button', { name: 'set dark' }));
+    // A real transition (true -> false, not a re-fire of the value already in effect, which
+    // React would bail out of without even re-rendering). If the gate were broken and 'dark'
+    // merely tracked the OS, this would flip the theme to light; the pinned preference must not.
     act(() => media.change(false));
 
     expect(dataTheme()).toBe('dark');
