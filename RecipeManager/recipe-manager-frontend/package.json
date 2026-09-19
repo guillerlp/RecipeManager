@@ -13,7 +13,8 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gen:api": "npm ci --prefix ../contracts --no-audit --no-fund && npm --prefix ../contracts run gen"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.103.0",

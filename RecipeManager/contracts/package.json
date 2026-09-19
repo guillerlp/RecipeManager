@@ -1,0 +1,12 @@
+{
+  "name": "recipe-manager-contracts",
+  "private": true,
+  "description": "Isolated OpenAPI -> TypeScript generator. It has its own TypeScript 5 because openapi-typescript prints code through the TS compiler API, which TypeScript 7 does not ship. See ADR-019.",
+  "scripts": {
+    "gen": "openapi-typescript openapi.json --output ../recipe-manager-frontend/src/types/generated/api.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

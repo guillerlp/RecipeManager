@@ -64,3 +64,6 @@ RecipeManager/.idea
 
 # Golden-master mismatch dump from OpenApiContractTests (R-09 / ADR-019) — never committed, only diffed/promoted.
 RecipeManager/contracts/openapi.received.json
+
+# Isolated OpenAPI generator package (R-09 / ADR-019) — its own node_modules, never committed.
+RecipeManager/contracts/node_modules/
