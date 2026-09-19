@@ -1,7 +1,6 @@
-﻿namespace RecipeManager.Api.Startup.CustomObjects
+﻿namespace RecipeManager.Api.Startup.CustomObjects;
+
+public record DatabaseConnectionConfiguration
 {
-    public record DatabaseConnectionConfiguration
-    {
-        public string DefaultConnection { get; init; } = string.Empty;
-    }
+    public string DefaultConnection { get; init; } = string.Empty;
 }

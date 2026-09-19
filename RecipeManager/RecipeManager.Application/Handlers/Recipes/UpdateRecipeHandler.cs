@@ -5,35 +5,34 @@ using RecipeManager.Domain.Entities;
 using RecipeManager.Domain.Errors;
 using RecipeManager.Domain.Interfaces.Repositories;
 
-namespace RecipeManager.Application.Handlers.Recipes
+namespace RecipeManager.Application.Handlers.Recipes;
+
+public class UpdateRecipeHandler : ICommandHandler<UpdateRecipeCommand, Result>
 {
-    public class UpdateRecipeHandler : ICommandHandler<UpdateRecipeCommand, Result>
+    private readonly IRecipeRepository _recipeRepository;
+
+    public UpdateRecipeHandler(IRecipeRepository recipeRepository)
     {
-        private readonly IRecipeRepository _recipeRepository;
+        _recipeRepository = recipeRepository;
+    }
 
-        public UpdateRecipeHandler(IRecipeRepository recipeRepository)
+    public async Task<Result> Handle(UpdateRecipeCommand request, CancellationToken cancellationToken)
+    {
+        Recipe? recipeToUpdate = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
+
+        if (recipeToUpdate is null)
+            return Result.Fail(RecipeErrors.RecipeNotFound(request.Id));
+
+        Result updateResult = recipeToUpdate.Update(request.Title, request.Description, request.PreparationTime,
+            request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
+
+        if (updateResult.IsFailed)
         {
-            _recipeRepository = recipeRepository;
+            return updateResult;
         }
 
-        public async Task<Result> Handle(UpdateRecipeCommand request, CancellationToken cancellationToken)
-        {
-            Recipe? recipeToUpdate = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
+        await _recipeRepository.UpdateAsync(recipeToUpdate, cancellationToken);
 
-            if (recipeToUpdate is null)
-                return Result.Fail(RecipeErrors.RecipeNotFound(request.Id));
-
-            Result updateResult = recipeToUpdate.Update(request.Title, request.Description, request.PreparationTime,
-                request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
-
-            if (updateResult.IsFailed)
-            {
-                return updateResult;
-            }
-
-            await _recipeRepository.UpdateAsync(recipeToUpdate, cancellationToken);
-
-            return Result.Ok();
-        }
+        return Result.Ok();
     }
 }

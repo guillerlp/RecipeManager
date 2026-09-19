@@ -1,6 +1,5 @@
 using System.Reflection;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.Validators.Recipes;
 

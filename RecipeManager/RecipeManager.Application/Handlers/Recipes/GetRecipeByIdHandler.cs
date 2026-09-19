@@ -7,27 +7,26 @@ using RecipeManager.Application.Queries.Recipes;
 using RecipeManager.Domain.Errors;
 using RecipeManager.Domain.Interfaces.Repositories;
 
-namespace RecipeManager.Application.Handlers.Recipes
+namespace RecipeManager.Application.Handlers.Recipes;
+
+public class GetRecipeByIdHandler : IQueryHandler<GetRecipeByIdQuery, Result<RecipeDto>>
 {
-    public class GetRecipeByIdHandler : IQueryHandler<GetRecipeByIdQuery, Result<RecipeDto>>
+    private readonly IRecipeRepository _recipeRepository;
+    private readonly ILogger<GetRecipeByIdHandler> _logger;
+
+    public GetRecipeByIdHandler(IRecipeRepository recipeRepository, ILogger<GetRecipeByIdHandler> logger)
     {
-        private readonly IRecipeRepository _recipeRepository;
-        private readonly ILogger<GetRecipeByIdHandler> _logger;
+        _recipeRepository = recipeRepository;
+        _logger = logger;
+    }
 
-        public GetRecipeByIdHandler(IRecipeRepository recipeRepository, ILogger<GetRecipeByIdHandler> logger)
-        {
-            _recipeRepository = recipeRepository;
-            _logger = logger;
-        }
+    public async Task<Result<RecipeDto>> Handle(GetRecipeByIdQuery request, CancellationToken cancellationToken)
+    {
+        var recipe = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
 
-        public async Task<Result<RecipeDto>> Handle(GetRecipeByIdQuery request, CancellationToken cancellationToken)
-        {
-            var recipe = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
+        if (recipe is null)
+            return Result.Fail<RecipeDto>(RecipeErrors.RecipeNotFound(request.Id));
 
-            if (recipe is null)
-                return Result.Fail<RecipeDto>(RecipeErrors.RecipeNotFound(request.Id));
-
-            return Result.Ok(recipe.MapToRecipeDto());
-        }
+        return Result.Ok(recipe.MapToRecipeDto());
     }
 }

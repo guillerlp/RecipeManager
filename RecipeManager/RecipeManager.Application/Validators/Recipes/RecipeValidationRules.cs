@@ -22,7 +22,7 @@ public static class RecipeValidationRules
     {
         return ruleBuilder
             .GreaterThanOrEqualTo(0).WithMessage("Preparation time cannot be negative")
-            .LessThan(24 * 60).WithMessage("Preparation time cannot exceed 24 hours"); 
+            .LessThan(24 * 60).WithMessage("Preparation time cannot exceed 24 hours");
     }
 
     public static IRuleBuilderOptions<T, int> ValidateCookingTime<T>(this IRuleBuilder<T, int> ruleBuilder)
@@ -44,7 +44,7 @@ public static class RecipeValidationRules
     {
         return ruleBuilder
             .NotNull().WithMessage("Ingredients list cannot be null")
-            .Must(list => list.Count <= 50).WithMessage("Cannot exceed 50 ingredients"); 
+            .Must(list => list.Count <= 50).WithMessage("Cannot exceed 50 ingredients");
     }
 
     public static IRuleBuilderOptions<T, List<string>> ValidateInstructions<T>(

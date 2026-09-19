@@ -8,7 +8,7 @@ public static class ResultExtensions
 {
     public static ActionResult ToActionResult<T>(this Result<T> result)
     {
-        if(result.IsSuccess)
+        if (result.IsSuccess)
             return new OkObjectResult(result.Value);
 
         return CreateProblemDetails(result.Errors);

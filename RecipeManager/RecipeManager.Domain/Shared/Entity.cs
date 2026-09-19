@@ -1,19 +1,18 @@
-﻿namespace RecipeManager.Domain.Shared
+﻿namespace RecipeManager.Domain.Shared;
+
+public abstract class Entity
 {
-    public abstract class Entity
+    public Guid Id { get; protected init; }
+
+    public override bool Equals(object? obj)
     {
-        public Guid Id { get; protected init; }
+        return obj is Entity other &&
+            GetType() == other.GetType() &&
+            Id == other.Id;
+    }
 
-        public override bool Equals(object? obj)
-        {
-            return obj is Entity other &&
-                GetType() == other.GetType() &&
-                Id == other.Id;
-        }
-
-        public override int GetHashCode()
-        {
-            return Id.GetHashCode();
-        }
+    public override int GetHashCode()
+    {
+        return Id.GetHashCode();
     }
 }
