@@ -161,8 +161,8 @@ Before `03-senior-react` writes a screen, specify:
       distinguishes *empty because no recipes exist* from *empty because the search matched nothing* — new
       list screens must do the same.
 - [ ] **Error recovery**: what the user can actually do. Prefer a `refetch()` action over a full page reload.
-- [ ] **Responsive behaviour**: which breakpoints, what reflows. There are no shared breakpoint tokens today —
-      each CSS module defines its own media queries (`UX-03` in [../known-issues.md](../known-issues.md)).
+- [ ] **Responsive behaviour**: which reflows, at which of the three documented breakpoints (`480px`, `768px`,
+      `1024px` — see the Tokens section above, `UX-03` closed by ADR-021).
 - [ ] **Copy**: exact strings, sentence case, English.
 - [ ] **Both themes**: reviewed in light and dark.
 

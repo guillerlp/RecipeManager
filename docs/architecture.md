@@ -688,6 +688,9 @@ endpoint is anonymous and every recipe is world-writable. See
     through `R-24` would all be written against stale vocabulary.
   - **Global utility classes for typography** — terser markup, but a second, unscoped styling system beside CSS
     Modules; ADR-014 already rejected a competing style engine.
+  - **Repeat the type declarations per module** — no new file, but four declarations per label repeated across
+    ~15 modules is how a token system rots into copy-paste; this is the alternative `composes:` and
+    `styles/typography.module.css` exist to avoid.
 - **Consequences:**
   - The three breakpoints (`480px`, `768px`, `1024px`, `UX-03`) are documented constants in a `variables.css`
     comment, used literally in media queries, rather than custom-property tokens: `@media (max-width:

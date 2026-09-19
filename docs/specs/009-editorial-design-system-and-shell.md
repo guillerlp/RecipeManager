@@ -175,10 +175,11 @@ export type ThemePreference = 'light' | 'dark' | 'system'; // what the user chos
 export type Theme = 'light' | 'dark';                      // what is rendered    → <html data-theme>
 ```
 
-`ThemeProvider` stores the **preference** and derives the **theme**:
-`preference === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : preference`.
-It subscribes to that media query so the app follows the OS live, not only at load. The resolved theme is still
-written to `<html data-theme>` inside the `useState` initialiser, preserving the existing no-flash first paint.
+`ThemeProvider` keeps two pieces of state — the **preference** and the OS reading (`osPrefersDark`, updated live
+from a `matchMedia` subscription) — and derives the **theme** from both with `useMemo`:
+`preference === 'system' ? (osPrefersDark ? 'dark' : 'light') : preference`. The theme itself is never stored,
+since that would duplicate derived state; it is written to `<html data-theme>` inside a `useLayoutEffect`, which
+still runs before paint and preserves the existing no-flash first render.
 
 - The context exposes `{ preference, theme, setPreference }`. `toggleTheme` survives PR 1 only to keep the footer
   switch working, and is deleted in PR 3 with the switch itself.
