@@ -54,9 +54,11 @@
 }
 
 .actionButton {
+    /* No background at rest: the old rest and hover surface tokens both resolve to
+       --paper-2 now, so keeping a rest-state background would make hover a no-op.
+       The highlighted --paper-2 fill appears only on hover (see .actionButton:hover). */
     border: 1px solid var(--field-border);
     border-radius: var(--radius-lg);
-    background: var(--paper-2);
     transition:
       border-color var(--transition-normal),
       background-color var(--transition-normal),
