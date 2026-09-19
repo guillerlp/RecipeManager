@@ -88,10 +88,9 @@ kind of negative test.
 | [QUAL-03](#qual-03) | Low | Quality | Deep relative imports for shared assets |
 | [QUAL-04](#qual-04) | Low | Quality | Routes, verbs, and status codes are still hand-typed on the client |
 | [QUAL-05](#qual-05) | Low | Quality | Frontend indentation is mixed and no formatter enforces it |
-| [UX-01](#ux-01) | Medium | UX | Dark-theme status colours never contrast-checked |
-| [UX-02](#ux-02) | Medium | UX | Global heading sizes ignore the type scale; `h3` clips descenders |
-| [UX-03](#ux-03) | Low | UX | No shared breakpoint tokens |
 | [UX-05](#ux-05) | Medium | UX | The canonical design says only the title is required; the domain requires more |
+| [UX-06](#ux-06) | Medium | UX | `--rule` is a decorative hairline, not a control boundary |
+| [UX-07](#ux-07) | Low | UX | No visual-regression tooling |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-07](#dec-07) | — | Decision | 24 h cap excludes slow-cooked and fermented recipes |
@@ -580,30 +579,6 @@ own blame-ignored commit, the same pattern ADR-020 used for C#. A new dependency
 
 ## UX & accessibility
 
-### UX-01
-**Dark-theme status colours never contrast-checked — Medium**
-
-`--color-error` (`#ef4444`) and `--color-warning` (`#f59e0b`) are identical in `light.css` and `dark.css`, but
-were only ever chosen against the light background. Against `--color-background: #111827` they have not been
-verified for WCAG AA.
-
-**Fix.** Measure both against their actual surfaces; adjust the dark values if they fail 4.5:1.
-
-### UX-02
-**Global heading sizes ignore the type scale — Medium**
-
-`styles/globals.css` sets `h1 { font-size: 4.2em }`, `h2 { 3rem }`, `h3 { 1.7rem; line-height: 0.5 }`. These
-bypass the `--font-size-*` tokens entirely, and `h3`'s `line-height: 0.5` is below 1 so descenders are clipped.
-
-**Fix.** Reconcile with the token scale as one deliberate pass — it will shift every existing screen, so it
-should not be done incidentally.
-
-### UX-03
-**No shared breakpoint tokens — Low**
-
-Each CSS module defines its own media queries with ad-hoc values. Define `--breakpoint-*` tokens, or document
-the standard breakpoints, before the next screen is built.
-
 ### UX-05
 **The canonical design states a validation rule the domain does not enforce — Medium**
 
@@ -618,6 +593,34 @@ TypeScript types, so neither `R-09`'s generated types nor any test can catch it.
 
 **Fix.** `R-19` (draft recipes) makes the claim true for drafts. Until it ships, `R-21` must not be built to the
 design's copy. Update the design's helper text when `R-19` lands, so it describes drafts and publishing.
+
+### UX-06
+**`--rule` is a decorative hairline, not a control boundary — Medium**
+
+`--rule` measures **1.29:1** against `--paper` (1.36:1 in dark) — nowhere near WCAG 1.4.11's 3:1 requirement for
+the visual boundary that identifies a control. It is exactly what the design's own search field used to bound
+itself, until `--field-border` was introduced to replace it there (spec
+[009](specs/009-editorial-design-system-and-shell.md) §8.2, ADR-021).
+
+`--rule` stays legitimate for what it already is — a decorative separator between list rows, sections, or a
+footer rule — where nothing needs to be identified as clickable. Recorded so a future screen does not reach for
+`--rule` to bound an input, a button outline, or any other control and reintroduce the problem `--field-border`
+was added to fix.
+
+**Fix.** Not applicable — this is a guardrail, not a live defect. Close it if a lint rule or a review checklist
+item ever makes the mistake unrepresentable.
+
+### UX-07
+**No visual-regression tooling — Low**
+
+Nothing in the toolchain renders a screen and diffs it against a previous version. A token change — a hex value,
+a type-scale size, a spacing value — that breaks one screen's layout is caught only by a human looking at it in
+both themes, and that is the entire verification story for the editorial token migration (`R-16`,
+[spec 009](specs/009-editorial-design-system-and-shell.md) §12).
+
+**Fix.** Adopt a snapshot/visual-diff tool (e.g. Playwright's screenshot assertions, Chromatic) once there are
+enough screens for the cost to pay for itself. Not proposed for `R-16` — it is its own dependency decision and
+needs `01-architect`.
 
 ---
 
@@ -665,7 +668,7 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `DEC-05` — generate TS types from OpenAPI? | **Yes**, after the contract defects are fixed by hand. **Shipped 2026-09-19.** | ADR-019 |
 | Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. | `R-10` |
 | Ingredients: shared catalogue or owned by the recipe? | **Owned by the recipe**, as value objects. No second aggregate, so ADR-006 (no unit of work) still holds. The cost is that "tomato" and "tomatoes" are unrelated names. Settled 2026-09-19. | `R-10` |
-| `DEC-06` — follow the OS colour-scheme preference on first visit? | **Yes, as an explicit choice.** The theme control moves to Settings with Light / Dark / **System**, and System follows `prefers-color-scheme`. Settled 2026-09-19 by the editorial design (screen 3e). | `R-16` |
+| `DEC-06` — follow the OS colour-scheme preference on first visit? | **Yes, as an explicit choice, and now implemented.** Settled 2026-09-19 by the editorial design (screen 3e); **implemented the same day in PR 1 of `R-16`**: `ThemePreference` (`light`/`dark`/`system`, persisted) is now separate from the derived `Theme` (`light`/`dark`, rendered), `ThemeProvider` subscribes to `prefers-color-scheme` so `system` follows the OS live, and a visitor with nothing stored defaults to `system` rather than `light`. The segmented Light/Dark/System control itself, and its move into Settings, are still `R-16` PR 3 — until then the existing binary switch stays in the `Footer`. | ADR-021, `R-16` |
 | Only a title required (design) vs. full invariants (domain)? | **Draft recipes**: an explicit Draft/Published status, where drafts need only a title. Chosen over drafting only in the browser, and over relaxing the aggregate. Settled 2026-09-19. | `R-19`, `UX-05` |
 | CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
 | Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL.** Deferred until CI existed, since it needs Docker in both places; ADR-013 provided it. **Shipped 2026-09-17**, closing `TEST-06`: one container per test assembly, a database per test class, schema by `Database.Migrate()`, and a skip rather than a failure when Docker is missing. | ADR-017, `R-06` |

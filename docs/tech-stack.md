@@ -64,6 +64,7 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | Package | Version | Role |
 | --- | --- | --- |
 | `react` / `react-dom` | 19.3 | UI |
+| `@fontsource-variable/newsreader` | 5.3.0 | self-hosted variable Newsreader font (300/500 weights only), imported once in `main.tsx`; keeps the future CSP `self`-only instead of loading from Google Fonts as the editorial design does (ADR-021) |
 | `vite` | 8.3 | dev server + build; port **3000**, `/api` → `https://localhost:7231` proxy with `secure: false`. Bundles with Rolldown, transforms with Oxc, minifies CSS with Lightning CSS (ADR-015) |
 | `@vitejs/plugin-react` | 6.1 | Fast Refresh via Oxc — no Babel. Its `babel` option no longer exists; Babel plugins would need `@rolldown/plugin-babel` |
 | `typescript` | 7.0.2 (exact) | the Go-native compiler: a `tsc` binary, **no JavaScript API**. `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch` all on (ADR-016) |
