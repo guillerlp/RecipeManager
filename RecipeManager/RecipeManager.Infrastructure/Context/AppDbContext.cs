@@ -1,11 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RecipeManager.Domain.Entities;
 
-namespace RecipeManager.Infrastructure.Context
+namespace RecipeManager.Infrastructure.Context;
+
+public class AppDbContext : DbContext
 {
-    public class AppDbContext : DbContext
-    {
-        public DbSet<Recipe> Recipes { get; set; }
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-    }
+    public DbSet<Recipe> Recipes { get; set; }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 }

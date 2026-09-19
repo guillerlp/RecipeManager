@@ -33,7 +33,7 @@ public class MemoryCacheService : ICacheService
         options.RegisterPostEvictionCallback((k, v, reason, state) =>
         {
             if (k is string keyString)
-            {  
+            {
                 _cacheKeys.TryRemove(keyString, out _);
             }
         });

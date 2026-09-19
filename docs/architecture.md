@@ -615,6 +615,32 @@ endpoint is anonymous and every recipe is world-writable. See
   past. A Dependabot bump of `openapi-typescript` that changes its output will make the frontend drift step red
   by design; a human runs `npm run gen:api` and pushes the regenerated file to that same PR.
 
+### ADR-020 — A root `.editorconfig` arms `EnforceCodeStyleInBuild`
+
+- **Status:** accepted and **implemented 2026-09-19** (`R-15`, [specs/008-editorconfig.md](specs/008-editorconfig.md)).
+  Completes ADR-010 rather than superseding it. **Supersedes the conventions.md rule** that block-scoped files are
+  converted "only when already changing it substantially".
+- **Context:** ADR-010 set `EnforceCodeStyleInBuild`, but with no `.editorconfig` every IDE rule stayed at
+  `suggestion` and the build enforced no style. The property looked like a gate and was not one. Meanwhile 21 of
+  48 hand-written files had stayed block-scoped under a convention that only asked for file-scoped namespaces.
+- **Decision:** `/.editorconfig` at the git root raises three rule families to `warning`, which
+  `TreatWarningsAsErrors` makes build errors: `IDE0055` formatting (.NET default options, which the code already
+  followed), `IDE0005` unused usings, and `IDE0161` file-scoped namespaces. `var` preference is documented at
+  `suggestion` and not enforced. `**/Migrations/*.cs` is marked `generated_code`, because EF emits block-scoped
+  namespaces. `end_of_line` and `charset` are unset: git owns line endings, and the BOMs are split 44/20. For
+  `IDE0005`, `Directory.Build.props` sets `GenerateDocumentationFile` (the compiler skips unused-using analysis
+  without it) and suppresses the resulting `CS1591`. The one-off `dotnet format` pass is its own commit, listed in
+  `/.git-blame-ignore-revs`.
+- **Alternatives:** *(a)* delete `EnforceCodeStyleInBuild` and rely on review: zero friction, but the 21 drifted
+  files show review does not hold a style rule. *(b)* everything at `suggestion`: zero risk, and it enforces
+  exactly as much as before. *(c)* `dotnet format --verify-no-changes` as a CI step only: faster local builds, but
+  the failure arrives on a runner minutes later and local and CI disagree. *(d)* also enforce `var`: the code
+  already complies, so it would add friction for almost nothing.
+- **Consequences:** a mis-indented line, a leftover `using`, or a block-scoped namespace now fails the build,
+  including mid-refactor. Every build writes XML documentation files, and the suppressed `CS1591` must not be read
+  as a policy of documenting public APIs. `git blame` needs `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+  once per clone. Frontend files get editor guidance only; nothing enforces their formatting (`QUAL-05`).
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001

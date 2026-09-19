@@ -1,0 +1,6 @@
+# Bulk reformatting commits for `git blame` to skip.
+# Enable once per clone: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub reads this file automatically.
+
+# R-15 / ADR-020: dotnet format pass after adopting .editorconfig
+839d61aa364f3d85aa606ce972ecdbe803e1fae4

@@ -6,27 +6,26 @@ using RecipeManager.Application.Mappings;
 using RecipeManager.Domain.Entities;
 using RecipeManager.Domain.Interfaces.Repositories;
 
-namespace RecipeManager.Application.Handlers.Recipes
+namespace RecipeManager.Application.Handlers.Recipes;
+
+public class CreateRecipeHandler : ICommandHandler<CreateRecipeCommand, Result<RecipeDto>>
 {
-    public class CreateRecipeHandler : ICommandHandler<CreateRecipeCommand, Result<RecipeDto>>
+    private readonly IRecipeRepository _recipeRepository;
+
+    public CreateRecipeHandler(IRecipeRepository recipeRepository)
     {
-        private readonly IRecipeRepository _recipeRepository;
+        _recipeRepository = recipeRepository;
+    }
 
-        public CreateRecipeHandler(IRecipeRepository recipeRepository)
-        {
-            _recipeRepository = recipeRepository;
-        }
+    public async Task<Result<RecipeDto>> Handle(CreateRecipeCommand request, CancellationToken cancellationToken)
+    {
+        Result<Recipe> recipe = Recipe.Create(request.Title, request.Description, request.PreparationTime,
+            request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
 
-        public async Task<Result<RecipeDto>> Handle(CreateRecipeCommand request, CancellationToken cancellationToken)
-        {
-            Result<Recipe> recipe = Recipe.Create(request.Title, request.Description, request.PreparationTime,
-                request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
+        if (recipe.IsFailed)
+            return Result.Fail<RecipeDto>(recipe.Errors);
 
-            if (recipe.IsFailed)
-                return Result.Fail<RecipeDto>(recipe.Errors);
-
-            await _recipeRepository.AddAsync(recipe.Value, cancellationToken);
-            return Result.Ok(recipe.Value.MapToRecipeDto());
-        }
+        await _recipeRepository.AddAsync(recipe.Value, cancellationToken);
+        return Result.Ok(recipe.Value.MapToRecipeDto());
     }
 }

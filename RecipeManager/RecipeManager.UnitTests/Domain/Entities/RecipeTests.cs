@@ -26,8 +26,8 @@ public class RecipeTests
             cookingTime, servings, ingredients, instructions);
 
         // Assert 
-        result.IsSuccess.Should().BeTrue(); 
-        result.Value.Should().NotBeNull(); 
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeNull();
         result.Value.Title.Should().Be(title);
         result.Value.Description.Should().Be(description);
         result.Value.PreparationTime.Should().Be(preparationTime);
@@ -72,10 +72,10 @@ public class RecipeTests
 
     #region Create Method Tests - Validation Failures
 
-    [Theory] 
+    [Theory]
     [InlineData(null)]
-    [InlineData("")] 
-    [InlineData("   ")] 
+    [InlineData("")]
+    [InlineData("   ")]
     public void Create_WithInvalidTitle_ShouldReturnFailureResult(string? invalidTitle)
     {
         // Arrange
@@ -88,7 +88,7 @@ public class RecipeTests
 
         // Assert
         result.IsFailed.Should().BeTrue();
-        result.Errors.Should().ContainSingle(); 
+        result.Errors.Should().ContainSingle();
         result.Errors.First().Message.Should().Contain("Title is required");
     }
 
@@ -162,8 +162,8 @@ public class RecipeTests
     }
 
     [Theory]
-    [InlineData(0)]  
-    [InlineData(-1)] 
+    [InlineData(0)]
+    [InlineData(-1)]
     public void Create_WithInvalidServings_ShouldReturnFailureResult(int invalidServings)
     {
         // Arrange
@@ -183,7 +183,7 @@ public class RecipeTests
     public void Create_WithEmptyIngredientsList_ShouldReturnFailureResult()
     {
         // Arrange
-        var emptyIngredients = new List<string>(); 
+        var emptyIngredients = new List<string>();
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -199,7 +199,7 @@ public class RecipeTests
     public void Create_WithEmptyIngredientString_ShouldReturnFailureResult()
     {
         // Arrange
-        var ingredientsWithEmpty = new List<string> { "Flour", "  ", "Sugar" }; 
+        var ingredientsWithEmpty = new List<string> { "Flour", "  ", "Sugar" };
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -258,7 +258,7 @@ public class RecipeTests
 
         // Assert
         result.IsFailed.Should().BeTrue();
-        result.Errors.Should().HaveCountGreaterThan(1); 
+        result.Errors.Should().HaveCountGreaterThan(1);
         result.Errors.Should().Contain(e => e.Message.Contains("Title"));
         result.Errors.Should().Contain(e => e.Message.Contains("Description"));
         result.Errors.Should().Contain(e => e.Message.Contains("Preparation time"));

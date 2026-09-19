@@ -20,10 +20,13 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
 ### Namespaces and files
 
 - Namespace mirrors folder path: `RecipeManager.Application.Handlers.Recipes`.
-- **File-scoped namespaces (`namespace X;`) for all new files.** Older files use the block-scoped style; the
-  newer ones (`RecipeErrors`, `ResultExtensions`, `CachedRecipeRepository`, validators, dispatchers) are
-  already file-scoped. Convert an old file only when you are already changing it substantially — never as a
-  standalone reformat commit.
+- **File-scoped namespaces (`namespace X;`), enforced.** `IDE0161` is a build error (ADR-020); every
+  hand-written file was converted in one blame-ignored commit. EF migrations are exempt as generated code.
+- **Code style is enforced by the build, not by review** (ADR-020). The root `/.editorconfig` makes `IDE0055`
+  (formatting), `IDE0005` (unused usings), and `IDE0161` build errors. Fix a failure with
+  `dotnet format RecipeManager.sln` rather than by hand. `var` is the documented preference but only a
+  suggestion. Raising any rule to `warning` breaks every violating file at once: do it in its own PR, with its
+  reformat as a separate commit added to `/.git-blame-ignore-revs`.
 - `TargetFramework`, `Nullable`, `ImplicitUsings`, `TreatWarningsAsErrors`, and `EnforceCodeStyleInBuild` live
   in `RecipeManager/Directory.Build.props` and apply to every project (ADR-010). **Never re-declare them in a
   `.csproj`** — a project file carries only what is specific to it (`UserSecretsId`, `IsTestProject`, package
