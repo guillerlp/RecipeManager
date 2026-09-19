@@ -40,6 +40,22 @@ updates:
     # Other majors arrive as individual PRs — React and react-router majors each need manual
     # verification: the Vitest suite (ADR-018) covers logic and render states, not the whole app.
 
+  # The isolated OpenAPI -> TS generator (R-09 / ADR-019). It must stay on TypeScript 5:
+  # openapi-typescript prints code through the TS compiler API, which TypeScript 7 does not ship.
+  # The ignore rule is load-bearing, because a TS 7 bump here breaks generation outright.
+  - package-ecosystem: npm
+    directory: /RecipeManager/contracts
+    schedule:
+      interval: weekly
+    groups:
+      contracts-generator:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
+
   - package-ecosystem: nuget
     directory: /RecipeManager
     schedule:

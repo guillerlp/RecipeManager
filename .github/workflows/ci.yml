@@ -126,6 +126,18 @@ jobs:
       - name: Install
         run: npm ci
 
+      # R-09 / ADR-019. The C# -> openapi.json link is guarded by OpenApiContractTests in the backend
+      # job; this guards openapi.json -> api.ts. `git status --porcelain` and not `git diff`: a
+      # generated file that was never committed is untracked, and `git diff` would not report it.
+      - name: Contract types are current
+        run: |
+          npm run gen:api
+          if [ -n "$(git status --porcelain -- src/types/generated)" ]; then
+            git --no-pager diff -- src/types/generated
+            echo "::error::src/types/generated is stale. Run 'npm run gen:api' and commit the result."
+            exit 1
+          fi
+
       - name: Type-check
         run: npm run typecheck
 
@@ -149,4 +161,6 @@ jobs:
       #
       # Runs last so a vulnerability cannot mask a broken build.
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        run: |
+          npm audit --audit-level=high
+          npm audit --audit-level=high --prefix ../contracts
