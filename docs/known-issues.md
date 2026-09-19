@@ -87,6 +87,7 @@ kind of negative test.
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
 | [QUAL-03](#qual-03) | Low | Quality | Deep relative imports for shared assets |
 | [QUAL-04](#qual-04) | Low | Quality | Routes, verbs, and status codes are still hand-typed on the client |
+| [QUAL-05](#qual-05) | Low | Quality | Frontend indentation is mixed and no formatter enforces it |
 | [UX-01](#ux-01) | Medium | UX | Dark-theme status colours never contrast-checked |
 | [UX-02](#ux-02) | Medium | UX | Global heading sizes ignore the type scale; `h3` clips descenders |
 | [UX-03](#ux-03) | Low | UX | No shared breakpoint tokens |
@@ -564,6 +565,16 @@ status code passes every check and fails at runtime.
 
 **Fix.** Type the service against the generated `paths` interface, or adopt `openapi-fetch` (rejected for R-09 as
 out of scope, see ADR-019).
+
+### QUAL-05
+**Frontend indentation is mixed and no formatter enforces it — Low**
+
+`/.editorconfig` (ADR-020) sets `indent_size = 2` for TS/TSX/CSS/JSON, but that only guides editors. Oxlint does
+not format, and no formatter runs. Measured 2026-09-19: of the files under `recipe-manager-frontend/src/`
+(generated files excluded), 24 indent with 2 spaces and 14 with 4, so diffs will keep mixing both.
+
+**Fix.** Adopt a formatter (Oxc's, to match Oxlint per ADR-016, or Prettier) with a CI check, and reformat in its
+own blame-ignored commit, the same pattern ADR-020 used for C#. A new dependency needs `01-architect` sign-off.
 
 ---
 

@@ -50,6 +50,20 @@ dotnet restore RecipeManager.sln
 dotnet build RecipeManager.sln
 ```
 
+Code style is part of the build (ADR-020). The root `.editorconfig` makes formatting (`IDE0055`), unused usings
+(`IDE0005`), and block-scoped namespaces (`IDE0161`) build **errors**. When one fires, let the tool fix it:
+
+```bash
+dotnet format RecipeManager.sln
+```
+
+Run this once per clone so `git blame` skips the one-off reformat commit and shows who really wrote each line
+(GitHub's blame view does this automatically):
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
 ### Database
 
 `Program.cs` applies EF migrations at startup (`app.MigrateDatabase()`), so the API creates and updates

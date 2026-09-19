@@ -58,11 +58,13 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
 /                                    git root
   README.md                          human setup guide — prerequisites, DB, Docker, troubleshooting
   CLAUDE.md                          this file
+  .editorconfig                      code style; IDE0055/IDE0005/IDE0161 are build errors (ADR-020)
+  .git-blame-ignore-revs             bulk-reformat commits for git blame to skip
   docs/                              agent context (this doc set)
   RecipeManager/                     solution root — run all dotnet commands from here
     RecipeManager.sln
     global.json                      pins SDK 10.0.302, rollForward: latestFeature
-    Directory.Build.props            TargetFramework/Nullable/ImplicitUsings + TreatWarningsAsErrors, all projects
+    Directory.Build.props            TargetFramework/Nullable/ImplicitUsings + TreatWarningsAsErrors + EnforceCodeStyleInBuild, all projects
     Directory.Packages.props         every package version (central package management) — never version a .csproj
     contracts/                       OpenAPI snapshot + isolated TS generator (ADR-019)
     RecipeManager.Domain/            Recipe entity, Entity base, RecipeErrors, IRecipeRepository
@@ -119,7 +121,9 @@ Current state: build succeeds with **0 warnings** and **107 tests pass** (85 uni
 need no Docker, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip.
 The frontend has 40 Vitest tests (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
-a **build failure**, not a note — and `TargetFramework`, `Nullable`, and `ImplicitUsings` live there too. Never
+a **build failure**, not a note. Code style is too: the root `.editorconfig` makes `IDE0055` formatting,
+`IDE0005` unused usings, and `IDE0161` file-scoped namespaces build errors (ADR-020), so fix them with
+`dotnet format RecipeManager.sln`. And `TargetFramework`, `Nullable`, and `ImplicitUsings` live there too. Never
 re-declare those in a `.csproj`.
 
 Frontend checks work as of `R-03`/ADR-012: `npm run lint` runs and reports 0 problems, `npm run build`

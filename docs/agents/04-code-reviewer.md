@@ -105,12 +105,13 @@ required — then security reviews after code review.
 - Naming that is legal but unclear.
 - Interpolated strings in `ILogger` calls (existing code does this; new code should not, but it is not worth
   blocking a small PR over).
-- Block-scoped namespaces in a new file (file-scoped is preferred, not mandatory).
 - `React.FC` vs. plain destructured props — both exist in the codebase.
 - A default export added alongside a named export on a new component.
 - Duplication that has appeared twice but not yet three times.
 - A property re-declared in a `.csproj` that `Directory.Build.props` already owns (ADR-010). A package version
-  in a `.csproj` cannot slip past review — it fails the build (`NU1008`, ADR-011).
+  in a `.csproj` cannot slip past review — it fails the build (`NU1008`, ADR-011). Neither can formatting,
+  unused usings, or a block-scoped namespace, because `IDE0055`/`IDE0005`/`IDE0161` fail the build (ADR-020).
+  Do not spend review comments on them.
 - A finding worth recording that is out of scope for this PR — ask for an entry in
   [../known-issues.md](../known-issues.md) rather than a code comment.
 

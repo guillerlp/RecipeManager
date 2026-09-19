@@ -7,6 +7,12 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
+    <!-- Present only so IDE0005 (unused usings, .editorconfig) is reported during a build: the compiler
+         skips that analysis unless documentation generation is on. CS1591 ("missing XML comment") is the
+         side effect, and is suppressed — this is NOT a decision to document public APIs. ADR-020. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
     <!-- Records the resolved transitive closure in packages.lock.json so CI restores the exact
          graph a developer did. CI restores in locked mode, which turns an unexpected change into
          a failure instead of a silent resolution. ADR-013. -->

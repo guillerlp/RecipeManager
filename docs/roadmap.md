@@ -46,30 +46,10 @@ pipeline reports honestly and can be merged past.
 (frontend test runner) shipped 2026-09-18 as ADR-018, closing `TEST-01`. `R-08` (cache-invalidation tests)
 shipped 2026-09-18 as spec 006, closing `TEST-02`. It needed no ADR because it changed no decision, and it
 surfaced `BUG-14`. `R-09` (generated TS types) shipped 2026-09-19 as ADR-019, after `BUG-01`–`05` were fixed by
-hand.
+hand. `R-15` (`.editorconfig`) shipped 2026-09-19 as ADR-020: formatting, unused usings, and file-scoped
+namespaces now fail the build, and it opened `QUAL-05` for the frontend.
 
-### R-15
-**Adopt an `.editorconfig`, or drop `EnforceCodeStyleInBuild`** · `01-architect` → `02-senior-csharp` · ~2 h
-
-`Directory.Build.props` sets `EnforceCodeStyleInBuild` (ADR-010), but there is no `.editorconfig` anywhere in
-the repo, so IDE style rules sit at their default suggestion severity and **nothing is currently enforced**. The
-property is a latch, not a control: it does nothing until an `.editorconfig` exists, and then it does a great
-deal at once.
-
-That is the whole difficulty. With `TreatWarningsAsErrors` also on, any rule set to `warning` becomes a **build
-error in every file simultaneously**. This is the same shape as `UX-02` — a change that shifts every existing
-file and must therefore be one deliberate pass, never a side effect of another PR.
-
-**Decide in this order:**
-
-1. Which rule families are wanted (`IDE0055` formatting, `IDE0005` unused usings, naming rules, `var` preference)
-   — the repo's existing style is the reference, not a blog post's.
-2. What severity each gets. `suggestion` enforces nothing; `warning` is a build break under ADR-010. Starting
-   everything at `suggestion` and promoting deliberately is the low-risk path.
-3. Whether the one-off reformat lands as its own commit, so review can separate it from behaviour changes.
-
-Ending with "we do not want this" is a legitimate outcome — then **delete `EnforceCodeStyleInBuild`**, because a
-property that enforces nothing while looking like a gate is worse than no property at all.
+**Phase 2 is complete.**
 
 ---
 
