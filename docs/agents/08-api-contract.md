@@ -26,16 +26,11 @@ components (`03-senior-react`).
 
 ---
 
-## Current drift — open defects
+## Current drift
 
-Verified against `RecipeDto` (`RecipeManager.Application/DTO/Recipes/RecipeDto.cs`) and `recipe-manager-frontend/src/types/recipe.ts`.
-
-| # | Server truth | Client declaration | Consequence |
-| --- | --- | --- | --- |
-| C1 | `Guid Id` — serialised as a string, e.g. `"3fa85f64-…"` | `id: number` | Every id is typed wrong. `getRecipeById(id: number)`, `updateRecipe(id: number, …)`, and `deleteRecipe(id: number)` all take the wrong type; `RecipeCard`'s `key={recipe.id}` works only because React stringifies it |
-| C2 | `int Servings` | *missing* | The client cannot display or edit servings |
-| C3 | `List<string> Instructions` | *missing* | The client cannot display or edit instructions — a recipe app that cannot show its own steps |
-| C4 | *(no image field on `RecipeDto`)* | `image?: string` | Always `undefined`; `RecipeCard` permanently falls back to the bundled `mainPhoto.png` |
+None known. `BUG-01`–`BUG-05` (id typed `number`, missing `servings`/`instructions`, a phantom `image`, and a
+body typed on a 204 `PUT`) were fixed by hand on 2026-09-19 (spec 007, PR A). The corrected shape is
+`recipe-manager-frontend/src/types/recipe.ts`.
 
 ### Correct shape
 
@@ -58,14 +53,6 @@ export type UpdateRecipeRequest = Omit<Recipe, 'id'>;
 // POST body — matches CreateRecipeCommand (also no id; the server generates it)
 export type CreateRecipeRequest = Omit<Recipe, 'id'>;
 ```
-
-Fixing C1–C3 is a breaking change to `recipeService` signatures and will touch `RecipeCard` and `RecipeList`.
-Coordinate with `03-senior-react` and do it in one PR. C4 needs a product decision first — either add an image
-field to the API (`01-architect` + `05-security-reviewer`, see the upload requirements there) or drop `image?`
-from the type.
-
-C1–C4 are tracked as `BUG-01`–`BUG-04` in [../known-issues.md](../known-issues.md). Fixing C1–C3 is a
-prerequisite for any recipe detail or edit screen.
 
 ---
 
@@ -91,8 +78,7 @@ prerequisite for any recipe detail or edit screen.
 - [ ] Route paths match the controller. The controller is `/api/recipes` (case-insensitive matching); the
       service calls `/Recipes` — consistent today, but keep them aligned when adding endpoints.
 - [ ] Response types reflect reality: `PUT` and `DELETE` return **204 with no body**, so their service methods
-      must be `Promise<AxiosResponse<void>>` — not `Promise<AxiosResponse<Recipe>>`. `updateRecipe` currently
-      gets this wrong (`BUG-05`); fix it alongside C1–C3.
+      must be `Promise<AxiosResponse<void>>` — not `Promise<AxiosResponse<Recipe>>`.
 - [ ] `POST` returns **201** with the created `RecipeDto` and a `Location` header.
 - [ ] Error shapes are handled: 422 and 404 return `ProblemDetails` (`title`, `detail`, `status`, `field`, plus
       an `errors[]` extension when there is more than one error); 400 from FluentValidation returns
@@ -111,7 +97,7 @@ prerequisite for any recipe detail or edit screen.
 - [ ] Manually exercise the changed endpoint from the SPA, or with the Swagger UI, and confirm the payload
       matches the TS type.
 
-Nothing detects drift automatically — that is exactly how `BUG-01`–`BUG-04` accumulated. Generating the TS types
+Nothing detects drift automatically — that is exactly how `BUG-01`–`BUG-05` accumulated. Generating the TS types
 from the OpenAPI document is the structural fix, planned as `R-09` in [../roadmap.md](../roadmap.md).
 
 ## Inputs it needs
@@ -151,5 +137,5 @@ from the OpenAPI document is the structural fix, planned as `R-09` in [../roadma
 - → `03-senior-react` with the contract delta and the list of components that must change.
 - → `02-senior-csharp` when the API shape is wrong rather than the client (e.g. a field the client legitimately
   needs is missing from `RecipeDto`).
-- → `01-architect` when closing the drift requires a product decision (C4, the image field).
+- → `01-architect` when closing a drift requires a product decision (e.g. whether to add a field to the API).
 - → `04-code-reviewer` with the diff.

@@ -66,8 +66,8 @@ required — then security reviews after code review.
 - [ ] Frontend: a mutation that does not invalidate `['recipes']` — `useRecipes` disables refetch-on-mount and
       refetch-on-focus, so the list will stay stale.
 - [ ] Frontend: a new alias added to only one of `vite.config.ts` / `tsconfig.json`.
-- [ ] A cast or `as` used to paper over the `id: number` vs. `Guid` contract drift instead of routing it to
-      `08-api-contract`.
+- [ ] A cast or `as` used to paper over a contract mismatch between `recipe-manager-frontend/src/types/recipe.ts`
+      and `RecipeDto`, instead of routing it to `08-api-contract`.
 
 **Tests**
 

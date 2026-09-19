@@ -212,10 +212,9 @@ API first; there is no mock backend.
 - **`07-ux-ui` kept** even though there is no separate designer: the frontend has a real token system
   (`recipe-manager-frontend/src/styles/themes/variables.css` + `light.css`/`dark.css`), a light/dark switch, and deliberate a11y work
   (`role="switch"`, `aria-checked`, `aria-current`, `<time dateTime>`), so screen work needs an owner.
-- **`08-api-contract` added** (not in the standard roster) because the frontend and backend contracts have
-  already drifted in a way that is verifiable in the code: `recipe-manager-frontend/src/types/recipe.ts` declares `id: number` while the
-  API returns a `Guid`, and the TS type is missing `servings` and `instructions`. This seam needs an owner.
-  See [docs/agents/08-api-contract.md](docs/agents/08-api-contract.md).
+- **`08-api-contract` added** (not in the standard roster) because the frontend and backend contracts had already
+  drifted (`id: number` against a `Guid`, with `servings` and `instructions` missing) before anything noticed.
+  The seam needs an owner. See [docs/agents/08-api-contract.md](docs/agents/08-api-contract.md).
 - **No DevOps/CI agent**, still: `.github/` now holds a CI workflow and a Dependabot config (`R-04`/ADR-013),
   but that is ~120 lines of YAML that verifies and deploys nothing, and there is no compose file or deployment
   target. Ownership stays with `01-architect` for structure and

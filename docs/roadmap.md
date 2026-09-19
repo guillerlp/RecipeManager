@@ -50,12 +50,13 @@ surfaced `BUG-14`.
 ### R-09
 **Generate TypeScript types from OpenAPI** · `08-api-contract` + `01-architect` · ~2 h
 
-Nothing detects contract drift, which is exactly how `BUG-01`–`BUG-05` accumulated: the TS `Recipe` declares
-`id: number` against a `Guid` API and is missing `servings` and `instructions`.
+Nothing detects contract drift automatically — that is exactly how `BUG-01`–`BUG-05` accumulated (the TS
+`Recipe` declared `id: number` against a `Guid` API and was missing `servings` and `instructions`). Those were
+fixed by hand on 2026-09-19 (spec 007, PR A); this item is PR B — the structural fix that makes recurrence
+impossible.
 
 Add an `openapi-typescript` step producing a generated, committed types file, with a CI check that fails when
-the generated output differs from what is committed. Fix `BUG-01`–`BUG-05` first (they are defects, not
-roadmap), then make recurrence impossible.
+the generated output differs from what is committed.
 
 ### R-15
 **Adopt an `.editorconfig`, or drop `EnforceCodeStyleInBuild`** · `01-architect` → `02-senior-csharp` · ~2 h
@@ -122,8 +123,9 @@ here even before `R-10`.
 ### R-12
 **Recipe images** · `01-architect` + `05-security-reviewer` (both required) → full stack · ~1 day
 
-`RecipeDto` has no image field, but `recipe-manager-frontend/src/types/recipe.ts` declares an unused `image?: string` and every card
-falls back to a 2.1 MB bundled placeholder (`BUG-04`, `BUILD-05`).
+`RecipeDto` has no image field, and `recipe-manager-frontend/src/types/recipe.ts` no longer declares one
+(`BUG-04` resolved by dropping it — spec 007), so every card falls back to a 2.1 MB bundled placeholder
+(`BUILD-05`).
 
 **Do not start without the security requirements** in
 [agents/05-security-reviewer.md](agents/05-security-reviewer.md#recipe-image-upload--none-exists-yet-requirements-if-one-is-added):

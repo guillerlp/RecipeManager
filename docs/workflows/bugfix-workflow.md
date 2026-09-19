@@ -26,8 +26,6 @@ Use the observed HTTP status to narrow the layer before reading any code:
 
 Frontend-specific suspects worth checking first, since they are known-broken:
 
-- `recipe-manager-frontend/src/types/recipe.ts` declares `id: number` while the API returns a `Guid` string, and omits `servings` and
-  `instructions` — see [../domain-model.md](../domain-model.md#frontend-view-of-the-domain--currently-out-of-sync).
 - `HomePage` links to `/recipes/new`, which has no route in `App.tsx`.
 - `.env.production` still points at the placeholder `https://your-production-api.com/api`.
 
