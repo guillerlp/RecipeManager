@@ -64,6 +64,10 @@ public class OpenApiContractTests : IDisposable
         string snapshotPath = SnapshotPath();
         string receivedPath = Path.ChangeExtension(snapshotPath, ".received.json");
 
+        // contracts/ does not exist until the first snapshot is committed — created once up front so both
+        // write paths below (the update switch and the received-file dump) are safe on a bare checkout.
+        Directory.CreateDirectory(Path.GetDirectoryName(snapshotPath)!);
+
         // ==================== ACT ====================
         string actual = Normalize(await GetDocument().SerializeAsJsonAsync(OpenApiSpecVersion.OpenApi3_0));
 
@@ -71,7 +75,6 @@ public class OpenApiContractTests : IDisposable
         // rewriting its own expectation.
         if (Environment.GetEnvironmentVariable(UpdateVariable) == "1")
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(snapshotPath)!);
             await File.WriteAllTextAsync(snapshotPath, actual);
             File.Delete(receivedPath);
             return;
