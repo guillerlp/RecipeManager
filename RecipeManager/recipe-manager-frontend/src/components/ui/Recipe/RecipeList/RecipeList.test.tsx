@@ -13,19 +13,21 @@ vi.mock('@/services', () => ({
 const getAllRecipes = vi.mocked(recipeService.getAllRecipes);
 
 const makeRecipe = (overrides: Partial<Recipe>): Recipe => ({
-  id: 1,
+  id: '00000000-0000-0000-0000-000000000000',
   title: 'Untitled',
   description: '',
   preparationTime: 10,
   cookingTime: 20,
+  servings: 2,
   ingredients: [],
+  instructions: [],
   ...overrides,
 });
 
 const recipes: Recipe[] = [
-  makeRecipe({ id: 1, title: 'Tomato Soup', description: 'Warm and simple', ingredients: ['tomato', 'basil'], preparationTime: 90 }),
-  makeRecipe({ id: 2, title: 'Pancakes', description: 'Fluffy breakfast', ingredients: ['flour', 'milk'] }),
-  makeRecipe({ id: 3, title: 'Green Salad', description: 'Crunchy side', ingredients: ['lettuce', 'cucumber'] }),
+  makeRecipe({ id: '11111111-1111-1111-1111-111111111111', title: 'Tomato Soup', description: 'Warm and simple', ingredients: ['tomato', 'basil'], preparationTime: 90 }),
+  makeRecipe({ id: '22222222-2222-2222-2222-222222222222', title: 'Pancakes', description: 'Fluffy breakfast', ingredients: ['flour', 'milk'] }),
+  makeRecipe({ id: '33333333-3333-3333-3333-333333333333', title: 'Green Salad', description: 'Crunchy side', ingredients: ['lettuce', 'cucumber'] }),
 ];
 
 // useRecipes reads only `data`; the rest of the AxiosResponse is irrelevant to the component.

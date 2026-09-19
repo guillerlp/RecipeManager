@@ -1,7 +1,7 @@
 // src/services/recipeService.ts
 /// <reference types="vite/client" />
 
-import { Recipe } from '@/types';
+import type { CreateRecipeRequest, Recipe, UpdateRecipeRequest } from '@/types';
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 
 const rawBase = import.meta.env.VITE_API_URL as string | undefined;
@@ -19,20 +19,16 @@ export const recipeService = {
   getAllRecipes: (): Promise<AxiosResponse<Recipe[]>> =>
     api.get<Recipe[]>('/Recipes'),
 
-  getRecipeById: (id: number): Promise<AxiosResponse<Recipe>> =>
+  getRecipeById: (id: string): Promise<AxiosResponse<Recipe>> =>
     api.get<Recipe>(`/Recipes/${id}`),
 
-  createRecipe: (
-    recipe: Omit<Recipe, 'id'>
-  ): Promise<AxiosResponse<Recipe>> =>
+  createRecipe: (recipe: CreateRecipeRequest): Promise<AxiosResponse<Recipe>> =>
     api.post<Recipe>('/Recipes', recipe),
 
-  updateRecipe: (
-    id: number,
-    recipe: Partial<Omit<Recipe, 'id'>>
-  ): Promise<AxiosResponse<Recipe>> =>
-    api.put<Recipe>(`/Recipes/${id}`, recipe),
+  // PUT returns 204 No Content, so there is no body to type.
+  updateRecipe: (id: string, recipe: UpdateRecipeRequest): Promise<AxiosResponse<void>> =>
+    api.put<void>(`/Recipes/${id}`, recipe),
 
-  deleteRecipe: (id: number): Promise<AxiosResponse<void>> =>
+  deleteRecipe: (id: string): Promise<AxiosResponse<void>> =>
     api.delete<void>(`/Recipes/${id}`),
 };

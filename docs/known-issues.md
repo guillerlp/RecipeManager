@@ -65,11 +65,6 @@ kind of negative test.
 | [SEC-10](#sec-10) | Medium | Security | No security headers, no HSTS |
 | [SEC-11](#sec-11) | Low | Ops | No health/readiness endpoint |
 | [SEC-12](#sec-12) | Low | Config | `.env.production` points at a placeholder host |
-| [BUG-01](#bug-01) | **High** | Contract | TS `id: number` vs. server `Guid` |
-| [BUG-02](#bug-02) | **High** | Contract | `servings` missing from the TS `Recipe` type |
-| [BUG-03](#bug-03) | **High** | Contract | `instructions` missing from the TS `Recipe` type |
-| [BUG-04](#bug-04) | Medium | Contract | TS `image?` field does not exist on the server |
-| [BUG-05](#bug-05) | Medium | Contract | `updateRecipe` typed as returning a body; API returns 204 |
 | [BUG-06](#bug-06) | Medium | Frontend | `/recipes/new` is linked but has no route |
 | [BUG-07](#bug-07) | Low | API | `GET /api/recipes/{id}` missing the `:guid` route constraint |
 | [BUG-09](#bug-09) | Low | Frontend | Error recovery does a full page reload |
@@ -266,40 +261,7 @@ registers that name, and a local production check silently shows an empty catalo
 
 ## Contract & functional defects
 
-Full detail and the corrected TypeScript shape are in [agents/08-api-contract.md](agents/08-api-contract.md).
-[BUG-01](#bug-01) through [BUG-03](#bug-03) should be fixed together in one PR.
-
-### BUG-01
-**TS `id: number` vs. server `Guid` — High**
-
-`recipe-manager-frontend/src/types/recipe.ts` declares `id: number`; `RecipeDto.Id` is a `Guid`, serialised as a
-string. `recipeService.getRecipeById/updateRecipe/deleteRecipe` all take `id: number`.
-
-Nothing has broken yet only because the single existing screen just lists recipes and uses `key={recipe.id}`,
-which stringifies. Any detail, edit, or delete screen breaks immediately.
-
-### BUG-02
-**`servings` missing from the TS type — High**
-
-The API returns it; the client cannot see or edit it.
-
-### BUG-03
-**`instructions` missing from the TS type — High**
-
-The API returns it; the client cannot see or edit it. A recipe app that cannot display its own steps.
-
-### BUG-04
-**TS `image?: string` does not exist server-side — Medium**
-
-Always `undefined`, so `RecipeCard` permanently falls back to the bundled placeholder. Needs a product decision:
-add an image field to the API (which pulls in upload handling — see the requirements in
-[agents/05-security-reviewer.md](agents/05-security-reviewer.md)), or remove the field from the TS type.
-
-### BUG-05
-**`updateRecipe` typed as returning a body — Medium**
-
-Typed `Promise<AxiosResponse<Recipe>>`, but `PUT /api/recipes/{id}` returns **204 No Content**. Should be
-`AxiosResponse<void>`.
+Full detail on the contract seam is in [agents/08-api-contract.md](agents/08-api-contract.md).
 
 ### BUG-06
 **`/recipes/new` is linked but has no route — Medium**
@@ -335,8 +297,7 @@ as an action, and doing nothing when activated. Removing the debug log (`BUG-08`
 `onClick` was dropped and cards now render as `<article>`, which is what `RecipeCard`'s element switch is for.
 
 **Fix.** Build the detail screen, add the `/recipes/:id` route, and pass `onClick` again — `RecipeCard` already
-switches to `<button>` when it receives one. Note that the detail screen is blocked by the contract defects
-[BUG-01](#bug-01)–[BUG-03](#bug-03): it needs the real `Guid` id, `servings`, and `instructions`.
+switches to `<button>` when it receives one.
 
 **Owner:** `03-senior-react` + `07-ux-ui`
 

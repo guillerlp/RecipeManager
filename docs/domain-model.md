@@ -129,28 +129,26 @@ client-side.
 | `recipes_all` | `GetAllAsync` (10 min abs / 5 min sliding) | `AddAsync`, `UpdateAsync`, `DeleteAsync` |
 | `recipe_{guid}` | `GetByIdAsync` (10/5), `AddAsync` (30 min abs / 15 min sliding) | `UpdateAsync`, `DeleteAsync` |
 
-## Frontend view of the domain — currently out of sync
+## Frontend view of the domain
 
-`recipe-manager-frontend/src/types/recipe.ts`:
+`recipe-manager-frontend/src/types/recipe.ts` mirrors `RecipeDto` field for field:
 
 ```ts
 export interface Recipe {
-  id: number;              // ❌ backend returns a Guid (string)
+  id: string;              // Guid
   title: string;
   description: string;
-  preparationTime: number;
-  cookingTime: number;
+  preparationTime: number; // minutes
+  cookingTime: number;     // minutes
+  servings: number;
   ingredients: string[];
-  image?: string;          // ❌ no such field on RecipeDto
+  instructions: string[];
 }
-// ❌ missing: servings, instructions
 ```
 
-`recipeService.ts` types `getRecipeById(id: number)`, `updateRecipe(id: number, …)`, and
-`deleteRecipe(id: number)` — all wrong against a `Guid` API. `RecipeCard` always falls back to the bundled
-placeholder image because `recipe.image` is permanently `undefined`.
-
-This is a live defect, not a design choice. Owner: [agents/08-api-contract.md](agents/08-api-contract.md).
+`CreateRecipeRequest` and `UpdateRecipeRequest` are `Omit<Recipe, 'id'>`. `PUT` and `DELETE` return 204, so
+their service methods return `AxiosResponse<void>`. The mirror is kept by hand, and nothing detects drift yet
+(`R-09`). Owner: [agents/08-api-contract.md](agents/08-api-contract.md).
 
 ## Known limitations
 

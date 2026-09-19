@@ -78,7 +78,7 @@ Only if persistence changes.
 
 ## 7. Contract sync — `08-api-contract`
 
-**Reads:** [../agents/08-api-contract.md](../agents/08-api-contract.md), [../domain-model.md](../domain-model.md#frontend-view-of-the-domain--currently-out-of-sync).
+**Reads:** [../agents/08-api-contract.md](../agents/08-api-contract.md), [../domain-model.md](../domain-model.md#frontend-view-of-the-domain).
 
 - Update `recipe-manager-frontend/src/types/recipe.ts` and `services/recipeService.ts` to match the new
   `RecipeDto` / route signature, in the same PR as the backend change.
