@@ -14,7 +14,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
-    scrollbar-color: var(--color-border) transparent;  
+    scrollbar-color: var(--rule) transparent;
 }
 
 .heroSection::-webkit-scrollbar {
@@ -26,12 +26,12 @@
 }
 
 .heroSection::-webkit-scrollbar-thumb {
-    background: var(--color-border);
+    background: var(--rule);
     border-radius: 3px;
 }
 
 .heroSection::-webkit-scrollbar-thumb:hover {
-    background: var(--color-text-muted);
+    background: var(--ink-3);
 }
 
 .loadingSection{

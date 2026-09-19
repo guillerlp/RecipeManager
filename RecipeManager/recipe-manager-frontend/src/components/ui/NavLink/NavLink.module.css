@@ -3,17 +3,17 @@
 .navLink {
   text-decoration: none;
   padding: 0.3rem 1rem;
-  color: var(--color-text-primary);
+  color: var(--ink);
   font-size: 1.5rem;
   display: inline-block;
   font-weight: 500;
 }
 
 .navLink:not(.active):hover {
-  color: var(--color-primary-hover);
+  color: var(--accent);
 }
 
 .active {
-  color: var(--color-text-secondary);
+  color: var(--ink-2);
   font-weight: 400;
 }
