@@ -80,8 +80,20 @@ Only if persistence changes.
 
 **Reads:** [../agents/08-api-contract.md](../agents/08-api-contract.md), [../domain-model.md](../domain-model.md#frontend-view-of-the-domain).
 
-- Update `recipe-manager-frontend/src/types/recipe.ts` and `services/recipeService.ts` to match the new
-  `RecipeDto` / route signature, in the same PR as the backend change.
+- Regenerate the contract, from `RecipeManager/`:
+  ```bash
+  UPDATE_OPENAPI_SNAPSHOT=1 dotnet test --filter OpenApiContractTests
+  ```
+  then from `RecipeManager/recipe-manager-frontend/`:
+  ```bash
+  npm run gen:api
+  ```
+  and commit `contracts/openapi.json` and `src/types/generated/api.ts` in the same PR as the backend change.
+  `recipe.ts` only gains a new alias when the change adds a genuinely *new* schema — it never gains a
+  hand-written field (ADR-019). Update `services/recipeService.ts` to match the new route signature (`QUAL-04`:
+  this file is not generated). See [README, "Changing the API contract"](../../README.md#changing-the-api-contract)
+  for the PowerShell form of the command above, and for the CI-artifact route that works even where the snapshot
+  test cannot run locally at all (Windows Smart App Control, `INFRA-06`).
 - Output: a short "contract delta" note (fields added/removed/retyped, status codes) handed to `03-senior-react`.
 
 ## 8. Frontend — `03-senior-react`
@@ -106,7 +118,8 @@ Only if persistence changes.
   interaction (`Received(1)`).
 - Integration test in `RecipesControllerTests` for each new endpoint: status code + database state, with
   `DbContext.ChangeTracker.Clear()` before asserting after a write.
-- Run and compare against the current numbers — 103 passing, 0 build warnings (warnings are errors, ADR-010):
+- Run and compare against the current numbers — 107 passing (85 unit + 22 integration, of which 4 need no
+  Docker), 0 build warnings (warnings are errors, ADR-010):
   ```bash
   dotnet test RecipeManager.sln
   ```

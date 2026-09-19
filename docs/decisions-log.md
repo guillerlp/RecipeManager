@@ -42,15 +42,71 @@ Jump to every entry touching a topic.
 | Domain modelling | [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Testing | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
-| Tooling / infrastructure | [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
-| Enforcement vs. convention | [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
-| Dependency management | [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
-| Frontend / React | [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
+| Tooling / infrastructure | [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Enforcement vs. convention | [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Dependency management | [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
+| Frontend / React | [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | Accessibility | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
+| API contract | [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript) |
 
 ---
 
 ## Entries
+
+### 2026-09-19 — A regeneration workflow that only works where the tests run is not a workflow
+
+**Context.** `INFRA-06` (Settled) resolved Smart App Control by making CI the authority: the integration tests
+are trustworthy there and merely inconvenient locally. `OpenApiContractTests` (`R-09`, ADR-019) broke that
+resolution the moment it existed, because it is not just *inconvenient* to run under Smart App Control — it
+cannot run there at all, `FileLoadException` on every attempt, same as the rest of `RecipeManager.IntegrationTests`.
+The gate's whole purpose is to be re-run by whoever changes a DTO, and on this project's own development
+machine, that person cannot run it.
+
+**Decision.** `OpenApiDocument_ShouldMatchCommittedSnapshot` writes the document it actually got to
+`contracts/openapi.received.json` on any mismatch, before failing — the "received file" pattern the Verify
+library uses for golden-master tests — and deletes that file on a pass. CI uploads it as the `openapi-received`
+artifact when the job fails. That gives two acceptance routes: run the snapshot update locally where the test
+runs at all, or — from a machine that can never run it — push, download the artifact CI produced, and promote
+it by hand. Documented in ADR-019 and the README's "Changing the API contract".
+
+**Rejected.** Leaving the ritual as "run this test locally" and treating Smart App Control as background noise,
+the same shrug `INFRA-06` already used for the rest of the suite. It works for tests that merely need to *pass*
+somewhere; it fails for a test whose job is to be *re-run on demand* by the person making the change, since that
+person now has no route to a green local run at all — not even a slow one.
+
+**Cost.** A test that writes a file is an unusual idiom on first read and needs the comment that explains it.
+The artifact is upload-on-failure only, so a developer who does not know to look for it will see a red PR with no
+obvious next step until they read the failure message, which now names both routes explicitly.
+
+**Takeaway.** *A regeneration workflow that only works where the tests can run is not a workflow — it is a
+description of a workflow that excludes whoever is standing at the machine that can't run them.* Related:
+**a snapshot tool should write what it got, not merely report that it differs.** The mismatch message alone
+would have told the author something was wrong; the received file is what let them fix it without a second
+environment.
+
+---
+
+### 2026-09-19 — The OpenAPI generator gets its own TypeScript
+
+**Context.** `R-09` needed `openapi-typescript`, which declares `peer typescript ^5.x`. The frontend runs
+TypeScript 7 (ADR-016), whose `node_modules/typescript/lib` holds only a `tsc.js` launcher.
+
+**Decision.** The generator lives in `RecipeManager/contracts/` with a private, pinned TypeScript 5.9.3 (ADR-019).
+
+**Rejected.** An `npm overrides` entry giving the generator a nested TS 5 fails with `ERESOLVE`: npm satisfies a
+peer from the parent's tree, so the override only rewrote the range it could not meet. `--legacy-peer-deps`
+would work by disabling peer checks for the whole project, including the Vite/plugin-react pair that has already
+broken once.
+
+**Cost.** Two TypeScript versions, a second lockfile, and a Dependabot `ignore` rule that must not be removed
+while the generator needs TS 5.
+
+**Takeaway.** *A tool can depend on a compiler as a library, not as a compiler. That coupling is invisible until
+the compiler changes runtime.* Codegen tools use `ts.factory` to print code, and a compiler rewritten in Go took
+that away without breaking a single type-check. Separately: overrides change what a package asks for, never
+where a peer is resolved from.
+
+---
 
 ### 2026-09-18 — A cold cache cannot go stale, so prime it before testing invalidation
 

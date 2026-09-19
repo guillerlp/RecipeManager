@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `007` |
-| **Status** | draft — awaiting user review |
+| **Status** | in progress — implemented, awaiting a green CI run on PR B |
 | **Author** | `00-leader`, owned by `08-api-contract` with `01-architect` |
 | **Created** | 2026-09-19 |
 | **Branch** | PR A `fix/recipe-contract-drift` · PR B `feat/openapi-generated-types` |
@@ -33,63 +33,63 @@ fails CI (PR B).
 
 ### PR A — hand fix (`bugfix-workflow`)
 
-- [ ] `recipe-manager-frontend/src/types/recipe.ts`: the correct shape from
+- [x] `recipe-manager-frontend/src/types/recipe.ts`: the correct shape from
       [../agents/08-api-contract.md](../agents/08-api-contract.md#correct-shape). That means `id: string`, plus
       `servings` and `instructions`, with `image?` removed. It also adds `CreateRecipeRequest` and
       `UpdateRecipeRequest`, both `Omit<Recipe, 'id'>`.
-- [ ] `recipe-manager-frontend/src/services/recipeService.ts`: every id becomes `string`.
+- [x] `recipe-manager-frontend/src/services/recipeService.ts`: every id becomes `string`.
       `createRecipe(recipe: CreateRecipeRequest)`. `updateRecipe(id: string, recipe: UpdateRecipeRequest)`
       returns `Promise<AxiosResponse<void>>`. The current `Partial<…>` is also wrong, because `PUT` binds an
       `UpdateRecipeDto` whose seven members are all required. That is folded into `BUG-05`, since it is the same
       method on the same seam.
-- [ ] `RecipeCard.tsx`: always renders the placeholder (`image` no longer exists).
-- [ ] `RecipeList.test.tsx`: fixtures use string ids and the new fields.
-- [ ] Docs: see section 16.
+- [x] `RecipeCard.tsx`: always renders the placeholder (`image` no longer exists).
+- [x] `RecipeList.test.tsx`: fixtures use string ids and the new fields.
+- [x] Docs: see section 16.
 
 ### PR B — generation and the drift gate (`feature-workflow`, ADR-019)
 
-- [ ] **Swashbuckle config** (`ServiceInitializer.RegisterSwagger`):
+- [x] **Swashbuckle config** (`ServiceInitializer.RegisterSwagger`):
   - Mark non-nullable members as `required`, so the generated TS has no spurious `?`. This covers reference
     types via `SupportNonNullableReferenceTypes()` and `NonNullableReferenceTypesAsRequired()`, and value types
     too (`Guid`, `int`). If Swashbuckle 10 does not mark value types required, add one small schema filter that
     marks every non-nullable property required, instead of annotating each DTO.
   - Remove `CustomSchemaIds(type => type.ToString())`, so schemas are named `RecipeDto` rather than
     `RecipeManager.Application.DTO.Recipes.RecipeDto`.
-- [ ] **Snapshot test** `RecipeManager.IntegrationTests/OpenApiContractTests.cs`:
+- [x] **Snapshot test** `RecipeManager.IntegrationTests/OpenApiContractTests.cs`:
   - Boots a bare `WebApplicationFactory<Program>` in the `IntegrationTest` environment. It does not use
     `IntegrationTestBase` and has no container.
   - Resolves `ISwaggerProvider` from DI, serialises document `v1` to JSON, and compares it with the committed
     `RecipeManager/contracts/openapi.json`, with line endings normalised.
   - With `UPDATE_OPENAPI_SNAPSHOT=1` set, it rewrites the file instead of asserting.
   - It is a plain `[Fact]`, not `[SkippableFact]`. It needs no Docker, so it must never skip.
-- [ ] **Generator package** `RecipeManager/contracts/`:
+- [x] **Generator package** `RecipeManager/contracts/`:
   - A private `package.json` and its own `package-lock.json`, pinning `openapi-typescript` 7.13.0 and
     `typescript` 5.9.3.
   - One script, `gen`, which writes `../recipe-manager-frontend/src/types/generated/api.ts`.
-- [ ] **Frontend**:
+- [x] **Frontend**:
   - Add the script `"gen:api": "npm --prefix ../contracts run gen"`.
   - Commit the generated `src/types/generated/api.ts`.
   - Add `src/types/generated` to Oxlint's `ignorePatterns`. It stays inside `tsc`'s scope on purpose, so TS 7
     still type-checks the generated file.
   - `recipe.ts` becomes aliases: `export type Recipe = components['schemas']['RecipeDto']`, with
     `UpdateRecipeRequest` and `CreateRecipeRequest` aliasing their own schemas.
-- [ ] **`.gitattributes`** at the repo root: `eol=lf` for `RecipeManager/contracts/openapi.json` and
+- [x] **`.gitattributes`** at the repo root: `eol=lf` for `RecipeManager/contracts/openapi.json` and
       `…/src/types/generated/api.ts` only. `core.autocrlf=true` on Windows would otherwise check them out as
       CRLF, and they would permanently differ from the generator's LF output.
-- [ ] **CI** (`.github/workflows/ci.yml`, frontend job, after `npm ci`):
+- [x] **CI** (`.github/workflows/ci.yml`, frontend job, after `npm ci`):
   - `npm ci --prefix ../contracts`
   - `npm run gen:api`
   - `git diff --exit-code -- src/types/generated`
   - `npm audit --audit-level=high --prefix ../contracts`
 
   The backend job is unchanged, because the snapshot test runs inside the existing `dotnet test`.
-- [ ] **Dependabot**: a second `npm` entry for `/RecipeManager/contracts`, grouping `openapi-typescript` with
+- [x] **Dependabot**: a second `npm` entry for `/RecipeManager/contracts`, grouping `openapi-typescript` with
       `typescript` and ignoring `typescript` majors (see section 9).
-- [ ] **Proof the gate works**, reported in the PR:
+- [x] **Proof the gate works**, reported in the PR:
   - A throwaway commit adds a property to `RecipeDto` without regenerating anything. The snapshot test must go
     red in the backend job.
   - A second throwaway commit regenerates `openapi.json` only. The diff check must go red in the frontend job.
-- [ ] Docs: see section 16.
+- [x] Docs: see section 16.
 
 ## 4. Out of scope
 
@@ -234,29 +234,56 @@ fix matters: a member not listed in `required` came out as `notRequired?: string
 
 PR A:
 
-- [ ] `recipe.ts` matches `RecipeDto` field for field, with no `image` and no optional markers.
-- [ ] `recipeService.updateRecipe` returns `Promise<AxiosResponse<void>>` and requires every body field.
-- [ ] `npm run typecheck`, `npm run lint`, `npm test` (40 tests), and `npm run build` are all green.
+- [x] `recipe.ts` matches `RecipeDto` field for field, with no `image` and no optional markers.
+- [x] `recipeService.updateRecipe` returns `Promise<AxiosResponse<void>>` and requires every body field.
+- [x] `npm run typecheck`, `npm run lint`, `npm test` (40 tests), and `npm run build` are all green.
 
 PR B:
 
-- [ ] The generated `RecipeDto`, `UpdateRecipeDto`, and `CreateRecipeCommand` schemas contain **no** optional
+- [x] The generated `RecipeDto`, `UpdateRecipeDto`, and `CreateRecipeCommand` schemas contain **no** optional
       (`?`) properties, and `id` is `string`.
-- [ ] Given a property added to `RecipeDto` without regenerating, when `dotnet test` runs, then
+- [x] Given a property added to `RecipeDto` without regenerating, when `dotnet test` runs, then
       `OpenApiContractTests` fails with a message that names the regeneration command.
-- [ ] Given a regenerated `openapi.json` but a stale `api.ts`, when the frontend CI job runs, then the diff step
+- [x] Given a regenerated `openapi.json` but a stale `api.ts`, when the frontend CI job runs, then the diff step
       fails.
 - [ ] Given no contract change, both checks pass on Windows (`core.autocrlf=true`) and on the Linux runner.
-- [ ] The snapshot test passes on a machine **without** Docker. It does not skip.
-- [ ] `recipe.ts` contains only aliases over the generated types, and no hand-written fields.
+      **Not fully evidenced — noted, not ticked.** What was actually observed: the frontend check
+      (`Contract types are current`) passes locally on the author's Windows machine, and `.gitattributes`'
+      `eol=lf` is what keeps that comparison meaningful across a `core.autocrlf=true` checkout. The backend
+      check (`OpenApiContractTests`) does not run on that machine at all — Smart App Control (`INFRA-06`) fails
+      it with `FileLoadException` before it can compare anything, which is not the same as passing. Both checks
+      are evidenced together only on the Linux runner, via CI run 35438379053 (85 unit + 22 integration passed,
+      0 skipped).
+- [x] The snapshot test passes on a machine **without** Docker. It does not skip. **Evidenced by design, not by
+      a local no-Docker run:** `OpenApiContractTests` never uses `IntegrationTestBase` or the PostgreSQL
+      container fixture (confirmed by reading `RecipeManager.IntegrationTests/Contracts/OpenApiContractTests.cs`),
+      so nothing in it can depend on Docker being present. CI run 35438379053 shows 0 skipped, consistent with
+      that — not with having actually been run on a Docker-less machine.
+- [x] `recipe.ts` contains only aliases over the generated types, and no hand-written fields.
 
 ## 12. Test plan
 
-- **Snapshot test** (`OpenApiContractTests`, 1 test): see section 3. The backend count becomes 104 (85 unit +
-  19 integration). On a machine without Docker, 18 skip and the snapshot test still runs.
+- **`OpenApiContractTests`** (4 tests, corrected from the 1 originally planned — see "Deviations during
+  implementation" below): a 3-case `[Theory]`, `RecipeSchemas_ShouldMarkEveryPropertyRequired`, over
+  `RecipeDto`/`UpdateRecipeDto`/`CreateRecipeCommand`, plus the 1 snapshot `[Fact]`,
+  `OpenApiDocument_ShouldMatchCommittedSnapshot`. The backend count becomes **107** (85 unit + 22 integration),
+  not the 104 this spec originally planned. On a machine without Docker, the 18 Testcontainers-backed tests
+  skip and all 4 `OpenApiContractTests` still run, because none of them touches PostgreSQL. On a machine where
+  Smart App Control blocks `WebApplicationFactory` (`INFRA-06`), those 4 **fail** rather than skip — see the
+  received-file mechanism in ADR-019 and the companion decisions-log entry.
 - **Frontend:** the existing 40 Vitest tests, with fixtures updated in PR A. No new frontend tests, because
   types are verified by `tsc`, not by Vitest.
-- **Gate proof:** the two throwaway commits in section 3, with CI run links in the PR description.
+- **Gate proof:** the two throwaway commits in section 3, run on a throwaway draft PR (#54, closed and its
+  branch deleted after the runs below were captured), not on PR B itself.
+
+  | Milestone | Change | Backend (`OpenApiContractTests`) | Frontend (`Contract types are current`) | CI run |
+  | --- | --- | --- | --- | --- |
+  | M1 | `RecipeDto` gains a defaulted `Rating` property; nothing regenerated | **failed** — snapshot mismatch | **passed** — `api.ts` still matches the old snapshot it was generated from | 35438913390 |
+  | M2 | `openapi.json` regenerated from M1's uploaded `openapi-received` artifact; `api.ts` left stale | **passed** — snapshot now matches the document | **failed** — `git status --porcelain` on `src/types/generated` showed `+ rating: number;` | 35438988522 |
+
+  Each half of the gate was shown to fail on its own defect and pass once that defect alone was fixed, proving
+  the two links are independent: a DTO change with no regeneration is caught by the backend, and a
+  half-regenerated pair (snapshot updated, generated types not) is caught by the frontend.
 - **Not covered, and why:**
   - Route, verb, and status-code drift (`QUAL-04`).
   - Whether the *runtime* JSON matches the document. Swashbuckle describes what `System.Text.Json` will emit,
@@ -286,12 +313,41 @@ supply-chain note is in section 10. `07-ux-ui` is not involved: there is no new 
 - `WebApplicationFactory<Program>` in the `IntegrationTest` environment builds without a `DbContext`.
   `Program.Main` skips `RegisterDbContext` and `MigrateDatabase` there, and document generation reads
   `ApiExplorer` metadata without constructing a controller, so the repository is never resolved. Scope
-  validation on build is on only in `Development`. **To be verified first in PR B.**
+  validation on build is on only in `Development`. **To be verified first in PR B.** **Held** — the only
+  evidence for this is CI run 35438379053 (Linux runner): `OpenApiContractTests` ran and passed with no
+  database configured, and the full suite reported 85 unit + 22 integration passed, 0 skipped. Not independently
+  verified on a Docker-backed local machine.
 - `ISwaggerProvider.GetSwagger("v1")` serialised as OpenAPI 3.0 JSON produces the same document the Swagger
   middleware serves in Development.
 - Swashbuckle 10's value-type `required` behaviour is unverified. Section 3 states the fallback.
 - `openapi-typescript` output is deterministic for identical input. Spike 2 is consistent with that, and the
   gate-proof run will confirm it on Linux.
+
+## Deviations during implementation
+
+Two things changed from what this spec planned, both forced by discoveries made while building PR B, not by a
+change of goal.
+
+- **Smart App Control forced a second acceptance route.** `INFRA-06` (Settled) had already resolved Smart App
+  Control on the owner's Windows machine by making CI the authority for the integration tests. That resolution
+  turned out not to extend to a test whose job is to be *re-run on demand* by whoever changes a DTO —
+  `OpenApiContractTests` cannot run at all under Smart App Control (`FileLoadException`, same as the rest of
+  `RecipeManager.IntegrationTests`), so the author had no route to a local snapshot update. The fix, not
+  originally planned: `OpenApiDocument_ShouldMatchCommittedSnapshot` writes `contracts/openapi.received.json`
+  on any mismatch (the "received file" pattern) before failing, and the backend CI job uploads it as the
+  `openapi-received` artifact on failure — giving a second acceptance route that needs no local test run at
+  all. Recorded in ADR-019 and its own decisions-log entry (2026-09-19, "A regeneration workflow that only
+  works where the tests run is not a workflow").
+- **The required-members check became a 3-case theory, not folded into the snapshot fact.** Section 3 planned
+  one snapshot test; verifying "every non-nullable member is required" turned out to need its own assertion
+  per schema (`RecipeSchemas_ShouldMarkEveryPropertyRequired`, `[Theory]` over the three DTO schemas) so a
+  failure names which schema regressed, rather than surfacing only as an opaque JSON diff in the snapshot
+  test. This is why section 12's count is 107, not the 104 originally planned.
+
+A real bug was also found and fixed during implementation, not a planned deviation: the first version of
+`OpenApiDocument_ShouldMatchCommittedSnapshot` threw `DirectoryNotFoundException` writing the received file,
+because `contracts/` does not exist on a bare checkout before the first snapshot is committed. Fixed by
+creating the directory up front (commit `7ab09fa`).
 
 ## 15. Follow-ups
 
@@ -311,7 +367,7 @@ supply-chain note is in section 10. `07-ux-ui` is not involved: there is no new 
   - `tech-stack.md` (the two new dev packages and the reason they are isolated);
   - the checklist in `08-api-contract.md` (the regeneration steps and "nothing detects drift" → the gate);
   - the README (the three-step ritual);
-  - `CLAUDE.md` (test counts 103 → 104, and `contracts/` in the repository layout);
+  - `CLAUDE.md` (test counts 103 → 107, and `contracts/` in the repository layout);
   - `feature-workflow.md` step 7 (the regeneration step).
 - **PR B adds:** `QUAL-04` to `known-issues.md`.
 - **Decisions log:** "TS 7 has no compiler API; codegen needs its own TS". Takeaway: a tool can depend on a

@@ -569,6 +569,51 @@ endpoint is anonymous and every recipe is world-writable. See
 
 ---
 
+### ADR-019 — Generated TypeScript types from a committed OpenAPI snapshot
+
+- **Status:** accepted and **implemented 2026-09-19** (`R-09`,
+  [specs/007-openapi-generated-types.md](specs/007-openapi-generated-types.md)). Closes `DEC-05`'s follow-up.
+- **Context:** the TS `Recipe` drifted from `RecipeDto` in five ways (`BUG-01`–`05`) and nothing noticed.
+  `tsc` proves TS code agrees with TS types, never that TS types agree with the API.
+- **Decision:** the drift gate has two links, each checked by the CI job that owns it.
+  `OpenApiContractTests` compares Swashbuckle's `v1` document with the committed `RecipeManager/contracts/openapi.json`
+  in the backend job. The test reads the document from `ISwaggerProvider`, because the middleware is
+  Development-only, and it rewrites the file under `UPDATE_OPENAPI_SNAPSHOT=1`. `openapi-typescript` generates
+  `recipe-manager-frontend/src/types/generated/api.ts`, and the frontend job fails if regenerating it changes
+  anything. `src/types/recipe.ts` only aliases generated schemas. Swagger marks every non-nullable member
+  `required` (`RequireNonNullablePropertiesSchemaFilter` with `SupportNonNullableReferenceTypes()`) and uses
+  plain type names as schema ids.
+- **Generator isolation:** TypeScript 7 (ADR-016) ships no JavaScript compiler API, and every mainstream
+  generator uses it to print code. `openapi-typescript` 7.13.0 and `typescript` 5.9.3 therefore live in their own
+  package, `RecipeManager/contracts/`, with their own lockfile, audit step, and Dependabot entry (which ignores
+  TS majors). An `npm overrides` entry was tried first and failed with `ERESOLVE`, because npm resolves a peer
+  from the parent's tree.
+- **Alternatives:** *(a)* build-time generation (`Microsoft.Extensions.ApiDescription.Server`): it boots the host
+  during `dotnet build`, which `Program.Main` cannot survive without a connection string. *(b)* the Swashbuckle
+  CLI: the same problem, plus a tool manifest outside CPM. *(c)* moving to `Microsoft.AspNetCore.OpenApi`: a
+  separate decision. *(d)* `openapi-fetch`: it would also type routes, but rewrites the service layer (`QUAL-04`).
+  *(e)* NSwag: frontend types from a backend tool. It remains the fallback if the isolated package ever stops
+  working. *(f)* `--legacy-peer-deps`: it would disable peer checking project-wide.
+- **Received-file mechanism (`INFRA-06`).** `OpenApiDocument_ShouldMatchCommittedSnapshot` cannot always run on
+  the machine making the change: `INFRA-06` (Settled, [known-issues.md](known-issues.md#settled)) already
+  documents that Smart App Control on Windows blocks every test that boots the API, and this test is one of
+  them. On a mismatch — or a missing snapshot — the test now writes the actual document to
+  `RecipeManager/contracts/openapi.received.json` (git-ignored) before failing, and deletes that file on a
+  match, the **"received file" snapshot pattern** (as in the Verify library's `*.received.*` files). The
+  backend CI job uploads the same file as the `openapi-received` artifact whenever the job fails. This gives
+  two acceptance routes instead of one: locally, `UPDATE_OPENAPI_SNAPSHOT=1 dotnet test --filter
+  OpenApiContractTests`; or, from anywhere — including a Smart App Control machine that cannot run the test at
+  all — push, let CI fail, download the `openapi-received` artifact, and copy it over `contracts/openapi.json`.
+  Either way, `npm run gen:api` and committing both files follow. Without this, `INFRA-06`'s "CI is the
+  authority" resolution would have meant the *only* way to regenerate the contract is a machine the author's own
+  environment cannot be, which is not a workflow — see the companion decisions-log entry.
+- **Consequences:** a DTO change now fails CI until it is regenerated. What it costs: a three-step ritual
+  (edit the C#, run the snapshot update, run `npm run gen:api`); two TypeScript versions and a second npm
+  lockfile; and a test that can also write a file. Routes, verbs, and status codes remain hand-typed
+  (`QUAL-04`).
+
+---
+
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001
 through ADR-007 are documentation of decisions already made, while ADR-008 and ADR-009 are new decisions taken
 during the documentation review. Whether to split them into individual files under `docs/adr/` is open:

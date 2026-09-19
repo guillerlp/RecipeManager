@@ -6,7 +6,8 @@ Every **defect and gap in what already exists**. Planned work that does not exis
 Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code. Build and
 test numbers re-measured on 2026-08-04 after `R-02`, and the frontend rows re-measured on 2026-08-08 after `R-03`
 and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12. The frontend
-tests row was added 2026-09-18 after `R-07`.
+tests row was added 2026-09-18 after `R-07`. Backend test numbers re-measured 2026-09-19 after `R-09` (ADR-019),
+from CI run 35438379053, which shows 85 + 22 passed, 0 skipped.
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -23,7 +24,7 @@ tests row was added 2026-09-18 after `R-07`.
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **0 warnings** — enforced by `TreatWarningsAsErrors` (ADR-010) |
-| Backend tests | `dotnet test RecipeManager.sln` | **103 passing** (85 unit + 18 integration), 0 failing. The 18 need Docker — without it they are reported as skipped (ADR-017) |
+| Backend tests | `dotnet test RecipeManager.sln` | **107 passing** (85 unit + 22 integration), 0 failing. Of the 22, 18 need Docker and are reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need no Docker, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** with `FileLoadException` rather than skip |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
@@ -85,6 +86,7 @@ kind of negative test.
 | [QUAL-01](#qual-01) | Low | Quality | `ILogger` called with interpolated strings |
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
 | [QUAL-03](#qual-03) | Low | Quality | Deep relative imports for shared assets |
+| [QUAL-04](#qual-04) | Low | Quality | Routes, verbs, and status codes are still hand-typed on the client |
 | [UX-01](#ux-01) | Medium | UX | Dark-theme status colours never contrast-checked |
 | [UX-02](#ux-02) | Medium | UX | Global heading sizes ignore the type scale; `h3` clips descenders |
 | [UX-03](#ux-03) | Low | UX | No shared breakpoint tokens |
@@ -123,7 +125,7 @@ card fallback rather than reusing the hero image. Consider `srcset` for the hero
 ### BUILD-06
 **`run-coverage.ps1` measures only the unit-test project — Low**
 
-The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 18 integration tests
+The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 22 integration tests
 contribute nothing and the reported percentage understates real coverage — particularly for `Api` and
 `Infrastructure`, which unit tests never touch.
 
@@ -553,6 +555,16 @@ bypassing the logging pipeline, log levels, and any structured sink.
 `'../../assets/mainPhoto.png'`, while every other import in the codebase uses the `@/` aliases. Add an
 `@assets` alias (to **both** `vite.config.ts` and `tsconfig.json`) or use `@/assets`.
 
+### QUAL-04
+**Routes, verbs, and status codes are still hand-typed on the client — Low**
+
+ADR-019 generates the DTO *shapes*, but `recipe-manager-frontend/src/services/recipeService.ts` still hand-writes each path
+(`/Recipes/${id}`), verb, and response wrapper (`AxiosResponse<void>` for 204s). A renamed route or a changed
+status code passes every check and fails at runtime.
+
+**Fix.** Type the service against the generated `paths` interface, or adopt `openapi-fetch` (rejected for R-09 as
+out of scope, see ADR-019).
+
 ---
 
 ## UX & accessibility
@@ -629,7 +641,7 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | --- | --- | --- |
 | `DEC-01` — local tool or deployed product? | **Practice project with deployment intent.** The production-grade bar applies; Critical security items are sequenced behind the deploy gate rather than waived. | [roadmap.md](roadmap.md) project stance + [Deploy gate](roadmap.md#deploy-gate) |
 | `DEC-02` — Development-only seeder? | **Yes**, gated on `IsDevelopment()`. | `R-13` |
-| `DEC-05` — generate TS types from OpenAPI? | **Yes**, after the contract defects are fixed by hand. | `R-09` |
+| `DEC-05` — generate TS types from OpenAPI? | **Yes**, after the contract defects are fixed by hand. **Shipped 2026-09-19.** | ADR-019 |
 | Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. | `R-10` |
 | CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
 | Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL.** Deferred until CI existed, since it needs Docker in both places; ADR-013 provided it. **Shipped 2026-09-17**, closing `TEST-06`: one container per test assembly, a database per test class, schema by `Database.Migrate()`, and a skip rather than a failure when Docker is missing. | ADR-017, `R-06` |

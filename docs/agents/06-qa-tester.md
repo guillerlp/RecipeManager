@@ -23,14 +23,15 @@ though QA can block on missing coverage).
 | Suite | Tests | Location |
 | --- | --- | --- |
 | Unit | **85** | `RecipeManager.UnitTests` |
-| Integration | **18** | `RecipeManager.IntegrationTests` |
+| Integration | **22** | `RecipeManager.IntegrationTests` |
 | Frontend | **40** | colocated `*.test.ts(x)` in `recipe-manager-frontend/src/` |
 
 Unit-test breakdown: `RecipeTests` 23, `ResultExtensionsTests` 13, `CreateRecipeHandlerTests` 11,
 `GetAllRecipesHandlerTests` 8, `EntityTests` 8, `DeleteRecipeHandlerTests` 7, `GetRecipeByIdHandlerTests` 7,
 `UpdateRecipeHandlerTest` 6, `RecipeErrorsTests` 2.
 
-Integration breakdown: `RecipesControllerTests` 8, `CqrsHandlerRegistrationTests` 6, `RecipeCacheTests` 4.
+Integration breakdown: `RecipesControllerTests` 8, `CqrsHandlerRegistrationTests` 6, `RecipeCacheTests` 4,
+`OpenApiContractTests` 4 (3-case required-members theory + 1 snapshot fact; `R-09`/ADR-019, needs no Docker).
 
 Counts are `dotnet test --list-tests` output, not a count of `[Fact]` attributes — a `[Theory]` contributes one
 test per data case, which is why `CqrsHandlerRegistrationTests` has two methods and six tests.
@@ -49,7 +50,7 @@ pwsh ./run-coverage.ps1
 ```
 
 `run-coverage.ps1` covers **only `RecipeManager.UnitTests`** and requires
-`dotnet tool install --global dotnet-reportgenerator-globaltool`. The 18 integration tests contribute nothing to
+`dotnet tool install --global dotnet-reportgenerator-globaltool`. The 22 integration tests contribute nothing to
 the reported number, so it understates real coverage — `BUILD-06` in [../known-issues.md](../known-issues.md).
 
 ---
@@ -170,9 +171,11 @@ the check whenever `CachedRecipeRepository` gains a write method.
   (ADR-017), so `text[]` semantics, identifier folding, collation, real constraint violations and the
   migrations themselves are all exercised. `TEST-06` is closed, and the standing "verify this by hand" caveat
   on persistence PRs is gone with it.
-- **Anything at all, on a machine without Docker.** There the 18 integration tests are **skipped**, not run, so
-  a green local `dotnet test` can mean "the 85 unit tests passed". Read the skip count, and trust CI — which
-  always has Docker — before claiming an endpoint works.
+- **Anything at all, on a machine without Docker.** There the 18 Docker-backed integration tests are
+  **skipped**, not run — the other 4 (`OpenApiContractTests`, ADR-019) need no Docker and still run — so a green
+  local `dotnet test` can mean "89 of 107 tests ran". Read the skip count, and trust CI — which always has
+  Docker — before claiming an endpoint works. On a Windows machine under Smart App Control (`INFRA-06`), those 4
+  contract tests fail instead of skipping, same as the rest of the suite.
 - **Concurrency.** No optimistic concurrency exists; concurrent `PUT`s are last-write-wins and untested.
 - **Startup migration behaviour** (`app.MigrateDatabase()`) is skipped in the `IntegrationTest` environment.
 - **Performance / volume.** No load test; `GET /api/recipes` is unpaginated.
@@ -210,7 +213,7 @@ not tested, because the test would pin the wrong heading.
 2. A coverage statement: what is covered, what is explicitly not, and why.
 3. Updates to this catalogue when a new edge case is discovered, and to
    [../known-issues.md](../known-issues.md) when a gap is found or closed.
-4. `dotnet test` output — pass count against the current 103, **plus the skip count**, since 18 skipped
+4. `dotnet test` output — pass count against the current 107, **plus the skip count**, since 18 skipped
    integration tests and 18 passing ones both leave the run green. Warnings are 0 and a new one fails the build
    (ADR-010), so there is no count to report there any more. For frontend changes, the `npm test` pass count.
 5. **An explanation of the testing reasoning** ([../learning-mode.md](../learning-mode.md)):

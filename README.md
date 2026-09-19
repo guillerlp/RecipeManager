@@ -112,10 +112,12 @@ dotnet dev-certs https --trust
 dotnet test RecipeManager.sln
 ```
 
-103 tests: 85 unit and 18 integration. The integration tests start a real PostgreSQL container (ADR-017), so
-**with Docker running** you get 103 passed; **without it** you get 85 passed and 18 skipped, each naming Docker
-as the reason. The skip is deliberate — see the troubleshooting entry below — but it means a green run is only
-as complete as its skip count says.
+107 tests: 85 unit and 22 integration. Of the 22, 18 start a real PostgreSQL container (ADR-017) and the other
+4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 107 passed;
+**without it** you get 89 passed and 18 skipped, each naming Docker as the reason. The skip is deliberate — see
+the troubleshooting entry below — but it means a green run is only as complete as its skip count says. On a
+Windows machine with Smart App Control enabled, the 4 contract tests do not skip — they **fail** with
+`FileLoadException`, the same way the 18 integration tests do; see the Smart App Control entry below.
 
 Unit tests with an HTML coverage report (requires `dotnet tool install --global dotnet-reportgenerator-globaltool`):
 
@@ -163,6 +165,40 @@ Vite bundles anything, so a type error fails it. For a faster
 loop while working, `npm run typecheck` runs the same check without producing `dist/`. `npm test` runs the
 Vitest suite once; `npm run test:watch` re-runs on save.
 
+### Changing the API contract
+
+The TypeScript types in `src/types/generated/api.ts` are generated from `RecipeManager/contracts/openapi.json`,
+which is itself a snapshot of the API's OpenAPI document (ADR-019). After changing a DTO, a route, or a status
+code, regenerate both, from `RecipeManager/`:
+
+```bash
+UPDATE_OPENAPI_SNAPSHOT=1 dotnet test --filter OpenApiContractTests
+```
+
+then from `RecipeManager/recipe-manager-frontend/`:
+
+```bash
+npm run gen:api
+```
+
+and commit both files. CI fails if either is stale. On PowerShell, set the variable with
+`$env:UPDATE_OPENAPI_SNAPSHOT='1'` and remove it afterwards.
+
+If the snapshot test cannot run on your machine at all — Windows with Smart App Control enabled blocks it the
+same way it blocks the integration tests, see [Troubleshooting](#troubleshooting) — there is a second route that
+needs no local test run:
+
+1. Push the change and let CI's **Backend** job fail on `OpenApiContractTests`.
+2. Download the `openapi-received` artifact it uploads on that failure:
+   ```bash
+   gh run download <run-id> -n openapi-received
+   ```
+3. Copy the downloaded `openapi.received.json` over `RecipeManager/contracts/openapi.json`.
+4. Run `npm run gen:api` from `RecipeManager/recipe-manager-frontend/` as above, and commit both files.
+
+Either route ends the same way: `contracts/openapi.json` and `src/types/generated/api.ts` committed together.
+`src/types/recipe.ts` only aliases the generated schemas — never add a field there by hand.
+
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every pull request to `main` and every push to `main`, in two parallel jobs
@@ -170,8 +206,8 @@ on `ubuntu-latest`:
 
 | Job | Steps |
 | --- | --- |
-| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (103) → vulnerable-package check |
-| **Frontend** | `npm ci` → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` |
+| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (107) → upload `openapi-received` snapshot on failure → vulnerable-package check |
+| **Frontend** | `npm ci` → contract types are current (`npm run gen:api` + diff check) → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` |
 
 Two things are worth knowing before a run surprises you:
 
@@ -235,5 +271,8 @@ Changing the Application Control policy also works, but it is a machine-wide sec
 The same policy can also block the **integration tests**: every one fails with
 `FileLoadException … An Application Control policy has blocked this file. (0x800711C7)` on
 `RecipeManager.IntegrationTests\bin\Debug\net10.0\RecipeManager.Api.dll`. Here the flag does not help — the
-blocked file is the DLL, not the launcher. The unit tests still run; for the integration tests, rely on CI, which
-runs all of them on Linux for every PR.
+blocked file is the DLL, not the launcher. This includes `OpenApiContractTests` (ADR-019): those 4 tests need no
+Docker, but they still boot the API, so they **fail** here rather than skip. The unit tests still run; for the
+integration tests and the contract tests, rely on CI, which runs all of them on Linux for every PR. If you need
+to accept a contract change from a machine in this state, see "Changing the API contract" above — it has a route
+that needs no local test run.
