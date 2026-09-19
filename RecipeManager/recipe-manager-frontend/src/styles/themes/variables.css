@@ -1,26 +1,45 @@
 :root {
+  /* Families */
+  --font-serif: 'Newsreader Variable', Georgia, serif;   /* user-written content */
+  --font-ui: system-ui, -apple-system, sans-serif;       /* interface text */
+  --font-mono: ui-monospace, Menlo, Consolas, monospace; /* labels and quantities */
+
+  /* Type scale (spec 009 §8.1). rem, not the design's px, so browser font-size settings are honoured. */
+  --type-display: 300 3.875rem/1.02 var(--font-serif);
+  --type-title: 300 2.375rem/1.1 var(--font-serif);
+  --type-recipe-title: 500 1.25rem/1.25 var(--font-serif);
+  --type-body: 400 0.969rem/1.5 var(--font-ui);
+  --type-ui: 500 0.875rem/1 var(--font-ui);
+  --type-label: 0.688rem/1 var(--font-mono);
+
+  --tracking-display: -0.02em;
+  --tracking-label: 0.12em;
+
   /* Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
+  --spacing-2xl: 2.5rem;
 
-  /* Border radius */
+  /* Border radius. --radius-pill is the editorial shell's default for buttons, nav links and fields. */
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 12px;
-
-  /* Typography */
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
-  --font-size-3xl: 2rem;
+  --radius-pill: 999px;
 
   /* Transitions */
   --transition-fast: 0.15s ease;
   --transition-normal: 0.2s ease;
   --transition-slow: 0.3s ease;
+
+  /*
+   * Breakpoints — UX-03. Use these three values literally in media queries:
+   *   480px  narrow phone
+   *   768px  phone/tablet boundary: header nav gives way to BottomNav
+   *  1024px  narrow desktop
+   * They cannot be custom properties: `@media (max-width: var(--x))` is invalid CSS, because custom
+   * properties are not resolved in a media query's condition.
+   */
 }

@@ -1,0 +1,40 @@
+/*
+ * The six type roles of the editorial design. Consume with CSS Modules composition:
+ *   .pageTitle { composes: title from '@/styles/typography.module.css'; }
+ * Composition keeps module scoping, unlike a global utility class.
+ */
+
+.display {
+  font: var(--type-display);
+  letter-spacing: var(--tracking-display);
+  text-wrap: balance;
+}
+
+.title { font: var(--type-title); }
+
+.recipeTitle { font: var(--type-recipe-title); }
+
+.body {
+  font: var(--type-body);
+  text-wrap: pretty;
+}
+
+.ui { font: var(--type-ui); }
+
+.label {
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* Quantities, durations and counts: digits must not jitter between rows. */
+.numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 768px) {
+  .display { font-size: 2.5rem; }
+  .title { font-size: 2rem; }
+}

@@ -3,6 +3,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 
+// Self-hosted: Vite bundles and hashes the woff2, so no request leaves our origin and the
+// future CSP (SEC-10) stays self-only. ADR-021.
+import '@fontsource-variable/newsreader';
+
 import './styles/themes/variables.css';
 import './styles/themes/light.css';
 import './styles/themes/dark.css';
