@@ -207,7 +207,7 @@ on `ubuntu-latest`:
 | Job | Steps |
 | --- | --- |
 | **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (107) → upload `openapi-received` snapshot on failure → vulnerable-package check |
-| **Frontend** | `npm ci` → contract types are current (`npm run gen:api` + diff check) → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` |
+| **Frontend** | `npm ci` → contract types are current (`npm run gen:api` + diff check) → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` → `npm audit --audit-level=high --prefix ../contracts` |
 
 Two things are worth knowing before a run surprises you:
 

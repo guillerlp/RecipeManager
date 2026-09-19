@@ -96,7 +96,9 @@ namespace RecipeManager.Api.Startup
             {
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "RecipeManager", Version = "v1" });
                 // The generated TS types index schemas by id (components['schemas']['RecipeDto']), so ids are the
-                // plain type name. A future name collision fails at startup, which is the moment to resolve it.
+                // plain type name. A future name collision throws when Swashbuckle generates the document (the
+                // OpenApiContractTests on CI, or /swagger in Development) — not at app startup — which is the
+                // moment to resolve it.
                 options.SupportNonNullableReferenceTypes();
                 options.SchemaFilter<RequireNonNullablePropertiesSchemaFilter>();
                 options.DescribeAllParametersInCamelCase();

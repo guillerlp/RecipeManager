@@ -23,7 +23,7 @@ public sealed class RequireNonNullablePropertiesSchemaFilter : ISchemaFilter
             bool isNullable = property.Type is { } type && type.HasFlag(JsonSchemaType.Null);
             if (!isNullable)
             {
-                (concrete.Required ??= new HashSet<string>()).Add(name);
+                (concrete.Required ??= new SortedSet<string>(StringComparer.Ordinal)).Add(name);
             }
         }
     }

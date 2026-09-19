@@ -104,6 +104,8 @@ just produces it from `RecipeDto` now instead of a hand-written interface. `Crea
       matches the TS type.
 
 **The drift gate (`R-09`, ADR-019).** Nothing here is discipline any more — it is enforced in CI, in two links.
+CI is not yet *required* to merge (`INFRA-07`), so a red run can still be merged past, but the two links below
+are checked on every PR.
 `OpenApiContractTests` (backend job) compares Swashbuckle's `v1` document against the committed
 `RecipeManager/contracts/openapi.json` and fails if they disagree; `openapi-typescript` (frontend job) fails if
 regenerating `src/types/generated/api.ts` from that snapshot changes anything. `src/types/recipe.ts` is now only

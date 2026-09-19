@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `007` |
-| **Status** | in progress — implemented, awaiting a green CI run on PR B |
+| **Status** | implemented — CI green (run 35439826179), awaiting merge |
 | **Author** | `00-leader`, owned by `08-api-contract` with `01-architect` |
 | **Created** | 2026-09-19 |
 | **Branch** | PR A `fix/recipe-contract-drift` · PR B `feat/openapi-generated-types` |
@@ -55,7 +55,7 @@ fails CI (PR B).
     marks every non-nullable property required, instead of annotating each DTO.
   - Remove `CustomSchemaIds(type => type.ToString())`, so schemas are named `RecipeDto` rather than
     `RecipeManager.Application.DTO.Recipes.RecipeDto`.
-- [x] **Snapshot test** `RecipeManager.IntegrationTests/OpenApiContractTests.cs`:
+- [x] **Snapshot test** `RecipeManager.IntegrationTests/Contracts/OpenApiContractTests.cs`:
   - Boots a bare `WebApplicationFactory<Program>` in the `IntegrationTest` environment. It does not use
     `IntegrationTestBase` and has no container.
   - Resolves `ISwaggerProvider` from DI, serialises document `v1` to JSON, and compares it with the committed
@@ -82,7 +82,9 @@ fails CI (PR B).
   - `git diff --exit-code -- src/types/generated`
   - `npm audit --audit-level=high --prefix ../contracts`
 
-  The backend job is unchanged, because the snapshot test runs inside the existing `dotnet test`.
+  The backend job gained one step, `Upload received OpenAPI snapshot`, which uploads
+  `contracts/openapi.received.json` as the `openapi-received` artifact whenever the job fails — it runs inside
+  the existing `dotnet test`, so no separate test invocation was added.
 - [x] **Dependabot**: a second `npm` entry for `/RecipeManager/contracts`, grouping `openapi-typescript` with
       `typescript` and ignoring `typescript` majors (see section 9).
 - [x] **Proof the gate works**, reported in the PR:
@@ -325,8 +327,8 @@ supply-chain note is in section 10. `07-ux-ui` is not involved: there is no new 
 
 ## Deviations during implementation
 
-Two things changed from what this spec planned, both forced by discoveries made while building PR B, not by a
-change of goal.
+Five things changed from what this spec planned, forced by discoveries made while building PR B and by the
+final whole-branch review, not by a change of goal.
 
 - **Smart App Control forced a second acceptance route.** `INFRA-06` (Settled) had already resolved Smart App
   Control on the owner's Windows machine by making CI the authority for the integration tests. That resolution
@@ -343,6 +345,22 @@ change of goal.
   per schema (`RecipeSchemas_ShouldMarkEveryPropertyRequired`, `[Theory]` over the three DTO schemas) so a
   failure names which schema regressed, rather than surfacing only as an opaque JSON diff in the snapshot
   test. This is why section 12's count is 107, not the 104 originally planned.
+- **`gen:api` bundles the contracts install, instead of a separate CI step.** Section 3 planned a standalone
+  `npm ci --prefix ../contracts` step in `ci.yml`. It was folded into the frontend `gen:api` script itself
+  (`npm ci --prefix ../contracts --no-audit --no-fund && npm --prefix ../contracts run gen`), so running
+  `npm run gen:api` locally installs the generator too, not just in CI.
+- **The CI drift check uses `git status --porcelain`, not `git diff --exit-code`.** A generated file that was
+  regenerated for the first time and never committed is untracked, and `git diff --exit-code` does not see
+  untracked files — it would pass on exactly the case it exists to catch. `git status --porcelain -- src/types/generated`
+  catches both a modified and a never-committed generated file.
+- **`NonNullableReferenceTypesAsRequired()` was dropped**, in favour of `RequireNonNullablePropertiesSchemaFilter`
+  alone. Swashbuckle's option covers reference types only, which would still leave `Guid` and `int` members
+  optional; the custom filter covers both, so keeping the option too would have been redundant.
+- **The final whole-branch review's fixes for this item** (applied in the same fix wave as this update):
+  `RecipeSchemas_ShouldMarkEveryPropertyRequired` was renamed and its assertion narrowed to "every non-nullable
+  property is required" — nullable properties may legitimately be absent from `required`, and the old assertion
+  demanded all of them regardless — and the snapshot test now fails loudly, instead of only via a code comment,
+  if `UPDATE_OPENAPI_SNAPSHOT` is ever set with `CI=true`.
 
 A real bug was also found and fixed during implementation, not a planned deviation: the first version of
 `OpenApiDocument_ShouldMatchCommittedSnapshot` threw `DirectoryNotFoundException` writing the received file,

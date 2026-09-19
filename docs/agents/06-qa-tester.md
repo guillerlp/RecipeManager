@@ -213,8 +213,9 @@ not tested, because the test would pin the wrong heading.
 2. A coverage statement: what is covered, what is explicitly not, and why.
 3. Updates to this catalogue when a new edge case is discovered, and to
    [../known-issues.md](../known-issues.md) when a gap is found or closed.
-4. `dotnet test` output — pass count against the current 107, **plus the skip count**, since 18 skipped
-   integration tests and 18 passing ones both leave the run green. Warnings are 0 and a new one fails the build
+4. `dotnet test` output — pass count against the current 107, **plus the skip count**, since the 18
+   Docker-backed integration tests skip without Docker and the run is still green whether they skip or pass.
+   Warnings are 0 and a new one fails the build
    (ADR-010), so there is no count to report there any more. For frontend changes, the `npm test` pass count.
 5. **An explanation of the testing reasoning** ([../learning-mode.md](../learning-mode.md)):
    - **Why this level.** Unit tests mock `IRecipeRepository` and therefore never exercise

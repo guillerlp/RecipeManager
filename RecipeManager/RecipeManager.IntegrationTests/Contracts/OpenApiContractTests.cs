@@ -28,20 +28,24 @@ public class OpenApiContractTests : IDisposable
     [InlineData("RecipeDto")]
     [InlineData("UpdateRecipeDto")]
     [InlineData("CreateRecipeCommand")]
-    public void RecipeSchemas_ShouldMarkEveryPropertyRequired(string schemaName)
+    public void RecipeSchemas_ShouldMarkEveryNonNullablePropertyRequired(string schemaName)
     {
         // ==================== ARRANGE ====================
         OpenApiDocument document = GetDocument();
 
         // ==================== ACT ====================
         IOpenApiSchema schema = document.Components!.Schemas![schemaName];
+        IEnumerable<string> nonNullableProperties = schema.Properties!
+            .Where(p => p.Value.Type is not { } type || !type.HasFlag(JsonSchemaType.Null))
+            .Select(p => p.Key);
 
         // ==================== ASSERT ====================
-        // A member missing from `required` becomes an optional `?` property in the generated TypeScript, which is
-        // drift the generator would reproduce faithfully.
+        // A non-nullable member missing from `required` becomes an optional `?` property in the generated
+        // TypeScript, which is drift the generator would reproduce faithfully. Nullable members may legitimately
+        // be absent from `required`, per RequireNonNullablePropertiesSchemaFilter.
         schema.Properties.Should().NotBeNullOrEmpty();
-        schema.Required.Should().BeEquivalentTo(schema.Properties!.Keys,
-            "every member of {0} is non-nullable in C#, so the client may rely on it being present", schemaName);
+        schema.Required.Should().BeEquivalentTo(nonNullableProperties,
+            "every non-nullable member of {0} must be present so the client may rely on it", schemaName);
     }
 
     private const string UpdateVariable = "UPDATE_OPENAPI_SNAPSHOT";
@@ -72,9 +76,13 @@ public class OpenApiContractTests : IDisposable
         string actual = Normalize(await GetDocument().SerializeAsJsonAsync(OpenApiSpecVersion.OpenApi3_0));
 
         // Golden-master update switch for developers. Never set in CI, where it would make this test pass by
-        // rewriting its own expectation.
+        // rewriting its own expectation — enforced below rather than left as a comment, since GitHub Actions
+        // always sets CI=true.
         if (Environment.GetEnvironmentVariable(UpdateVariable) == "1")
         {
+            Environment.GetEnvironmentVariable("CI").Should().NotBe("true",
+                "{0} must never be set in CI, or a real contract drift would rewrite the snapshot instead of " +
+                "failing the build", UpdateVariable);
             await File.WriteAllTextAsync(snapshotPath, actual);
             File.Delete(receivedPath);
             return;

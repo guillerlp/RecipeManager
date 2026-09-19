@@ -571,8 +571,9 @@ endpoint is anonymous and every recipe is world-writable. See
 
 ### ADR-019 — Generated TypeScript types from a committed OpenAPI snapshot
 
-- **Status:** accepted and **implemented 2026-09-19** (`R-09`,
+- **Status:** accepted and **implemented 2026-09-19, CI green (run 35439826179)** (`R-09`,
   [specs/007-openapi-generated-types.md](specs/007-openapi-generated-types.md)). Closes `DEC-05`'s follow-up.
+  The spec may move to shipped at merge.
 - **Context:** the TS `Recipe` drifted from `RecipeDto` in five ways (`BUG-01`–`05`) and nothing noticed.
   `tsc` proves TS code agrees with TS types, never that TS types agree with the API.
 - **Decision:** the drift gate has two links, each checked by the CI job that owns it.
@@ -610,7 +611,9 @@ endpoint is anonymous and every recipe is world-writable. See
 - **Consequences:** a DTO change now fails CI until it is regenerated. What it costs: a three-step ritual
   (edit the C#, run the snapshot update, run `npm run gen:api`); two TypeScript versions and a second npm
   lockfile; and a test that can also write a file. Routes, verbs, and status codes remain hand-typed
-  (`QUAL-04`).
+  (`QUAL-04`). These CI checks are not yet *required* to merge (`INFRA-07`), so a red run can still be merged
+  past. A Dependabot bump of `openapi-typescript` that changes its output will make the frontend drift step red
+  by design; a human runs `npm run gen:api` and pushes the regenerated file to that same PR.
 
 ---
 
