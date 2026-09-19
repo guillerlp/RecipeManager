@@ -72,7 +72,7 @@ Escalate when the fix requires: a schema/migration change, a new project referen
 
 ## 5. Regression sweep — `06-qa-tester`
 
-- The new test passes and the whole suite still passes (currently 103 tests). A new build warning cannot slip
+- The new test passes and the whole suite still passes (currently 107 tests). A new build warning cannot slip
   through — it fails the build (ADR-010).
 - If the bug was a cache issue, add a test that performs write-then-read through the API — the integration tests
   exercise the real decorator chain.

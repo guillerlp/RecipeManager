@@ -29,30 +29,32 @@ components (`03-senior-react`).
 ## Current drift
 
 None known. `BUG-01`–`BUG-05` (id typed `number`, missing `servings`/`instructions`, a phantom `image`, and a
-body typed on a 204 `PUT`) were fixed by hand on 2026-09-19 (spec 007, PR A). The corrected shape is
-`recipe-manager-frontend/src/types/recipe.ts`.
+body typed on a 204 `PUT`) were fixed by hand on 2026-09-19 (spec 007, PR A). Since PR B (`R-09`, ADR-019) the
+shape is no longer hand-written — it is generated from `RecipeManager/contracts/openapi.json` and aliased.
 
 ### Correct shape
 
+`recipe-manager-frontend/src/types/recipe.ts` in full — never add a field here; regenerate instead (see
+"Verification" below):
+
 ```ts
 // src/types/recipe.ts
-export interface Recipe {
-  id: string;                 // Guid
-  title: string;
-  description: string;
-  preparationTime: number;    // minutes
-  cookingTime: number;        // minutes
-  servings: number;
-  ingredients: string[];
-  instructions: string[];
-}
+// Aliases over the generated contract (R-09 / ADR-019). Never add fields here: change the C# DTO, then
+// regenerate (see README, "Changing the API contract").
+import type { components } from './generated/api';
 
-// PUT body — matches UpdateRecipeDto (no id; the id goes in the route)
-export type UpdateRecipeRequest = Omit<Recipe, 'id'>;
+type Schemas = components['schemas'];
 
-// POST body — matches CreateRecipeCommand (also no id; the server generates it)
-export type CreateRecipeRequest = Omit<Recipe, 'id'>;
+export type Recipe = Schemas['RecipeDto'];
+export type CreateRecipeRequest = Schemas['CreateRecipeCommand'];
+export type UpdateRecipeRequest = Schemas['UpdateRecipeDto'];
 ```
+
+`Recipe` still has the shape the mapping rules below describe (`id: string`, `title`, `description`,
+`preparationTime`, `cookingTime`, `servings`, `ingredients: string[]`, `instructions: string[]`) — the generator
+just produces it from `RecipeDto` now instead of a hand-written interface. `CreateRecipeRequest` and
+`UpdateRecipeRequest` alias `CreateRecipeCommand` and `UpdateRecipeDto` directly rather than being computed with
+`Omit<Recipe, 'id'>`, because those are now separate generated schemas, not derived types.
 
 ---
 
@@ -86,19 +88,44 @@ export type CreateRecipeRequest = Omit<Recipe, 'id'>;
       that assumes one will break on the other.
 - [ ] Changes ship in the **same PR** as the backend change. A contract change split across PRs leaves `main`
       broken.
+- [ ] Snapshot regenerated and `npm run gen:api` run; `contracts/openapi.json` and `src/types/generated/api.ts`
+      committed in the same PR.
 
 ### Verification
 
 - [ ] Compare against the running Swagger document rather than reading the C# by eye:
       `dotnet run --project RecipeManager.Api --launch-profile https` then `https://localhost:7231/swagger`.
-- [ ] `npm run typecheck`, and `npm run build` (which now type-checks too — ADR-012). Type-checking is the only
-      automated signal on this seam, so treat a green `tsc` as *necessary but not sufficient*: it proves the TS
-      code agrees with the TS types, never that the TS types agree with `RecipeDto`.
+- [ ] `npm run typecheck`, and `npm run build` (which now type-checks too — ADR-012). Treat a green `tsc` as
+      *necessary but not sufficient*: it proves the TS code agrees with the TS types, never that the TS types
+      agree with `RecipeDto`. That second link is what the drift gate below is for — `tsc` is one signal, the
+      two-link CI gate (the snapshot test and the generated-types diff) is the other, and the gate is what
+      actually watches `RecipeDto` itself.
 - [ ] Manually exercise the changed endpoint from the SPA, or with the Swagger UI, and confirm the payload
       matches the TS type.
 
-Nothing detects drift automatically — that is exactly how `BUG-01`–`BUG-05` accumulated. Generating the TS types
-from the OpenAPI document is the structural fix, planned as `R-09` in [../roadmap.md](../roadmap.md).
+**The drift gate (`R-09`, ADR-019).** Nothing here is discipline any more — it is enforced in CI, in two links.
+CI is not yet *required* to merge (`INFRA-07`), so a red run can still be merged past, but the two links below
+are checked on every PR.
+`OpenApiContractTests` (backend job) compares Swashbuckle's `v1` document against the committed
+`RecipeManager/contracts/openapi.json` and fails if they disagree; `openapi-typescript` (frontend job) fails if
+regenerating `src/types/generated/api.ts` from that snapshot changes anything. `src/types/recipe.ts` is now only
+aliases over the generated schemas — there is nothing left in it to drift by hand.
+
+A contract change is a three-step ritual, from `RecipeManager/`:
+
+```bash
+UPDATE_OPENAPI_SNAPSHOT=1 dotnet test --filter OpenApiContractTests
+```
+
+then from `RecipeManager/recipe-manager-frontend/`:
+
+```bash
+npm run gen:api
+```
+
+and commit both files. See the README's "Changing the API contract" for the PowerShell form and for the second
+acceptance route — pushing and downloading CI's `openapi-received` artifact — used when the snapshot test cannot
+run locally at all (Windows Smart App Control, `INFRA-06`).
 
 ## Inputs it needs
 
@@ -109,7 +136,7 @@ from the OpenAPI document is the structural fix, planned as `R-09` in [../roadma
 
 ## Expected outputs
 
-1. Updated `recipe-manager-frontend/src/types/recipe.ts` and `recipe-manager-frontend/src/services/recipeService.ts`.
+1. Regenerated types (`recipe.ts` holds aliases only) and updated `recipe-manager-frontend/src/services/recipeService.ts`.
 2. A **contract delta** note for `03-senior-react`:
    ```md
    ## Contract delta

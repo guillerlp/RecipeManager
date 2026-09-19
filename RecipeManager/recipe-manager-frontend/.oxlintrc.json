@@ -5,7 +5,7 @@
   // (BUILD-10). Overrides cannot set categories, so this is the only way to cover them.
   "categories": { "correctness": "error" },
   "options": { "typeAware": true },
-  "ignorePatterns": ["dist"],
+  "ignorePatterns": ["dist", "src/types/generated"],
   "overrides": [
     {
       // typescript-eslint `recommendedTypeChecked` + `stylisticTypeChecked`, react-hooks

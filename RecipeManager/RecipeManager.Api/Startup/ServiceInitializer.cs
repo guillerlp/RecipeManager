@@ -4,6 +4,7 @@ using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using RecipeManager.Api.Startup.CustomObjects;
+using RecipeManager.Api.Startup.Swagger;
 using RecipeManager.Application.Common.Interfaces.Caching;
 using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.Dispatchers;
@@ -94,7 +95,12 @@ namespace RecipeManager.Api.Startup
             services.AddSwaggerGen(options =>
             {
                 options.SwaggerDoc("v1", new OpenApiInfo { Title = "RecipeManager", Version = "v1" });
-                options.CustomSchemaIds(type => type.ToString());
+                // The generated TS types index schemas by id (components['schemas']['RecipeDto']), so ids are the
+                // plain type name. A future name collision throws when Swashbuckle generates the document (the
+                // OpenApiContractTests on CI, or /swagger in Development) — not at app startup — which is the
+                // moment to resolve it.
+                options.SupportNonNullableReferenceTypes();
+                options.SchemaFilter<RequireNonNullablePropertiesSchemaFilter>();
                 options.DescribeAllParametersInCamelCase();
             });
             return services;

@@ -76,6 +76,7 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `vitest` | 5.0 | test runner; configured by the `test` block in `vite.config.ts` (ADR-018) |
 | `jsdom` | 30.1 | DOM implementation Vitest runs component tests in |
 | `@testing-library/react` | 16.3 | renders components and queries them by role/text; `@testing-library/dom` 10.4 is its required peer |
+| `openapi-typescript` + `typescript` | 7.13.0 + 5.9.3 | dev-only, generates `src/types/generated/api.ts` from `RecipeManager/contracts/openapi.json`; isolated in `RecipeManager/contracts/` with its own `package.json`/lockfile/audit step, pinned to TypeScript 5 because TypeScript 7 (the frontend's own version) ships no JavaScript compiler API (ADR-019) |
 
 ### npm scripts
 

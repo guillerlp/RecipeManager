@@ -48,7 +48,7 @@ Verified against `main` @ `edfd057` (merge of `dotnet10-postgresql`) on 2026-07-
 | DI helpers | Scrutor 7.0 (`Decorate` for the caching repository) |
 | Caching | `IMemoryCache` behind `ICacheService`, decorator over `IRecipeRepository` |
 | Tests | xUnit 2.9, NSubstitute 6.2, FluentAssertions 8.11, `WebApplicationFactory` + Testcontainers PostgreSQL (ADR-017); Vitest 5 + React Testing Library under jsdom for the SPA (ADR-018) |
-| Frontend | React 19, TypeScript 7, Oxlint (type-aware — ADR-016), Vite 8, TanStack Query 5, Axios, React Router 7, CSS Modules (no component library — ADR-014) |
+| Frontend | React 19, TypeScript 7, Oxlint (type-aware — ADR-016), Vite 8, TanStack Query 5, Axios, React Router 7, CSS Modules (no component library — ADR-014), openapi-typescript (isolated, ADR-019) |
 
 Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
 
@@ -64,12 +64,13 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     global.json                      pins SDK 10.0.302, rollForward: latestFeature
     Directory.Build.props            TargetFramework/Nullable/ImplicitUsings + TreatWarningsAsErrors, all projects
     Directory.Packages.props         every package version (central package management) — never version a .csproj
+    contracts/                       OpenAPI snapshot + isolated TS generator (ADR-019)
     RecipeManager.Domain/            Recipe entity, Entity base, RecipeErrors, IRecipeRepository
     RecipeManager.Application/       Commands, Queries, Handlers, Dispatchers, DTOs, Validators, Mappings
     RecipeManager.Infrastructure/    AppDbContext, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
     RecipeManager.Api/               RecipesController, Startup/*, Middlewares/*, Extensions/*
     RecipeManager.UnitTests/         85 tests — xUnit + NSubstitute (Domain + Application handlers + Api result mapping)
-    RecipeManager.IntegrationTests/  18 tests — xUnit + WebApplicationFactory (real PostgreSQL in a container)
+    RecipeManager.IntegrationTests/  22 tests — xUnit + WebApplicationFactory (18 real PostgreSQL via Testcontainers, 4 OpenAPI contract, no Docker needed)
     recipe-manager-frontend/         React 19 + Vite SPA — 40 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
@@ -113,8 +114,10 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **0 warnings** and **103 tests pass** (85 unit + 18 integration) — the 18
-need Docker, and are reported as skipped without it (ADR-017). The frontend has 40 Vitest tests (`npm test`).
+Current state: build succeeds with **0 warnings** and **107 tests pass** (85 unit + 22 integration) — of the 22,
+18 need Docker and are reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019)
+need no Docker, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip.
+The frontend has 40 Vitest tests (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note — and `TargetFramework`, `Nullable`, and `ImplicitUsings` live there too. Never
 re-declare those in a `.csproj`.

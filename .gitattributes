@@ -1,0 +1,4 @@
+# Generated contract files (R-09 / ADR-019). Their generators write LF, and CI diffs them on Linux. With
+# core.autocrlf=true a Windows checkout would otherwise turn them into CRLF and they would never match.
+RecipeManager/contracts/openapi.json text eol=lf
+RecipeManager/recipe-manager-frontend/src/types/generated/api.ts text eol=lf

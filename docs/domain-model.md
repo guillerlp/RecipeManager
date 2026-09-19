@@ -131,24 +131,23 @@ client-side.
 
 ## Frontend view of the domain
 
-`recipe-manager-frontend/src/types/recipe.ts` mirrors `RecipeDto` field for field:
+`recipe-manager-frontend/src/types/recipe.ts` aliases the generated contract types (`R-09`/ADR-019):
 
 ```ts
-export interface Recipe {
-  id: string;              // Guid
-  title: string;
-  description: string;
-  preparationTime: number; // minutes
-  cookingTime: number;     // minutes
-  servings: number;
-  ingredients: string[];
-  instructions: string[];
-}
+// src/types/recipe.ts
+// Aliases over the generated contract (R-09 / ADR-019). Never add fields here: change the C# DTO, then
+// regenerate (see README, "Changing the API contract").
+import type { components } from './generated/api';
+
+type Schemas = components['schemas'];
+
+export type Recipe = Schemas['RecipeDto'];
+export type CreateRecipeRequest = Schemas['CreateRecipeCommand'];
+export type UpdateRecipeRequest = Schemas['UpdateRecipeDto'];
 ```
 
-`CreateRecipeRequest` and `UpdateRecipeRequest` are `Omit<Recipe, 'id'>`. `PUT` and `DELETE` return 204, so
-their service methods return `AxiosResponse<void>`. The mirror is kept by hand, and nothing detects drift yet
-(`R-09`). Owner: [agents/08-api-contract.md](agents/08-api-contract.md).
+`PUT` and `DELETE` return 204, so their service methods return `AxiosResponse<void>`. The shape is generated
+from the OpenAPI snapshot, so drift fails CI (ADR-019). Owner: [agents/08-api-contract.md](agents/08-api-contract.md).
 
 ## Known limitations
 
@@ -198,7 +197,7 @@ project intends to replace it with structured data:
   parsing of `"200g flour"`, or UI that assumes one string per row all become rework.
 - Anything needing quantities — serving scaling, shopping lists, nutrition — is **blocked** on this, not
   merely awkward. Say so rather than implementing a string-parsing workaround.
-- `RecipeDto` will change, so `R-09` (generated TS types) should land first.
+- `RecipeDto` will change, and `R-09` (shipped, ADR-019) will flag every client site the change touches.
 
 Consider the same treatment for `Instructions` (per-step duration, image, grouping) — decide together with
 ingredients, implement separately.

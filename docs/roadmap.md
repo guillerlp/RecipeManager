@@ -45,18 +45,8 @@ pipeline reports honestly and can be merged past.
 `R-06` (Testcontainers for the integration tests) shipped 2026-09-17 as ADR-017, closing `TEST-06`. `R-07`
 (frontend test runner) shipped 2026-09-18 as ADR-018, closing `TEST-01`. `R-08` (cache-invalidation tests)
 shipped 2026-09-18 as spec 006, closing `TEST-02`. It needed no ADR because it changed no decision, and it
-surfaced `BUG-14`.
-
-### R-09
-**Generate TypeScript types from OpenAPI** · `08-api-contract` + `01-architect` · ~2 h
-
-Nothing detects contract drift automatically — that is exactly how `BUG-01`–`BUG-05` accumulated (the TS
-`Recipe` declared `id: number` against a `Guid` API and was missing `servings` and `instructions`). Those were
-fixed by hand on 2026-09-19 (spec 007, PR A); this item is PR B — the structural fix that makes recurrence
-impossible.
-
-Add an `openapi-typescript` step producing a generated, committed types file, with a CI check that fails when
-the generated output differs from what is committed.
+surfaced `BUG-14`. `R-09` (generated TS types) shipped 2026-09-19 as ADR-019, after `BUG-01`–`05` were fixed by
+hand.
 
 ### R-15
 **Adopt an `.editorconfig`, or drop `EnforceCodeStyleInBuild`** · `01-architect` → `02-senior-csharp` · ~2 h
@@ -105,7 +95,7 @@ client-side instead).
 
 **Knock-on effects to plan in the same ADR:** the recipe form becomes substantially more complex
 (see [agents/07-ux-ui.md](agents/07-ux-ui.md)); serving-scaling becomes possible and will be requested;
-`RecipeDto` changes, so `R-09` should land first.
+`RecipeDto` changes, so `R-09` (shipped) will flag every client site the change touches.
 
 Consider doing the same for `Instructions` (per-step duration, image, grouping) — decide together, implement
 separately.

@@ -74,6 +74,18 @@ jobs:
       - name: Test
         run: dotnet test RecipeManager.sln --no-build --configuration Debug
 
+      # OpenApiContractTests (R-09 / ADR-019) writes contracts/openapi.received.json next to the committed
+      # snapshot whenever the two disagree. A machine that can never run that test locally — e.g. a Windows
+      # developer machine under Smart App Control, INFRA-06 — has no other way to see what changed, so upload
+      # the file here for them to download and promote to contracts/openapi.json by hand.
+      - name: Upload received OpenAPI snapshot
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: openapi-received
+          path: RecipeManager/contracts/openapi.received.json
+          if-no-files-found: ignore
+
       # `dotnet list package --vulnerable` exits 0 even when it finds vulnerabilities, so its
       # exit code cannot be used as a gate — a step that can never fail is worse than no step,
       # because the green tick is evidence of nothing. Parse the output instead.
@@ -114,6 +126,18 @@ jobs:
       - name: Install
         run: npm ci
 
+      # R-09 / ADR-019. The C# -> openapi.json link is guarded by OpenApiContractTests in the backend
+      # job; this guards openapi.json -> api.ts. `git status --porcelain` and not `git diff`: a
+      # generated file that was never committed is untracked, and `git diff` would not report it.
+      - name: Contract types are current
+        run: |
+          npm run gen:api
+          if [ -n "$(git status --porcelain -- src/types/generated)" ]; then
+            git --no-pager diff -- src/types/generated
+            echo "::error::src/types/generated is stale. Run 'npm run gen:api' and commit the result."
+            exit 1
+          fi
+
       - name: Type-check
         run: npm run typecheck
 
@@ -137,4 +161,6 @@ jobs:
       #
       # Runs last so a vulnerability cannot mask a broken build.
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        run: |
+          npm audit --audit-level=high
+          npm audit --audit-level=high --prefix ../contracts
