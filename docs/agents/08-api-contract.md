@@ -120,8 +120,8 @@ from the OpenAPI document is the structural fix, planned as `R-09` in [../roadma
    Breaks:   <components/hooks that must change>
    ```
 3. `npx tsc --noEmit` output.
-4. Updates to the drift table above **and** deletion of the corresponding `BUG-01`…`BUG-05` entry in
-   [../known-issues.md](../known-issues.md) when an item is fixed.
+4. Updates to the "Current drift" section above **and** deletion of the corresponding entry in
+   [../known-issues.md](../known-issues.md) when a drift item is fixed.
 5. **An explanation of how the drift happened** ([../learning-mode.md](../learning-mode.md)):
    - **Show why it stayed invisible.** `id: number` against a `Guid` API survived because the only screen that
      exists just lists recipes and passes `recipe.id` to a React `key`, which stringifies anything. The type
