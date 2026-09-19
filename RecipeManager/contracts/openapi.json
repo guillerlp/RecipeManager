@@ -229,6 +229,7 @@
           "ingredients",
           "instructions",
           "preparationTime",
+          "rating",
           "servings",
           "title"
         ],
@@ -267,6 +268,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "rating": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
