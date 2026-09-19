@@ -69,7 +69,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Infrastructure/    AppDbContext, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
     RecipeManager.Api/               RecipesController, Startup/*, Middlewares/*, Extensions/*
     RecipeManager.UnitTests/         85 tests — xUnit + NSubstitute (Domain + Application handlers + Api result mapping)
-    RecipeManager.IntegrationTests/  14 tests — xUnit + WebApplicationFactory (real PostgreSQL in a container)
+    RecipeManager.IntegrationTests/  18 tests — xUnit + WebApplicationFactory (real PostgreSQL in a container)
     recipe-manager-frontend/         React 19 + Vite SPA — 40 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
@@ -113,7 +113,7 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **0 warnings** and **99 tests pass** (85 unit + 14 integration) — the 14
+Current state: build succeeds with **0 warnings** and **103 tests pass** (85 unit + 18 integration) — the 18
 need Docker, and are reported as skipped without it (ADR-017). The frontend has 40 Vitest tests (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note — and `TargetFramework`, `Nullable`, and `ImplicitUsings` live there too. Never

@@ -125,7 +125,7 @@
 - **Domain unit tests:** `<invariants to cover>`
 - **Handler unit tests:** success / not-found / validation failure / cancellation / repository interaction
 - **Integration tests:** `<endpoint>` — status code + database state
-- **Not covered, and why:** `<e.g. cache invalidation through the API (TEST-02), or anything needing Docker on a machine without it>`
+- **Not covered, and why:** `<e.g. instruction order (TEST-03), or anything needing Docker on a machine without it>`
 - **Manual verification:** `<steps, including against a real PostgreSQL if relevant>`
 
 ## 13. Agents involved

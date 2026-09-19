@@ -112,8 +112,8 @@ dotnet dev-certs https --trust
 dotnet test RecipeManager.sln
 ```
 
-99 tests: 85 unit and 14 integration. The integration tests start a real PostgreSQL container (ADR-017), so
-**with Docker running** you get 99 passed; **without it** you get 85 passed and 14 skipped, each naming Docker
+103 tests: 85 unit and 18 integration. The integration tests start a real PostgreSQL container (ADR-017), so
+**with Docker running** you get 103 passed; **without it** you get 85 passed and 18 skipped, each naming Docker
 as the reason. The skip is deliberate — see the troubleshooting entry below — but it means a green run is only
 as complete as its skip count says.
 
@@ -170,7 +170,7 @@ on `ubuntu-latest`:
 
 | Job | Steps |
 | --- | --- |
-| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (99) → vulnerable-package check |
+| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (103) → vulnerable-package check |
 | **Frontend** | `npm ci` → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` |
 
 Two things are worth knowing before a run surprises you:
@@ -215,7 +215,7 @@ PostgreSQL folds unquoted identifiers to lowercase, and EF creates the table as 
 **Frontend requests fail with a certificate error**
 Run `dotnet dev-certs https --trust`.
 
-**The 14 integration tests are reported as skipped**
+**The 18 integration tests are reported as skipped**
 Docker is not running or not installed. The integration tests start a PostgreSQL container (ADR-017), and
 without a Docker endpoint they skip rather than fail, so the unit tests still give a usable result. The skip
 message names the endpoint it tried, e.g. `npipe://./pipe/docker_engine` on Windows. Start Docker Desktop and

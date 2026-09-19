@@ -53,7 +53,7 @@ jobs:
       # Program.Main throw "IntegrationTest environment is not allowed in RELEASE builds", a
       # deliberate guard so that setting ASPNETCORE_ENVIRONMENT=IntegrationTest on a real
       # deployment cannot start the app with no database configured. WebApplicationFactory uses
-      # exactly that environment name, so a Release build fails all 14 integration tests by
+      # exactly that environment name, so a Release build fails every integration test by
       # design. Verified: switching this to Release turns the suite from 84 passing to 70.
       #
       # Nothing is lost by building Debug here: TreatWarningsAsErrors is unconditional rather
@@ -62,13 +62,13 @@ jobs:
       - name: Build
         run: dotnet build RecipeManager.sln --no-restore --configuration Debug
 
-      # 85 unit + 14 integration. The integration tests are the reason this job runs on Linux:
+      # 85 unit + 18 integration. The integration tests are the reason this job runs on Linux:
       # on a Windows machine with Smart App Control enabled they cannot load a freshly built
       # RecipeManager.Api.dll at all (INFRA-06), so CI is the only place they are trustworthy.
       #
       # Since ADR-017 they also start a real PostgreSQL container through Testcontainers, which
       # is why the runner mattering has a second reason: ubuntu-latest ships Docker. Where Docker
-      # is absent those 14 tests SKIP rather than fail, so a run reporting 85 passed and 14
+      # is absent those 18 tests SKIP rather than fail, so a run reporting 85 passed and 18
       # skipped here would mean Docker disappeared from the runner — treat it as a red build, not
       # as a pass.
       - name: Test

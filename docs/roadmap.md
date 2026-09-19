@@ -43,17 +43,9 @@ pipeline reports honestly and can be merged past.
 ## Phase 2 — correctness and confidence
 
 `R-06` (Testcontainers for the integration tests) shipped 2026-09-17 as ADR-017, closing `TEST-06`. `R-07`
-(frontend test runner) shipped 2026-09-18 as ADR-018, closing `TEST-01`.
-
-### R-08
-**Close the cache-invalidation test gap** · `06-qa-tester` · ~2 h
-
-`TEST-02` — the largest gap in the backend suite. Unit tests mock `IRecipeRepository` and so bypass
-`CachedRecipeRepository` entirely; integration tests assert database state rather than re-reading through the
-API. A broken invalidation passes all 99 tests today.
-
-Add integration tests that write and then **re-read through the HTTP client**: create → list contains it;
-update → detail shows new values; delete → detail returns 404.
+(frontend test runner) shipped 2026-09-18 as ADR-018, closing `TEST-01`. `R-08` (cache-invalidation tests)
+shipped 2026-09-18 as spec 006, closing `TEST-02`. It needed no ADR because it changed no decision, and it
+surfaced `BUG-14`.
 
 ### R-09
 **Generate TypeScript types from OpenAPI** · `08-api-contract` + `01-architect` · ~2 h
