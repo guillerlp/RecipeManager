@@ -25,7 +25,6 @@
   font: var(--type-label);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
-  color: var(--ink-3);
 }
 
 /*
@@ -36,7 +35,6 @@
  * should verify in a real browser that digits are tabular—jsdom does not apply CSS properties.
  */
 .numeric {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 
