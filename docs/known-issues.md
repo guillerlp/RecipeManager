@@ -66,7 +66,6 @@ kind of negative test.
 | [SEC-10](#sec-10) | Medium | Security | No security headers, no HSTS |
 | [SEC-11](#sec-11) | Low | Ops | No health/readiness endpoint |
 | [SEC-12](#sec-12) | Low | Config | `.env.production` points at a placeholder host |
-| [BUG-06](#bug-06) | Medium | Frontend | `/recipes/new` is linked but has no route |
 | [BUG-07](#bug-07) | Low | API | `GET /api/recipes/{id}` missing the `:guid` route constraint |
 | [BUG-09](#bug-09) | Low | Frontend | Error recovery does a full page reload |
 | [BUG-10](#bug-10) | Medium | Frontend | No recipe detail route, so cards are not clickable |
@@ -264,16 +263,6 @@ registers that name, and a local production check silently shows an empty catalo
 ## Contract & functional defects
 
 Full detail on the contract seam is in [agents/08-api-contract.md](agents/08-api-contract.md).
-
-### BUG-06
-**`/recipes/new` is linked but has no route — Medium**
-
-`pages/Home/HomePage.tsx` renders `<NavLink to='/recipes/new'>Add Recipe</NavLink>`, but `App.tsx` defines only
-`/`, `/recipes`, and `/profile`. Clicking "Add Recipe" navigates to a blank page — no route, no 404 fallback.
-
-**Fix.** Build the create-recipe screen (see the form requirements in
-[agents/07-ux-ui.md](agents/07-ux-ui.md)), or remove the link. The screen is planned as `R-21`. Adding a catch-all `*` route with a NotFound page
-is worthwhile regardless.
 
 ### BUG-07
 **`GET /api/recipes/{id}` missing the `:guid` constraint — Low**
