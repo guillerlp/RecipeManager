@@ -39,7 +39,6 @@
 .title {
     composes: recipeTitle from '@/styles/typography.module.css';
     margin: 0;
-    color: var(--ink);
 }
 
 .description {
@@ -63,4 +62,23 @@
     color: var(--ink-2);
     text-align: right;
     white-space: nowrap;
+}
+
+/* Below 480px there is no room for a third column: drop the time under the title/description
+   instead of squeezing it into a sliver next to a ~44px-wide text column (measured 136px total
+   at 375px before this fix). The thumb shrinks to match the narrower first column. */
+@media (max-width: 480px) {
+    .row {
+        grid-template-columns: 44px 1fr;
+    }
+
+    .thumb {
+        width: 44px;
+        height: 44px;
+    }
+
+    .time {
+        grid-column: 2;
+        text-align: left;
+    }
 }

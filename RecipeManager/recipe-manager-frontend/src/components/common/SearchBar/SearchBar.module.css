@@ -65,9 +65,3 @@
         padding: 1rem 0.5rem 0.5rem 0.5rem;
     }
 }
-
-@media (min-width: 769px) {
-    .searchContainer {
-        padding: 1rem 0.5rem 0.5rem 0.5rem;
-    }
-}

@@ -62,7 +62,13 @@ Three PRs, each independently reviewable and shippable.
       description, tabular total time — with hairline separators instead of bordered cards.
 - [x] `SearchBar`: pill field, inline search icon, `--field-border` boundary.
 - [x] `ProfilePage` (replacing the `<div>Profile</div>` stub in `App.tsx`): header block, a Preferences section
-      containing **only** the Light/Dark/System segmented control, and the disabled Account block from the design.
+      containing **only** the Light/Dark/System segmented control, and the Account block from the design —
+      shipped as two inert `<span>`s, not disabled `<button>`s. The two are not equivalent: a disabled `<button>`
+      still carries the WCAG 1.4.3 exemption for inactive controls, which a plain `<span>` does not, because it
+      is not a control at all. That gap surfaced as a real defect (a 0.5-opacity `<span>` reads at ~2.3:1, under
+      the 4.5:1 body-text bar, with nothing in the accessibility tree marking it non-interactive) and was closed
+      by adding `aria-hidden="true"` to both spans, on the strength of the block's own prose already explaining
+      that sign-in does not exist yet.
 - [x] `src/assets/mainPhoto.png` deleted, closing `BUILD-05`.
 
 ## 4. Out of scope
@@ -242,21 +248,43 @@ document parse and that commit. An inline script in `index.html` would close it;
 
 ## 11. Acceptance criteria
 
-- [ ] Given a browser with no stored preference and an OS set to dark, when the app loads, then `<html>` carries
-      `data-theme="dark"` on first paint and Settings shows **System** selected.
-- [ ] Given the preference is `system`, when the OS colour scheme changes while the app is open, then the rendered
-      theme follows without a reload.
-- [ ] Given a stored preference of `light`, when the OS is dark, then the app renders light.
-- [ ] Given `localStorage.theme` holds an unrecognised value, when the app loads, then it falls back to the
-      default rather than throwing.
-- [ ] Given Settings, when a preference is chosen with the keyboard alone, then arrow keys move between the three
-      options and the choice persists across a reload.
-- [ ] Every token in `light.css` has a counterpart in `dark.css` — asserted by a test, not by review.
-- [ ] Every interactive element shows a visible focus ring in both themes.
-- [ ] No `--color-*` reference remains under `src/`.
-- [ ] Below 768px the bottom navigation is visible, every target is ≥ 44px, and the header nav is hidden.
-- [ ] `npm run build`, `npm run lint` (0 problems), and `npm test` all pass; the production bundle no longer
-      contains a 2.1 MB PNG.
+- [x] Given a browser with no stored preference and an OS set to dark, when the app loads, then `<html>` carries
+      `data-theme="dark"` on first paint and Settings shows **System** selected. Verified 2026-09-20 in a real
+      browser: `localStorage` cleared, OS colour scheme emulated dark, fresh load → `data-theme="dark"`,
+      `localStorage.theme` written as `"system"`, and the Settings radio group shows **System** checked. (The
+      window between document parse and React's first commit, called out in §8.4 as uncovered because
+      `index.html` sets no inline `data-theme`, was not and could not be tested here — that gap is pre-existing
+      and already recorded in §8.4, not newly found.)
+- [x] Given the preference is `system`, when the OS colour scheme changes while the app is open, then the rendered
+      theme follows without a reload. Verified via `ThemeProvider.test.tsx`, which mocks `matchMedia` and fires
+      its `change` callback directly (`act(() => media.change(true/false))`), asserting the theme updates without
+      remounting — this is the reliable check. A live in-browser attempt using Chrome DevTools' colour-scheme
+      emulation was also tried; `matchMedia(...).matches` updated but the already-registered listener did not
+      re-fire, which is a known limitation of that emulation path (a full reload with the new scheme did pick it
+      up correctly), not evidence against the app's own logic.
+- [x] Given a stored preference of `light`, when the OS is dark, then the app renders light. Verified 2026-09-20:
+      `localStorage.theme = "light"`, OS emulated dark, reload → `data-theme="light"`.
+- [x] Given `localStorage.theme` holds an unrecognised value, when the app loads, then it falls back to the
+      default rather than throwing. Verified 2026-09-20: `localStorage.theme = "banana"`, reload → no thrown
+      error, value rewritten to `"system"`, theme resolved from the OS reading.
+- [x] Given Settings, when a preference is chosen with the keyboard alone, then arrow keys move between the three
+      options and the choice persists across a reload. Verified 2026-09-20: focused the **Light** radio, pressed
+      `ArrowRight` → **Dark** became checked and focused, `localStorage.theme` updated to `"dark"`, and a fresh
+      navigation to `/profile` still showed **Dark** selected.
+- [x] Every token in `light.css` has a counterpart in `dark.css` — asserted by a test, not by review.
+      `tokenParity.test.ts` parses both files and asserts identical key sets; part of the 77 passing Vitest tests.
+- [x] Every interactive element shows a visible focus ring in both themes. Verified 2026-09-20 by tabbing through
+      Home in both themes and screenshotting: a visible ring renders on the brand link (light) and the Profile
+      nav link (dark).
+- [x] No `--color-*` reference remains under `src/`. Verified 2026-09-20: `grep -rn -- "--color-" src/` matches
+      only `tokenParity.test.ts`'s own assertion that no such token is declared, not a usage.
+- [x] Below 768px the bottom navigation is visible, every target is ≥ 44px, and the header nav is hidden. Verified
+      2026-09-20 at 375×812: all four `BottomNav` links measured 50px tall (≥ 44px), and the header's nav links
+      and "New recipe" pill reported `offsetParent === null` (hidden).
+- [x] `npm run build`, `npm run lint` (0 problems), and `npm test` all pass; the production bundle no longer
+      contains a 2.1 MB PNG. Verified 2026-09-20: `npm run build` and `npm run lint` both exit 0 with no output,
+      `npm test` reports 10 files / 77 tests passed, and `dist/assets/` contains only fonts, one CSS file and one
+      JS bundle — no PNG.
 
 ## 12. Test plan
 

@@ -163,13 +163,13 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
 recipe-manager-frontend/src/
   components/
     common/    cross-cutting widgets (SearchBar)
-    layout/    AppLayout, Header, Footer
-    ui/        presentational pieces (Logo, NavLink, Recipe/RecipeCard, Recipe/RecipeList)
+    layout/    AppLayout, Header, Footer, BottomNav
+    ui/        presentational pieces (Icon, Logo, NavLink, Recipe/RecipeCard, Recipe/RecipeList, ThemeControl)
   contexts/    ThemeContext (the context object), ThemeProvider (the component)
   hooks/       useTheme, useRecipes
-  pages/       Home/HomePage, Recipe/RecipePage
+  pages/       Home/HomePage, Recipe/RecipePage, Profile/ProfilePage, NotFound/NotFoundPage
   services/    recipeService (axios)
-  styles/      globals.css, themes/{variables,light,dark}.css
+  styles/      globals.css, typography.module.css, themes/{variables,light,dark}.css
   types/       recipe.ts, theme.ts
   assets/      react.svg (unused Vite scaffold leftover)
 ```

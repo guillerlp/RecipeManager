@@ -185,6 +185,11 @@ change was deliberately left out of `R-05`, which had to keep every status uncha
 Returns the whole table with no pagination, maps every row, and caches the entire list under one `IMemoryCache`
 key. Memory grows linearly with the recipe count with no ceiling. Pagination is planned as `R-11` and is on the [deploy gate](roadmap.md#deploy-gate).
 
+`R-16` PR 3 added a second caller: `HomePage` renders the live recipe count via `useRecipes`, so Home now also
+issues a full `GET /api/recipes` just to read `recipes.length`. Harmless today — TanStack Query shares the cache
+with the Recipes list, so Home's call effectively just prefetches it — but it means this endpoint gets expensive
+before the list screen does, not only when the list screen is opened.
+
 ### SEC-08
 **No length limits in the database — Medium**
 

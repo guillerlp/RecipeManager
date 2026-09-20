@@ -41,9 +41,15 @@ export const ProfilePage: React.FC = () => {
           </p>
           <div className={styles.accountActions}>
             {/* Not disabled buttons: these controls do not exist yet, this is a picture of
-                where they will land, so they must not be focusable. */}
-            <span className={styles.accountButton}>Sign in</span>
-            <span className={styles.accountButton}>Create account</span>
+                where they will land, so they must not be focusable. aria-hidden keeps a screen
+                reader from announcing "Sign in" / "Create account" as real options — the prose
+                above already explains that sign-in is not built. */}
+            <span className={styles.accountButton} aria-hidden="true">
+              Sign in
+            </span>
+            <span className={styles.accountButton} aria-hidden="true">
+              Create account
+            </span>
           </div>
         </div>
       </section>

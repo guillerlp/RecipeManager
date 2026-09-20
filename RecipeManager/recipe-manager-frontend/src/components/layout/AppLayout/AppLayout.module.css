@@ -26,3 +26,9 @@
     box-sizing: border-box;
     overflow-y: auto;
 }
+
+@media (max-width: 768px) {
+    .main {
+        padding: var(--spacing-md) var(--spacing-md);
+    }
+}
