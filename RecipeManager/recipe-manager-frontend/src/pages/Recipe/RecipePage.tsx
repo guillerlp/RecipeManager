@@ -17,7 +17,7 @@ export const RecipePage: React.FC = () => {
                 <SearchBar 
                     searchQuery={searchQuery}
                     onSearchChange={handleSearchChange}
-                    placeholder='Search recipes by name, ingredients, or description...'
+                    placeholder='Search by name, ingredient or a word you remember'
                 />
             </section>
             
