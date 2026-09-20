@@ -584,8 +584,25 @@ footer rule — where nothing needs to be identified as clickable. Recorded so a
 `--rule` to bound an input, a button outline, or any other control and reintroduce the problem `--field-border`
 was added to fix.
 
-**Fix.** Not applicable — this is a guardrail, not a live defect. Close it if a lint rule or a review checklist
-item ever makes the mistake unrepresentable.
+**It has already happened once.** `RecipeCard.module.css` bounds `.recipesList` with `--rule`, and
+`RecipeCard.tsx` renders that same element as a `<button>` whenever it is given an `onClick` — so the hairline
+became the boundary of a control at 1.29:1 (1.18:1 against the card's own `--paper-2` fill). Fixed in PR #59 by
+scoping `border-color: var(--field-border)` to `.clickable`, leaving the inert `<article>` its decorative
+hairline. Two things are worth keeping from it:
+
+- **The mistake entered in `e482720` — the same commit that introduced `--rule` and wrote the checklist item in
+  [agents/07-ux-ui.md](agents/07-ux-ui.md).** That commit converted `HomePage`'s `.actionButton` to
+  `--field-border` correctly and `RecipeCard` to `--rule` incorrectly. The checklist did not survive its own
+  first outing.
+- **It was invisible to CSS review**, because the offending selector and the element switch that makes it a
+  control live in different files. Nothing in `RecipeCard.module.css` says that border ever bounds a `<button>`.
+
+**Fix.** Still open, and still a guardrail rather than a live defect — the one known instance is closed, but
+nothing stops the next one. Note that a review checklist item does **not** satisfy the close condition below:
+one existed and did not work. Close this when a lint rule makes the pattern unrepresentable — bearing in mind a
+CSS-only rule cannot, since `Header`, `Footer`, and `BottomNav` all use `--rule` on a border legitimately. The
+check has to know whether a selector can land on an interactive element, which means spanning the CSS and the
+TSX together.
 
 ### UX-07
 **No visual-regression tooling — Low**
