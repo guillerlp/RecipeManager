@@ -344,7 +344,7 @@ contract change, and no new input or rendered user content (§10).
 - **Fixes:** `UX-01` (dark status colours measured, `--danger` given a dark value), `UX-02` (heading sizes on the
   scale), `UX-03` (documented breakpoints), `DEC-06` (System option), `BUILD-05` (2.1 MB PNG deleted),
   `BUG-06` (a `*` route, so the link no longer renders blank), `QUAL-03`, `BUG-09`.
-- **Opens:** `UX-06`, `UX-07`, `UX-08`.
+- **Opens:** `UX-06`, `UX-07`.
 - **Implements:** `R-16`, **deleted from [../roadmap.md](../roadmap.md) 2026-09-20** now that PR 3 has shipped.
 - **Depends on:** nothing. `R-16` was the only Phase 3 item with no data-model dependency.
 - **On the [deploy gate](../roadmap.md#deploy-gate)?** No — but it improves `SEC-10` (§10).

@@ -63,7 +63,7 @@ than preceding it. The reasoning is in [decisions-log.md](decisions-log.md#2026-
 
 `R-16` (editorial design system and shell) shipped 2026-09-20 as ADR-021
 ([spec 009](specs/009-editorial-design-system-and-shell.md)), closing `UX-01`, `UX-02`, `UX-03`, `BUG-06`,
-`BUILD-05`, `DEC-06`, `QUAL-03`, and `BUG-09`. It opened `UX-06`, `UX-07`, and `UX-08`, and left `BUG-10` open by
+`BUILD-05`, `DEC-06`, `QUAL-03`, and `BUG-09`. It opened `UX-06` and `UX-07`, and left `BUG-10` open by
 design: recipe rows stay `<article>` rather than `<button>` until `R-18` gives them a detail route to link to.
 
 Build order. Each item names what it waits on, so a later item can move up if its dependencies are met:

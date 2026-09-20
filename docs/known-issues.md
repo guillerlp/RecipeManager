@@ -88,7 +88,6 @@ kind of negative test.
 | [UX-05](#ux-05) | Medium | UX | The canonical design says only the title is required; the domain requires more |
 | [UX-06](#ux-06) | Medium | UX | `--rule` is a decorative hairline, not a control boundary |
 | [UX-07](#ux-07) | Low | UX | No visual-regression tooling |
-| [UX-08](#ux-08) | Medium | UX | The active nav pill's state indicator is sub-3:1 contrast |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-07](#dec-07) | — | Decision | 24 h cap excludes slow-cooked and fermented recipes |
@@ -599,31 +598,6 @@ both themes, and that is the entire verification story for the editorial token m
 **Fix.** Adopt a snapshot/visual-diff tool (e.g. Playwright's screenshot assertions, Chromatic) once there are
 enough screens for the cost to pay for itself. Not proposed for `R-16` — it is its own dependency decision and
 needs `01-architect`.
-
-### UX-08
-**The active nav pill's state indicator measures 1.09:1 — Medium**
-
-`NavLink.module.css`'s `.navLink.active` fills the pill with `--paper-2` against the `--paper` page background
-behind it. `--paper-2` on `--paper` is **1.09:1** in light mode (about 1.1:1 in dark) — nowhere near WCAG
-1.4.11's 3:1 requirement for the parts of a control that communicate its state. The pill is the design's primary
-"you are here" cue, and as a shape it is effectively invisible.
-
-`UX-06` already ruled `--rule` at 1.29:1 decorative-only and out of scope for control boundaries; this is a
-different, more serious case, because the pill *is* a non-decorative state indicator, not a separator. What
-actually carries the active state for a sighted user is not the pill at all: it is the `font-weight` jump to 600
-and a 2.25:1 text-colour change (`--ink-2` → `--ink`), with `aria-current="page"` covering assistive technology.
-The pill fill is currently doing none of the communicating it looks like it should be doing.
-
-**Fix.** Not applied here — it needs a `--field-border` hairline around the pill or a higher-contrast active
-surface, and either visibly deviates from the canonical design (spec
-[009](specs/009-editorial-design-system-and-shell.md)), so the choice belongs to the design owner
-([07-ux-ui](agents/07-ux-ui.md)), not to a fix wave. The cost predicted here materialised: `R-16` PR 3's
-`ThemeControl.module.css` fills its selected segment with the same `--paper`/`--paper-2` pairing (`.selected`
-against the `.group` background) as `NavLink`'s active pill — the identical low-contrast fill this entry
-describes. The risk is smaller there because the control is a native `<input type="radio">`: assistive
-technology reads the selected option from its `checked` state regardless of what the fill communicates, which
-`NavLink`'s `aria-current` covers for assistive technology but not for a sighted low-vision user reading the
-page, who has only the fill and the weight/colour change to go on.
 
 ---
 

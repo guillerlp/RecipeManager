@@ -4,6 +4,7 @@
   composes: ui from '@/styles/typography.module.css';
   text-decoration: none;
   padding: 0.375rem 0.75rem;
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
   color: var(--ink-2);
   display: inline-block;
@@ -18,9 +19,14 @@
  * `font: var(--type-ui)` shorthand on specificity. A single class here would tie with `.navLink`
  * on specificity and lose on source order, since `typography.module.css`'s rule is emitted after
  * this file's in the bundle — `font-weight: 600` would be set but never rendered.
+ *
+ * `border-color` only (UX-08): the base rule already reserves a 1px transparent border so the
+ * box never resizes when this fires. `--field-border` meets WCAG 1.4.11's 3:1 requirement
+ * against `--paper` in both themes; the fill, weight and `aria-current` still carry the state.
  */
 .navLink.active {
   color: var(--ink);
   background: var(--paper-2);
+  border-color: var(--field-border);
   font-weight: 600;
 }
