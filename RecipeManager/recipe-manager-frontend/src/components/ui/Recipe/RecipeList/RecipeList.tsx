@@ -55,13 +55,13 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
           { searchQuery ? 
           (
             <>
-              <h3>No recipes found</h3>
+              <h3 className={styles.emptyTitle}>No recipes found</h3>
               <p>No recipes match "{searchQuery}". Try a different search term.</p>
             </>
           ) : 
           (
             <>
-              <h3>No recipes available</h3>
+              <h3 className={styles.emptyTitle}>No recipes available</h3>
               <p>Start by adding some recipes to your collection.</p>
             </>
           )}

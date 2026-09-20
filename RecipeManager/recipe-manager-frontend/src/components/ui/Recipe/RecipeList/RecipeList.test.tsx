@@ -90,18 +90,22 @@ describe('RecipeList states', () => {
     expect(getAllRecipes).toHaveBeenCalledTimes(3);
   });
 
-  it('shows "No recipes available" when there are no recipes and no query', async () => {
+  it('shows "No recipes available" as a styled heading when there are no recipes and no query', async () => {
     respondWith([]);
     renderList();
 
-    expect(await screen.findByText('No recipes available')).toBeTruthy();
+    const heading = await screen.findByRole('heading', { level: 3, name: 'No recipes available' });
+    // globals.css resets h1-h4 to `font: inherit`, so without a type-role class this heading
+    // would be visually identical to the paragraph beneath it. Guard the class, not just the text.
+    expect(heading.className).toMatch(/emptyTitle/);
   });
 
-  it('shows "No recipes found" when recipes exist but none match the query', async () => {
+  it('shows "No recipes found" as a styled heading when recipes exist but none match the query', async () => {
     respondWith(recipes);
     renderList('zzz');
 
-    expect(await screen.findByText('No recipes found')).toBeTruthy();
+    const heading = await screen.findByRole('heading', { level: 3, name: 'No recipes found' });
+    expect(heading.className).toMatch(/emptyTitle/);
   });
 
   it('renders one card per recipe, with formatted durations', async () => {
