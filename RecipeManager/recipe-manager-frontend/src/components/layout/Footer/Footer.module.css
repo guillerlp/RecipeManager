@@ -5,15 +5,15 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-md) var(--spacing-xl);
-  background: var(--color-background);
-  color: var(--color-text-primary);
-  border-top: 1px solid var(--color-border);
+  background: var(--paper);
+  color: var(--ink);
+  border-top: 1px solid var(--rule);
   flex-shrink: 0;
 }
 
 .text {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  composes: ui from '@/styles/typography.module.css';
+  color: var(--ink-2);
 }
 
 .toggleWrapper {
@@ -23,8 +23,8 @@
 }
 
 .toggleLabel {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+  composes: ui from '@/styles/typography.module.css';
+  color: var(--ink-2);
 }
 
 /* --- Toggle --- */
@@ -32,8 +32,10 @@
   position: relative;
   width: 56px;
   height: 28px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  /* No background at rest: the old rest and hover surface tokens both resolve to
+     --paper-2 now, so keeping a rest-state background would make hover a no-op.
+     The highlighted --paper-2 fill appears only on hover and in the .dark state. */
+  border: 1px solid var(--field-border);
   border-radius: 999px;
   cursor: pointer;
   padding: 0;
@@ -55,7 +57,7 @@
   height: 16px;
   opacity: 0.65;
   transition: opacity var(--transition-normal);
-  color: var(--color-text-primary);
+  color: var(--ink);
 }
 
 .iconSun { left: 6px; }
@@ -72,7 +74,7 @@
   right: 2px;                     
   width: 24px;
   height: 24px;
-  background: var(--color-border-hover);
+  background: var(--ink-3);
   border-radius: 50%;
   box-shadow: 0 1px 2px rgba(0,0,0,.08);
   transition: transform var(--transition-normal), background var(--transition-normal);
@@ -80,30 +82,23 @@
 
 /* Hover affordance */
 .toggle:hover {
-  border-color: var(--color-border-hover);
-  background: var(--color-surface-hover);
+  border-color: var(--ink-3);
+  background: var(--paper-2);
 }
 
 /* Dark mode active: move knob to right & tint track */
 .dark {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-hover);
+  background: var(--paper-2);
+  border-color: var(--ink-3);
 }
 
 .dark .knob {
   transform: translateX(28px);       /* 56 - 24 - 2 - 2 = 28px */
-  background: var(--color-background);
 }
 
 /* Emphasize the relevant icon based on theme */
 .toggle:not(.dark) .iconSun { opacity: 1; }
 .toggle.dark .iconMoon { opacity: 1; }
-
-/* Keyboard focus */
-.toggle:focus-visible {
-  outline: 3px solid var(--color-primary);
-  outline-offset: 2px;
-}
 
 /* Reduced motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {

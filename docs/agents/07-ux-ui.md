@@ -57,43 +57,92 @@ How to use it:
 
 | Group | Tokens |
 | --- | --- |
-| Spacing | `--spacing-xs` .25rem, `-sm` .5rem, `-md` 1rem, `-lg` 1.5rem, `-xl` 2rem |
-| Radius | `--radius-sm` 4px, `-md` 8px, `-lg` 12px |
-| Font size | `--font-size-sm` .875rem, `-base` 1rem, `-lg` 1.125rem, `-xl` 1.25rem, `-2xl` 1.5rem, `-3xl` 2rem |
+| Font families | `--font-serif` (`'Newsreader Variable', Georgia, serif` — user-written content), `--font-ui` (`system-ui` — interface text), `--font-mono` (labels and tabular quantities) |
+| Type scale | `--type-display`, `--type-title`, `--type-recipe-title`, `--type-body`, `--type-ui`, `--type-label` — the six type roles (spec [009](../specs/009-editorial-design-system-and-shell.md) §8.1), each a `font` shorthand carrying weight/size/line-height/family in one declaration |
+| Tracking | `--tracking-display` `-.02em`, `--tracking-label` `.12em` |
+| Spacing | `--spacing-xs` .25rem, `-sm` .5rem, `-md` 1rem, `-lg` 1.5rem, `-xl` 2rem, `-2xl` 2.5rem |
+| Radius | `--radius-sm` 4px, `-md` 8px, `-lg` 12px, `--radius-pill` 999px (the editorial shell's default for buttons, nav links, fields) |
 | Transition | `--transition-fast` .15s, `-normal` .2s, `-slow` .3s (all `ease`) |
 
+**Breakpoints are documented constants, not tokens** (`UX-03`, closed by ADR-021): `480px`, `768px`, `1024px`,
+declared as a comment block in `variables.css` and used literally in media queries. A custom property cannot
+appear in a media query's condition — `@media (max-width: var(--bp-md))` is invalid CSS, because custom
+properties are not resolved at that point in the cascade.
+
 `light.css` / `dark.css` (`[data-theme="light"]` / `[data-theme="dark"]`) — **identical key sets**, so every
-colour token resolves in both themes:
+colour token resolves in both themes. This is the editorial paper/ink palette (spec 009 §8.2, ADR-021), not the
+old generic blue-on-white one:
 
 | Group | Tokens |
 | --- | --- |
-| Text | `--color-text-primary`, `--color-text-secondary`, `--color-text-muted` |
-| Background | `--color-background`, `--color-surface`, `--color-surface-hover` |
-| Border | `--color-border`, `--color-border-hover` |
-| Brand | `--color-primary`, `--color-primary-hover`, `--color-primary-text` |
-| Status | `--color-success`, `--color-warning`, `--color-error` |
+| Surface | `--paper`, `--paper-2` |
+| Text | `--ink`, `--ink-2`, `--ink-3` |
+| Structure | `--rule` (decorative hairline only — 1.29:1 light / 1.36:1 dark, never a control boundary, `UX-06`), `--field-border` (3:1+, the WCAG 1.4.11 boundary for inputs and controls) |
+| Brand | `--accent`, `--accent-text` (the text colour that is always safe on `--accent` — white fails 2.54:1 on the dark accent, so this is a token rather than a per-theme guess) |
+| Status | `--danger` |
+
+Every ratio in `light.css`/`dark.css` is measured against the surface the token is actually used on and recorded
+in a comment beside it. Three values deviate from the canonical design file for a measured contrast reason —
+see ADR-021 for the ratios.
 
 Rules:
 
 - [ ] **Never hard-code a colour, spacing value, radius, or transition duration.** Use the token.
 - [ ] A new colour token must be added to **both** `light.css` and `dark.css` — an asymmetric token silently
       resolves to nothing in one theme.
-- [ ] `--color-primary` is intentionally the same `#3b82f6` in both themes; only its hover state differs
-      (darker in light, lighter in dark). Preserve that direction for new interactive colours.
-- [ ] Status colours (`success`/`warning`/`error`) are currently identical across themes and **have not been
-      contrast-checked against `--color-background` in dark mode** — `UX-01` in
-      [../known-issues.md](../known-issues.md).
+- [ ] `--rule` is decorative only. Anything a user must find and click — an input, a button outline, a card
+      boundary — takes `--field-border` instead (`UX-06` in [../known-issues.md](../known-issues.md)).
+- [ ] A colour value that will be read at more than one size or against more than one surface needs its ratio
+      measured against each — `--accent`, `--danger`, and `--field-border` all needed a value ADR-021's canonical
+      design did not use, because a value that passes on `--paper` can fail on `--paper-2` or the other theme.
+
+### Typography — the six-role type scale
+
+`styles/typography.module.css` exposes one CSS Modules class per type role (`display`, `title`, `recipeTitle`,
+`body`, `ui`, `label`), each applying the matching `--type-*` token, plus a `numeric` utility class
+(`font-variant-numeric: tabular-nums`) for quantities and durations so digits do not jitter between rows. A
+component consumes a role through CSS Modules' `composes:`, not a global class:
+
+```css
+.pageTitle { composes: title from '@/styles/typography.module.css'; }
+```
+
+`composes:` keeps CSS Modules' scoping — the class still resolves to a module-local, hashed name — while sharing
+the declaration, which is why it was chosen over a global utility class (ADR-021's rejected alternative: a
+second, unscoped styling system beside CSS Modules). `globals.css` no longer sets a heading size of its own
+(`UX-02`, closed): headings inherit nothing and every screen composes the role it needs.
 
 ### Theming mechanism
 
-`ThemeProvider` sets `data-theme` on `<html>` and persists the choice to `localStorage` under `theme`. Default
-is `light`; the value is read synchronously in the `useState` initialiser and applied before first paint. The
-toggle lives in the `Footer`.
+The preference the user chose and the theme actually rendered are two separate, deliberately typed values
+(`recipe-manager-frontend/src/types/theme.ts`):
+
+```ts
+export type ThemePreference = 'light' | 'dark' | 'system'; // what the user chose, persisted to localStorage
+export type Theme = 'light' | 'dark';                      // what is rendered, on <html data-theme>
+```
+
+`ThemeProvider` stores only the **preference**; `theme` is *derived*, never stored, so the two cannot drift
+apart the moment the OS changes: `preference === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches
+? 'dark' : 'light') : preference`. It subscribes to that media query's `change` event, so a preference of
+`system` follows the OS live while the app is open, not only at load. `data-theme` is still set inside a
+`useLayoutEffect`, so there is no flash of the wrong theme once React has mounted — the window before that
+first commit is not covered: `index.html` sets no `data-theme` and neither theme file has a
+`prefers-color-scheme` fallback, so a dark-OS visitor can briefly see a browser-default frame. An inline script
+in `index.html` would close it; none is added. A visitor with nothing in
+`localStorage` now defaults to `system` rather than `light`; an existing stored `light` or `dark` is treated as
+an explicit choice and is not migrated. An unrecognised stored value falls back to `system` rather than
+throwing. This settles `DEC-06` in [../known-issues.md](../known-issues.md) and is ADR-021 (PR 1 of `R-16`).
 
 - [ ] Never read or set `data-theme` directly from a component — go through `useTheme()`.
-- [ ] There is **no `prefers-color-scheme` detection**; the default is always light. Settled 2026-09-19: the
-      control moves to Settings with Light / Dark / System, and System follows the OS (`R-16` in
-      [../roadmap.md](../roadmap.md)). Until `R-16` ships, the toggle stays in the footer.
+- [ ] The three-option control is a **radio group, not three buttons**: arrow keys move between options
+      natively and the selected one is announced as selected. `role="switch"` no longer fits — a switch is
+      binary and this has three states.
+- [ ] **The control still lives in the `Footer`**, as a binary switch calling `toggleTheme` (which flips whatever
+      theme is currently *rendered*, pinning an explicit choice rather than fighting the next `system` change
+      event). The segmented Light/Dark/System control, and its move into a Settings screen, are `R-16` PR 3 —
+      until then `toggleTheme` exists only to keep that switch working and has no way to reach `system` once the
+      user has left it.
 
 ### Styling approach
 
@@ -101,15 +150,6 @@ CSS Modules per component (`Foo.module.css`), plus `globals.css` for resets and 
 component library** (ADR-014), so every visible element takes its colours from these tokens. Icons are plain SVG
 in `components/ui/Icon/` with `fill: currentColor`, so they follow the surrounding text colour in both themes.
 Introducing a UI library is an `01-architect` decision.
-
-### Typography — inconsistent, handle with care
-
-`globals.css` sets `h1 { font-size: 4.2em }`, `h2 { 3rem }`, `h3 { 1.7rem; line-height: 0.5 }` — these are large
-absolute values that ignore the `--font-size-*` scale, and `h3`'s `line-height: 0.5` clips descenders.
-
-Reconciling these with the `--font-size-*` scale (and fixing `h3`) is tracked as `UX-02` in
-[../known-issues.md](../known-issues.md). It must be a deliberate pass, not an incidental edit, since it shifts
-every existing screen.
 
 ---
 
@@ -124,8 +164,8 @@ Before `03-senior-react` writes a screen, specify:
       distinguishes *empty because no recipes exist* from *empty because the search matched nothing* — new
       list screens must do the same.
 - [ ] **Error recovery**: what the user can actually do. Prefer a `refetch()` action over a full page reload.
-- [ ] **Responsive behaviour**: which breakpoints, what reflows. There are no shared breakpoint tokens today —
-      each CSS module defines its own media queries (`UX-03` in [../known-issues.md](../known-issues.md)).
+- [ ] **Responsive behaviour**: which reflows, at which of the three documented breakpoints (`480px`, `768px`,
+      `1024px` — see the Tokens section above, `UX-03` closed by ADR-021).
 - [ ] **Copy**: exact strings, sentence case, English.
 - [ ] **Both themes**: reviewed in light and dark.
 
@@ -172,8 +212,8 @@ The codebase does all of this today; treat it as the minimum, not the goal.
 Additional requirements for new work:
 
 - [ ] Visible focus indicator on every interactive element, in **both** themes.
-- [ ] Text contrast ≥ WCAG AA (4.5:1 body, 3:1 large text) against its actual surface — check
-      `--color-text-secondary` and `--color-text-muted`, which are the likeliest failures.
+- [ ] Text contrast ≥ WCAG AA (4.5:1 body, 3:1 large text) against its actual surface — check `--ink-2` and
+      `--ink-3`, which are the likeliest failures.
 - [ ] Keyboard-only path through the whole screen, including any reorder or delete affordance.
 - [ ] Nothing conveyed by colour alone.
 

@@ -641,6 +641,82 @@ endpoint is anonymous and every recipe is world-writable. See
   as a policy of documenting public APIs. `git blame` needs `git config blame.ignoreRevsFile .git-blame-ignore-revs`
   once per clone. Frontend files get editor guidance only; nothing enforces their formatting (`QUAL-05`).
 
+### ADR-021 — Self-hosted Newsreader and the editorial token set
+
+- **Status:** accepted; **PR 1 of `R-16` implemented 2026-09-19**
+  ([spec 009](specs/009-editorial-design-system-and-shell.md)). `R-16` ships as three PRs — PR 2 (shell) and
+  PR 3 (screens) are still to come, so `R-16` itself stays open on [roadmap.md](roadmap.md) until PR 3 merges.
+- **Context:** the SPA's palette (`--color-*` in `light.css`/`dark.css`) was a generic blue-on-white scheme with
+  dark-mode status colours nobody had contrast-checked (`UX-01`), and the design's own values were never brought
+  in. The editorial design ([agents/07-ux-ui.md](agents/07-ux-ui.md#canonical-design-reference)) is the canonical
+  target and specifies Newsreader as its serif, loaded from Google Fonts in the design file itself — which is the
+  design's own implementation shortcut, not a decision this project inherits (ADR-014's reasoning: a prototype's
+  implementation choices are not decisions).
+- **Decision:**
+  - Replace the `--color-*` palette with the design's paper/ink token set — `--paper`, `--paper-2`, `--ink`,
+    `--ink-2`, `--ink-3`, `--rule`, `--accent`, `--danger` — plus two tokens the design does not name
+    (`--accent-text`, `--field-border`, below). `light.css` and `dark.css` keep identical key sets.
+  - Self-host Newsreader via `@fontsource-variable/newsreader` (one variable-font package, weights 300 and 500
+    only — no italic, no other weight appears in the design), imported once in `main.tsx`, rather than the
+    design's Google Fonts `<link>`.
+  - Three token values deviate from the design file's own hex values, each for a measured contrast reason
+    (ratios from spec 009 §8.2, measured against the surface the token is actually used on; AA body ≥ 4.5:1, AA
+    large/UI ≥ 3:1):
+    - Light `--accent` is `#1d4ed8`, not the design's `#2563eb`. The design's blue measures **4.47:1 on
+      `--paper-2`** — under the 4.5 body threshold, and `--paper-2` is exactly where the design places small
+      accent links. `#1d4ed8` is the same hue one step darker and passes on both surfaces.
+    - Dark `--danger` (`#f87171`) is new. The design defines `--danger` only for its light Add-recipe frame; that
+      same value on dark paper measures **2.76:1 — a fail**, and is `UX-01`'s exact mistake (a status colour
+      shared across themes and only ever checked against light).
+    - `--field-border` (`#8a8275` light, `#726e7d` dark) is new. WCAG 1.4.11 requires 3:1 for the visual boundary
+      that identifies a control, and the design's search field is bounded only by `--rule`, which measures
+      **1.29:1**. `--rule` stays for decorative hairlines; anything a user must find and click gets
+      `--field-border` instead.
+  - `--accent-text` is a token, not a hard-coded `#fff`/`#000` per theme as the design has it. White on the dark
+    `--accent` measures **2.54:1**, a fail the design only avoided by choosing `#0b1220` there by hand; a token
+    makes the correct pairing the only representable one.
+- **Alternatives considered** (spec 009 §9):
+  - **Google Fonts `<link>`, as the design does** — zero setup and a shared CDN cache, but it sends every
+    visitor's IP to a third party, forces the future CSP (`SEC-10`) to allow an external origin, and breaks an
+    app meant to be self-hosted when offline.
+  - **Hand-committed `woff2` + `@font-face`** — no dependency at all, but we would own subsetting and updates by
+    hand for no gain; the package is a build-time asset that disappears into the bundle either way.
+  - **`@fontsource/newsreader` static weights** — slightly smaller for exactly two weights, but two imports
+    instead of one, and a third weight later means another import rather than nothing.
+  - **Keep the `--color-*` names, swap only the values** — smallest diff, no module churn, but the names would
+    lie: `--color-surface` describing `--paper-2` teaches the wrong model to every later screen, and `R-17`
+    through `R-24` would all be written against stale vocabulary.
+  - **Global utility classes for typography** — terser markup, but a second, unscoped styling system beside CSS
+    Modules; ADR-014 already rejected a competing style engine.
+  - **Repeat the type declarations per module** — no new file, but four declarations per label repeated across
+    ~15 modules is how a token system rots into copy-paste; this is the alternative `composes:` and
+    `styles/typography.module.css` exist to avoid.
+- **Consequences:**
+  - The three breakpoints (`480px`, `768px`, `1024px`, `UX-03`) are documented constants in a `variables.css`
+    comment, used literally in media queries, rather than custom-property tokens: `@media (max-width:
+    var(--bp-md))` is invalid CSS, because a custom property is not resolved at that point in the cascade. The
+    alternatives — PostCSS `@custom-media` (a build dependency and a syntax extension for a cosmetic gain) or
+    container queries (a different feature solving a different problem) — were both rejected, so `UX-03` closes
+    on the documented-constant basis rather than a tokenised one.
+  - Every existing `*.module.css` under `recipe-manager-frontend/src/` changed at once to move off `--color-*`
+    and `--font-size-*`, so `git blame` on styling is muddied for this release, and any branch left open across
+    PR 1 conflicts in CSS. Any snippet in the docs that still names `--color-*` is stale until updated in the
+    same PR — this ADR and the token tables in [agents/07-ux-ui.md](agents/07-ux-ui.md) are that update.
+  - New dependency: `@fontsource-variable/newsreader` (MIT packaging; the font itself is OFL). Vite bundles and
+    content-hashes the `woff2`, so it is served from the app's own origin — this is also what improves `SEC-10`:
+    the future CSP can stay `self`-only, where the design's Google Fonts link would have required
+    `fonts.googleapis.com` and `fonts.gstatic.com`.
+  - Pattern applied: design tokens with a derived, not stored, resolved value (the theme model's
+    `ThemePreference`/`Theme` split follows the same shape) and CSS Modules `composes:` for shared typography,
+    rather than global utility classes.
+  - The `useLayoutEffect` that sets `data-theme` closes the gap only for **React's own** first paint: it runs
+    before the browser paints React's first commit, so there is no flash of the wrong theme once React has
+    mounted. It does nothing for the interval before that — `index.html` sets no `data-theme`, and neither
+    `light.css` nor `dark.css` has a `prefers-color-scheme` fallback, so a dark-OS visitor briefly sees the
+    browser's default frame between document parse and that first commit. Unchanged by this branch; an inline
+    script in `index.html` reading the stored preference (or `matchMedia`) before any stylesheet applies would
+    close it, but none is added here — this bullet only records the limit.
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001

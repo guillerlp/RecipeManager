@@ -1,7 +1,5 @@
-/* globals.module.css */
-
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-ui);
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -10,20 +8,19 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-html, body, #root {
-  height: 100%;
-}
-body {
-  margin: 0;         /* removes the default 8px margin that causes tiny scrollbars */
-}
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+html, body, #root { height: 100%; }
+body { margin: 0; }
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Headings carry no size of their own: each screen composes a type role (UX-02). */
+h1, h2, h3, h4 {
+  margin: 0;
+  font: inherit;
 }
 
-/* Headings */
-h1 { font-size: 4.2em; line-height: 1.1;}
-h2 { font-size: 3rem; line-height: 1.1; }
-h3 { font-size: 1.7rem; line-height: 0.5; }
-
+/* One focus treatment for the whole app, in both themes. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

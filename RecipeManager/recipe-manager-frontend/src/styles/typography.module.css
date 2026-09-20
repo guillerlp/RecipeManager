@@ -1,0 +1,44 @@
+/*
+ * The seven type roles of the editorial design. Consume with CSS Modules composition:
+ *   .pageTitle { composes: title from '@/styles/typography.module.css'; }
+ * Composition keeps module scoping, unlike a global utility class.
+ */
+
+.display {
+  font: var(--type-display);
+  letter-spacing: var(--tracking-display);
+  text-wrap: balance;
+}
+
+.title { font: var(--type-title); }
+
+.recipeTitle { font: var(--type-recipe-title); }
+
+.body {
+  font: var(--type-body);
+  text-wrap: pretty;
+}
+
+.ui { font: var(--type-ui); }
+
+.label {
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/*
+ * Quantities, durations and counts: digits must not jitter between rows.
+ * IMPORTANT: The `font:` shorthand in .display, .title, .recipeTitle, .body, and .ui resets
+ * `font-variant-numeric` to its initial value. .numeric must stay LAST in this file to win
+ * the cascade when combined with a sizing role. Consumers pairing .numeric with a type role
+ * should verify in a real browser that digits are tabular—jsdom does not apply CSS properties.
+ */
+.numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 768px) {
+  .display { font-size: 2.5rem; }
+  .title { font-size: 2rem; }
+}
