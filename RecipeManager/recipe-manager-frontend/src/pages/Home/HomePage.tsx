@@ -1,54 +1,39 @@
 // src/pages/Home/HomePage.tsx
-import { NavLink } from '@/components/ui/NavLink';
+
+import { Link } from 'react-router-dom';
+import { AddIcon, ArrowForwardIcon } from '@/components/ui/Icon';
+import { useRecipes } from '@/hooks/useRecipes';
 import styles from './HomePage.module.css';
-import Logo from '../../assets/mainPhoto.png';
 
 export const HomePage: React.FC = () => {
+  const { data: recipes, isLoading, error } = useRecipes();
+
+  // A pending or failed count must not hide the rest of the page — only render it once the
+  // query has resolved without error.
+  const showCount = !isLoading && !error && recipes !== undefined;
+
   return (
-    <section className={styles.heroSection}>
-      <section className={styles.contentSection}>
-        <header className={styles.heroHeader}>
-          <h1 className={styles.heroTitle}>
-            Welcome to Recipe{' '}
-            <span className={styles.titleBreak}>Manager</span>
-          </h1>
-          <p className={styles.heroSubtitle}>
-            Organize and manage your recipes with ease
-          </p>
-        </header>
-        
-        <nav 
-          className={styles.actionButtons} 
-          aria-label="Main recipe management actions"
-        >
-          <div className={styles.actionButton}>
-            <NavLink 
-              to='/recipes'
-              aria-label="View all your saved recipes"
-            >
-              View Recipes
-            </NavLink>
-          </div>
-          <div className={styles.actionButton}>
-            <NavLink 
-              to='/recipes/new'
-              aria-label="Create a new recipe"
-            >
-              Add Recipe
-            </NavLink>
-          </div>
-        </nav>
-      </section>
-      
-      <aside className={styles.heroImageContainer}>
-        <img 
-          src={Logo} 
-          className={styles.heroImage} 
-          alt="Recipe management illustration showing a document with cooking bowl and checklist"
-          loading="lazy"
-          decoding="async"
-        />
-      </aside>
+    <section className={styles.hero}>
+      {showCount && (
+        <p className={styles.count}>
+          {recipes.length} {recipes.length === 1 ? 'recipe' : 'recipes'} · yours alone
+        </p>
+      )}
+      <h1 className={styles.title}>Everything you actually cook, in one place.</h1>
+      <p className={styles.lede}>
+        No ads, no life story before the ingredients. Just your recipes, on your own server, ready
+        to scale to however many people turned up.
+      </p>
+      <nav className={styles.actions} aria-label="Main recipe management actions">
+        <Link to="/recipes" className={styles.primary}>
+          Browse recipes
+          <ArrowForwardIcon />
+        </Link>
+        <Link to="/recipes/new" className={styles.secondary}>
+          <AddIcon />
+          Add a recipe
+        </Link>
+      </nav>
     </section>
   );
 };
