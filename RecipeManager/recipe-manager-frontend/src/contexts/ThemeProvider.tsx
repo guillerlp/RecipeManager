@@ -25,7 +25,7 @@ const resolve = (preference: ThemePreference, osPrefersDark: boolean): Theme =>
 export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
     const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
 
-    const [preference, setPreferenceState] = useState<ThemePreference>(() =>
+    const [preference, setPreference] = useState<ThemePreference>(() =>
         isBrowser ? readPreference() : 'system');
 
     // The OS reading is the only extra state. `theme` itself is derived below, never stored,
@@ -60,12 +60,10 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) =
         return () => media.removeEventListener('change', onChange);
     }, [isBrowser]);
 
-    const setPreference = useCallback((next: ThemePreference) => setPreferenceState(next), []);
-
     // Flips whatever is currently rendered, not the preference itself — so toggling while on
     // 'system' pins an explicit choice rather than fighting the OS on the next change event.
     const toggleTheme = useCallback(
-        () => setPreferenceState(theme === 'light' ? 'dark' : 'light'),
+        () => setPreference(theme === 'light' ? 'dark' : 'light'),
         [theme]);
 
     const contextValue = useMemo(
