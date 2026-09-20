@@ -575,6 +575,24 @@ not format, and no formatter runs. Measured 2026-09-19: of the files under `reci
 **Fix.** Adopt a formatter (Oxc's, to match Oxlint per ADR-016, or Prettier) with a CI check, and reformat in its
 own blame-ignored commit, the same pattern ADR-020 used for C#. A new dependency needs `01-architect` sign-off.
 
+### QUAL-06
+**A Node ambient-types directive leaks into the browser program — Low**
+
+`recipe-manager-frontend/src/styles/themes/tokenParity.test.ts` opens with `/// <reference types="node" />`. The
+comment above it is accurate — it widens the whole `tsconfig.json` program's ambient types (`process`,
+`__dirname`, `Buffer`, and the Node module resolutions the test needs) rather than scoping to this one file —
+but that is exactly what `BUILD-10` drew a boundary against: Node globals must not leak into `src/`. It is
+currently necessary: without the directive, `npm run typecheck` fails with `TS2591` on the test's `node:fs` and
+`node:url` imports (verified). No other file under `src/` relies on a Node global today, so the leak has not yet
+been exploited, but nothing stops a later file from reading `process.env` under the widened program without
+Oxlint or the compiler objecting.
+
+**Fix.** Either give this test its own scoped `tsconfig` (an `include`/`references` split so the directive's
+reach is one file, not the whole program), or import the CSS files as raw text (`import lightCss from
+'./light.css?raw'`) with `test: { css: true }` added to `vite.config.ts` — rejected for this PR because Vitest
+does not process CSS imports without that flag, and turning it on changes CSS handling for every test in the
+suite to fix one file's typing.
+
 ---
 
 ## UX & accessibility
