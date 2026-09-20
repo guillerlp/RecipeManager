@@ -1,5 +1,5 @@
 import { Theme, ThemePreference } from "@/types/theme";
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { ThemeContext } from "./ThemeContext";
 
 const STORAGE_KEY = 'theme';
@@ -60,15 +60,9 @@ export const ThemeProvider: React.FC<React.PropsWithChildren> = ({ children }) =
         return () => media.removeEventListener('change', onChange);
     }, [isBrowser]);
 
-    // Flips whatever is currently rendered, not the preference itself — so toggling while on
-    // 'system' pins an explicit choice rather than fighting the OS on the next change event.
-    const toggleTheme = useCallback(
-        () => setPreference(theme === 'light' ? 'dark' : 'light'),
-        [theme]);
-
     const contextValue = useMemo(
-        () => ({ preference, theme, setPreference, toggleTheme }),
-        [preference, theme, setPreference, toggleTheme]);
+        () => ({ preference, theme, setPreference }),
+        [preference, theme, setPreference]);
 
     return (
         <ThemeContext.Provider value={contextValue}>

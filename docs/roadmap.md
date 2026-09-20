@@ -61,48 +61,28 @@ screens (Home, Recipes, Detail, Add/Edit, Profile & settings, Cooking mode) in l
 three of them. It assumes structured ingredients throughout, so most of its screens **depend on** `R-10` rather
 than preceding it. The reasoning is in [decisions-log.md](decisions-log.md#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise).
 
+`R-16` (editorial design system and shell) shipped 2026-09-20 as ADR-021
+([spec 009](specs/009-editorial-design-system-and-shell.md)), closing `UX-01`, `UX-02`, `UX-03`, `BUG-06`,
+`BUILD-05`, `DEC-06`, `QUAL-03`, and `BUG-09`. It opened `UX-06` and `UX-07`, and left `BUG-10` open by
+design: recipe rows stay `<article>` rather than `<button>` until `R-18` gives them a detail route to link to.
+
 Build order. Each item names what it waits on, so a later item can move up if its dependencies are met:
 
 | Order | Item | Waits on |
 | --- | --- | --- |
-| 1 | `R-16` Editorial design system and shell | — |
-| 2 | `R-10` Structured ingredients (ADR also settles the instructions shape) | — |
-| 3 | `R-17` Structured instructions | `R-10` ADR |
-| 4 | `R-18` Recipe detail screen | `R-10` |
-| 5 | `R-19` Draft recipes | `R-10` |
-| 6 | `R-20` Tags | — |
-| 7 | `R-21` Add/edit form | `R-10`, `R-17`, `R-19`, `R-20` |
-| 8 | `R-22` Cook log | — |
-| 9 | `R-23` Cooking mode | `R-17`, `R-22` |
-| 10 | `R-24` Export and import | `SEC-08`, `SEC-09` |
+| 1 | `R-10` Structured ingredients (ADR also settles the instructions shape) | — |
+| 2 | `R-17` Structured instructions | `R-10` ADR |
+| 3 | `R-18` Recipe detail screen | `R-10` |
+| 4 | `R-19` Draft recipes | `R-10` |
+| 5 | `R-20` Tags | — |
+| 6 | `R-21` Add/edit form | `R-10`, `R-17`, `R-19`, `R-20` |
+| 7 | `R-22` Cook log | — |
+| 8 | `R-23` Cooking mode | `R-17`, `R-22` |
+| 9 | `R-24` Export and import | `SEC-08`, `SEC-09` |
 
 `R-11`, `R-12`, `R-13`, and `R-14` keep their IDs and are unordered relative to the list above; each notes what
 the design asks of it. `R-13` is worth doing early, since every screen above is easier to check against realistic
 data.
-
-### R-16
-**Editorial design system and shell** · `07-ux-ui` → `03-senior-react` · `01-architect` (ADR for fonts and
-tokens) · ~2 days
-
-The only part of the design with no data-model dependency, so it goes first.
-
-- **Tokens.** Replace the palette with the design's paper/ink set (`--paper`, `--paper-2`, `--ink`, `--ink-2`,
-  `--ink-3`, `--rule`, `--accent`, `--danger`), in both `light.css` and `dark.css`. Add a real type scale and
-  shared breakpoints, which closes `UX-02` and `UX-03`. Recheck status-colour contrast in dark (`UX-01`).
-- **Typography.** Newsreader for user-written content (titles, descriptions, steps), `system-ui` for interface
-  text, monospace for small-caps labels and tabular quantities.
-- **Fonts and icons are self-hosted.** Newsreader ships as committed `woff2` files or an `@fontsource` package.
-  Icons stay inline SVG in `components/ui/Icon/` (ADR-014), with the glyphs the design uses added by hand. No
-  runtime request to Google Fonts: the app is meant to be self-hosted, the future CSP (`SEC-10`) stays
-  `self`-only, and visitor IPs are not sent to a third party.
-- **Shell.** New header, pill buttons, hairline rules instead of bordered cards, and a bottom navigation bar on
-  mobile with a 44px minimum touch target.
-- **Screens on the current contract.** Home and Recipes restyled. Home's "Last cooked" rail and the stats
-  wait for `R-22`, and tag chips wait for `R-20`, so both are left out rather than stubbed.
-- **Settings.** The theme control moves from the footer to Settings and gains **System**, which follows
-  `prefers-color-scheme` (settles `DEC-06`). Browser-only preferences (default servings, keep screen awake) persist in
-  `localStorage` until `R-14` gives them an owner. The metric/imperial switch waits for `R-10`'s conversion
-  policy.
 
 ### R-10
 **Structured ingredients** · `01-architect` (ADR required) → `02-senior-csharp` → full stack · ~2–3 days · **decided**
@@ -228,8 +208,8 @@ endpoint, not three new endpoints. The last one needs `R-22`.
 **Recipe images** · `01-architect` + `05-security-reviewer` (both required) → full stack · ~1 day
 
 `RecipeDto` has no image field, and `recipe-manager-frontend/src/types/recipe.ts` no longer declares one
-(`BUG-04` resolved by dropping it — spec 007), so every card falls back to a 2.1 MB bundled placeholder
-(`BUILD-05`).
+(`BUG-04` resolved by dropping it — spec 007), so every card falls back to the CSS hatch placeholder introduced
+by `R-16` Task 10 (`BUILD-05`, resolved) instead of a real photo.
 
 **Do not start without the security requirements** in
 [agents/05-security-reviewer.md](agents/05-security-reviewer.md#recipe-image-upload--none-exists-yet-requirements-if-one-is-added):

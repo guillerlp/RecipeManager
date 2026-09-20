@@ -46,12 +46,50 @@ Jump to every entry touching a topic.
 | Enforcement vs. convention | [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Dependency management | [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
 | Frontend / React | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
-| Accessibility | [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
+| Accessibility | [2026-09-20 Design file as proposal](#2026-09-20--a-design-file-is-a-proposal-about-colour-not-a-verdict), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | API contract | [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript) |
 
 ---
 
 ## Entries
+
+### 2026-09-20 — A design file is a proposal about colour, not a verdict
+
+**Context.** `R-16`'s canonical design (spec [009](specs/009-editorial-design-system-and-shell.md) §8.2) gave
+exact hex values for every token. Three of them, measured against the surface they are actually used on, fail
+WCAG before a line of app code ever uses them — ratios below are read directly from `light.css`/`dark.css` and
+match spec 009 §8.2:
+
+| Token | Design | Shipped | Why |
+| --- | --- | --- | --- |
+| `--accent` (light) | `#2563eb` | `#1d4ed8` | design value measures 4.47:1 on `--paper-2`, under AA body's 4.5:1, exactly where the design places small accent links; shipped is 6.32:1 on `--paper` / 5.80:1 on `--paper-2` |
+| `--danger` (dark) | `#b42318` — the design's one danger colour, defined only for its light frame and reused as-is in dark | `#f87171` | that value measures 2.76:1 on dark `--paper` — a fail, and `UX-01`'s exact mistake (a status colour shared across themes and checked only against light); shipped is 6.57:1 on `--paper` / 6.05:1 on `--paper-2` |
+| `--field-border` | *(none — the design bounds its search field with `--rule`)* | `#8a8275` (light) / `#726e7d` (dark) | `--rule` measures 1.29:1 (light) / 1.36:1 (dark), failing WCAG 1.4.11's 3:1 for the boundary that identifies a control; shipped is 3.58:1 / 3.28:1 (light), 3.67:1 / 3.38:1 (dark) |
+
+**Decision.** Ship the measured values instead of the design's, in all three cases. `--field-border` did not
+exist in the design at all — `--rule` was reused for input borders in the design's own search field, and a new
+token was introduced rather than repeating that failure everywhere else a control needs a boundary (`UX-06`).
+Recorded in ADR-021 and spec 009 §8.2.
+
+**Rejected.** *Ship the design's values as drawn.* It is the literal reading of "canonical design reference"
+([agents/07-ux-ui.md](agents/07-ux-ui.md#canonical-design-reference)), and it is what a design-fidelity review
+would flag as a deviation — but it ships text and control boundaries that fail contrast against exactly the
+surfaces the design puts them on, which is a worse outcome than a hex value one step off from the mockup.
+*Ask the design owner before deviating.* The design owner is `07-ux-ui`, which is also the agent that measured
+the failure; deferring the numbers to a human sign-off when the tool that produced the mockup cannot check its
+own contrast would have delayed three fixes with no real ambiguity in the answer.
+
+**Cost.** The shipped palette no longer matches the design file pixel-for-pixel, so a side-by-side comparison
+shows a difference a reviewer has to know is deliberate. Three ADR-021 comments carry the ratio and the reason
+so that "why doesn't this match the design?" has an answer in the code, not only in this log.
+
+**Takeaway.** *A design file is a proposal about colour, not a verdict — measure before adopting.* A mockup
+tool has no way to check contrast against the exact surface a token will sit on in both themes, so treating its
+hex values as final skips the one check that actually matters for text and controls. The fix is cheap once the
+ratio is known: measure every colour against the surface it is actually used on, before it ships, not after a
+review catches it.
+
+---
 
 ### 2026-09-19 — A UI design is a dependency graph in disguise
 

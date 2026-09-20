@@ -108,13 +108,45 @@ describe('RecipeList states', () => {
     expect(heading.className).toMatch(/emptyTitle/);
   });
 
-  it('renders one card per recipe, with formatted durations', async () => {
+  it('recovers via refetch() when Retry is clicked, without reloading the page', async () => {
+    vi.useFakeTimers();
+    getAllRecipes.mockRejectedValueOnce(new Error('Network down'));
+    getAllRecipes.mockRejectedValueOnce(new Error('Network down'));
+    getAllRecipes.mockRejectedValueOnce(new Error('Network down'));
+    renderList();
+
+    // Same backoff as the test above: `retry: 2` means 3 failing calls before the error renders.
+    await act(() => vi.advanceTimersByTimeAsync(5_000));
+    expect(screen.getByText(/Network down/)).toBeTruthy();
+    expect(getAllRecipes).toHaveBeenCalledTimes(3);
+
+    // The success path below resolves on its own microtask, not a timer, so there is nothing
+    // left to fake — and fake timers would otherwise stall findAllByRole's polling.
+    vi.useRealTimers();
+    respondWith(recipes);
+
+    // BUG-09: the old handler called `window.location.reload()`, which jsdom does not implement
+    // (it is a documented no-op there). If Retry still did that, `getAllRecipes` would never be
+    // called a 4th time and the assertions below would time out instead of passing — this test
+    // only passes because the button genuinely calls `refetch()` and re-runs the query in place.
+    await act(async () => {
+      screen.getByRole('button', { name: 'Retry' }).click();
+      await Promise.resolve();
+    });
+
+    expect(await cardTitles()).toEqual(['Tomato Soup', 'Pancakes', 'Green Salad']);
+    expect(getAllRecipes).toHaveBeenCalledTimes(4);
+  });
+
+  it('renders one card per recipe, with a formatted total duration', async () => {
     respondWith(recipes);
     renderList();
 
     expect(await cardTitles()).toHaveLength(3);
-    // Guards the Task 1 extraction end to end: RecipeCard still formats through the helpers.
-    const prepTime = screen.getByText('1h 30min');
-    expect(prepTime.getAttribute('datetime')).toBe('PT1H30M');
+    // Tomato Soup: preparationTime 90 + cookingTime 20 (makeRecipe's default) = 110 minutes.
+    // Guards the row's total-time column end to end: it sums both fields and still formats
+    // through the existing duration helpers, rather than showing just one of the two times.
+    const totalTime = screen.getByText('1h 50min');
+    expect(totalTime.getAttribute('datetime')).toBe('PT1H50M');
   });
 });

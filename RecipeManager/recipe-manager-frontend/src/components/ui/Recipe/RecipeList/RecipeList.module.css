@@ -34,16 +34,17 @@
     background: var(--ink-3);
 }
 
-.loadingSection{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.loadingSection {
+    composes: body from '@/styles/typography.module.css';
+    color: var(--ink-2);
 }
 
-.errorSection{
+.errorSection {
+    composes: body from '@/styles/typography.module.css';
     display: flex;
     flex-direction: column;
     align-items: center;
+    color: var(--danger);
 }
 
 .emptyTitle {
@@ -51,21 +52,22 @@
     margin: 0 0 0.25rem;
 }
 
-@media (max-width: 420px) {
-    .heroSection {
-        padding: 0.5rem 0.5rem 0.5rem 0.5rem; 
-        max-width: none; 
-    }
+.emptyBody {
+    composes: body from '@/styles/typography.module.css';
+    color: var(--ink-2);
 }
 
-@media (min-width: 421px) and (max-width: 768px) {
-    .heroSection {
-        padding: 0.5rem 0.5rem 0.5rem 0.5rem; 
-    }
+.list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    border-top: 1px solid var(--rule);
 }
 
-@media (min-width: 769px) {
+@media (max-width: 480px) {
     .heroSection {
-        padding: 0.5rem 0.5rem 0.5rem 0.5rem; 
+        padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+        max-width: none;
     }
 }

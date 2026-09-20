@@ -12,7 +12,11 @@
 
 .main {
     flex: 1;
-    min-height: 0; 
+    /* min-height: 0 is load-bearing, not redundant with flex: 1: without it a flex item's
+       default min-height is auto (its content size), which stops it from shrinking below that
+       and defeats overflow-y: auto below (UX-09) — the shell would grow past the viewport
+       instead of scrolling .main. */
+    min-height: 0;
     display: flex;
     flex-direction: column;
     padding: var(--spacing-md) var(--spacing-xl);
@@ -20,5 +24,11 @@
     width: 100%;
     margin: 0 auto;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .main {
+        padding: var(--spacing-md) var(--spacing-md);
+    }
 }

@@ -1,130 +1,109 @@
 /* HomePage.module.css */
 
-/* layout */
-.heroSection {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(1rem, 4vw, 4rem);
-    flex-wrap: wrap;
-    box-sizing: border-box;
-    background: var(--paper);
-    color: var(--ink);
-    overflow:hidden;
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  max-width: 720px;
+  padding: var(--spacing-2xl) var(--spacing-xl);
 }
 
-/* left column */
-.contentSection {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    max-width: 560px;
-    flex: 1 1 300px;
-    min-width: 0;
-    padding-left: 5rem; 
+.count {
+  composes: label from '@/styles/typography.module.css';
+  color: var(--ink-3);
 }
 
-/* header */
-.heroHeader { display: grid; gap: var(--spacing-md); }
-
-.heroTitle {
-    margin: 0;
-    font-weight: 800;
-    line-height: 1.05;
-    font-size: clamp(2rem, 5vw, 3rem);
-    color: var(--ink);
+.title {
+  composes: display from '@/styles/typography.module.css';
+  margin: 0;
+  max-width: 15ch;
+  color: var(--ink);
 }
 
-.titleBreak { display: block; }
-
-.heroSubtitle {
-    composes: body from '@/styles/typography.module.css';
-    margin: 0;
-    color: var(--ink-2);
+.lede {
+  composes: body from '@/styles/typography.module.css';
+  margin: 0;
+  max-width: 44ch;
+  color: var(--ink-2);
 }
 
-/* actions */
-.actionButtons {
-    display: flex;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-xl);
-    flex-wrap: wrap;
+/*
+ * Qualified as `.hero .lede` (not bare `.lede`) so this outranks the composed `body` role's
+ * `font: var(--type-body)` shorthand on specificity (0,0,2,0 vs. the role's 0,0,1,0). A bare
+ * `font-size` on `.lede` itself would tie with the role's own class on specificity and lose on
+ * source order, since typography.module.css's rule is emitted after this file's in the bundle —
+ * the 1.3125rem below would be set but never rendered. Same hazard as NavLink.module.css,
+ * BottomNav.module.css and NotFoundPage.module.css.
+ */
+.hero .lede {
+  font-size: 1.3125rem;
 }
 
-.actionButton {
-    /* No background at rest: the old rest and hover surface tokens both resolve to
-       --paper-2 now, so keeping a rest-state background would make hover a no-op.
-       The highlighted --paper-2 fill appears only on hover (see .actionButton:hover). */
-    border: 1px solid var(--field-border);
-    border-radius: var(--radius-lg);
-    transition:
-      border-color var(--transition-normal),
-      background-color var(--transition-normal),
-      transform var(--transition-fast),
-      box-shadow var(--transition-fast);
+.actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
-.actionButton :global(a) {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: calc(var(--spacing-sm) + 2px) var(--spacing-lg);
-    text-decoration: none;
-    font: var(--type-ui);
-    font-weight: 600;
-    border-radius: inherit;
-    background: transparent;
-    color: var(--ink);
+.primary,
+.secondary {
+  composes: ui from '@/styles/typography.module.css';
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: calc(var(--spacing-sm) + 2px) var(--spacing-lg);
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  transition: border-color var(--transition-normal), background-color var(--transition-normal),
+    transform var(--transition-fast);
 }
 
-.actionButton:hover {
-    border-color: var(--ink-3);
-    background: var(--paper-2);
-    transform: translateY(-1px);
+.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border: 1px solid transparent;
 }
 
-/* right column image */
-.heroImageContainer {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex: 1 1 300px;
-    min-width: 0;
+.primary:hover {
+  transform: translateY(-1px);
 }
 
-.heroImage {
-    display: block; 
-    max-width: 100%;
-    max-height:min(420px, 60svh); 
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    filter: contrast(0.9);
+.secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--field-border);
 }
 
-@media (prefers-reduced-motion: reduce) { .actionButton { transition: none; } }
+.secondary:hover {
+  border-color: var(--ink-3);
+  background: var(--paper-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primary,
+  .secondary {
+    transition: none;
+  }
+
+  .primary:hover {
+    transform: none;
+  }
+}
 
 @media (max-width: 768px) {
-  .heroSection {
-      flex-direction: column;
-      gap: 2rem;
-      padding: var(--spacing-xl) var(--spacing-md);
-      text-align: center;
+  .hero {
+    padding: var(--spacing-xl) var(--spacing-md);
   }
-  .contentSection {
-      align-items: center;
-      text-align: center;
-      max-width: 640px;
-      padding-left: 0rem; 
-  }
-  .heroImage { max-width: 320px; max-height: 320px; }
-  .actionButtons { justify-content: center; }
-  .actionButton { flex: 1 1 140px; }
-}
 
-@media (max-width: 480px) {
-  .heroImage { max-height: min(220px, 45svh); }
-  .actionButton :global(a) { width: 100%; }
+  .actions {
+    width: 100%;
+  }
+
+  .primary,
+  .secondary {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }

@@ -12,6 +12,4 @@ export interface ThemeContextType {
     /** The resolved palette: 'system' has already been turned into light or dark. */
     theme: Theme;
     setPreference: (preference: ThemePreference) => void;
-    /** Temporary: the footer switch until R-16's Settings screen replaces it. */
-    toggleTheme: () => void;
 }

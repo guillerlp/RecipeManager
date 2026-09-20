@@ -6,8 +6,8 @@ Every **defect and gap in what already exists**. Planned work that does not exis
 Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code. Build and
 test numbers re-measured on 2026-08-04 after `R-02`, and the frontend rows re-measured on 2026-08-08 after `R-03`
 and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12. The frontend
-tests row was added 2026-09-18 after `R-07` and re-measured 2026-09-20 after `R-16` PR 2, by running
-`npm test` directly (8 files, 70 passed). Backend test numbers re-measured 2026-09-19 after `R-09` (ADR-019),
+tests row was added 2026-09-18 after `R-07` and re-measured 2026-09-20 after `R-16` PR 3 shipped in full, by
+running `npm test` directly (10 files, 77 passed). Backend test numbers re-measured 2026-09-19 after `R-09` (ADR-019),
 from CI run 35438379053, which shows 85 + 22 passed, 0 skipped.
 
 > **Rules for agents**
@@ -31,7 +31,7 @@ from CI run 35438379053, which shows 85 + 22 passed, 0 skipped.
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
 | Frontend lint | `npm run lint` | **0 problems** — Oxlint, 159 rules: the 71 type-aware ones on `src/**` plus the `correctness` category everywhere (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
-| Frontend tests | `npm test` | 70 pass — Vitest + RTL under jsdom (ADR-018) |
+| Frontend tests | `npm test` | 77 pass — Vitest + RTL under jsdom (ADR-018) |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
@@ -54,7 +54,6 @@ kind of negative test.
 
 | ID | Severity | Area | Issue |
 | --- | --- | --- | --- |
-| [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 6× the entire JS bundle |
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
@@ -68,7 +67,6 @@ kind of negative test.
 | [SEC-11](#sec-11) | Low | Ops | No health/readiness endpoint |
 | [SEC-12](#sec-12) | Low | Config | `.env.production` points at a placeholder host |
 | [BUG-07](#bug-07) | Low | API | `GET /api/recipes/{id}` missing the `:guid` route constraint |
-| [BUG-09](#bug-09) | Low | Frontend | Error recovery does a full page reload |
 | [BUG-10](#bug-10) | Medium | Frontend | No recipe detail route, so cards are not clickable |
 | [BUG-11](#bug-11) | Low | Domain | Recipes loaded from the database expose a mutable `List<string>` ([#8](https://github.com/guillerlp/RecipeManager/issues/8)) |
 | [BUG-12](#bug-12) | Low | Frontend | A paused recipe query renders "No recipes available" |
@@ -85,14 +83,11 @@ kind of negative test.
 | [INFRA-05](#infra-05) | Low | DX | No seed data |
 | [QUAL-01](#qual-01) | Low | Quality | `ILogger` called with interpolated strings |
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
-| [QUAL-03](#qual-03) | Low | Quality | Deep relative imports for shared assets |
 | [QUAL-04](#qual-04) | Low | Quality | Routes, verbs, and status codes are still hand-typed on the client |
 | [QUAL-05](#qual-05) | Low | Quality | Frontend indentation is mixed and no formatter enforces it |
 | [UX-05](#ux-05) | Medium | UX | The canonical design says only the title is required; the domain requires more |
 | [UX-06](#ux-06) | Medium | UX | `--rule` is a decorative hairline, not a control boundary |
 | [UX-07](#ux-07) | Low | UX | No visual-regression tooling |
-| [UX-08](#ux-08) | Medium | UX | The active nav pill's state indicator is sub-3:1 contrast |
-| [UX-09](#ux-09) | Medium | UX | The app shell has no scroll path; content below the fold is unreachable |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-07](#dec-07) | — | Decision | 24 h cap excludes slow-cooked and fermented recipes |
@@ -103,26 +98,6 @@ Resolved decisions and items promoted to planned work are recorded in [Settled](
 ---
 
 ## Build & tooling
-
-### BUILD-05
-**`mainPhoto.png` is 2.1 MB — Medium**
-
-Production build output (2026-09-16, React 19.3 on Vite 8):
-
-```
-dist/assets/mainPhoto-DpyCXFCt.png   2,115.47 kB
-dist/assets/index-DnV4jc7g.js          353.62 kB │ gzip: 113.93 kB
-dist/assets/index-D9pZeVVo.css          12.02 kB │ gzip:   2.97 kB
-```
-
-The image is **6× larger than all JavaScript combined** and is shipped unoptimized. It is used twice — as the
-hero image on `HomePage` and as the fallback thumbnail in every `RecipeCard`, so a list of 20 recipes references
-a 2 MB asset 20 times (cached, but decoded at full resolution each time).
-
-**Fix.** Re-encode to WebP/AVIF at the sizes actually rendered, and ship a separate small placeholder for the
-card fallback rather than reusing the hero image. Consider `srcset` for the hero.
-
-**Owner:** `03-senior-react` + `07-ux-ui` · **Effort:** ~1 h
 
 ### BUILD-06
 **`run-coverage.ps1` measures only the unit-test project — Low**
@@ -209,6 +184,11 @@ change was deliberately left out of `R-05`, which had to keep every status uncha
 Returns the whole table with no pagination, maps every row, and caches the entire list under one `IMemoryCache`
 key. Memory grows linearly with the recipe count with no ceiling. Pagination is planned as `R-11` and is on the [deploy gate](roadmap.md#deploy-gate).
 
+`R-16` PR 3 added a second caller: `HomePage` renders the live recipe count via `useRecipes`, so Home now also
+issues a full `GET /api/recipes` just to read `recipes.length`. Harmless today — TanStack Query shares the cache
+with the Recipes list, so Home's call effectively just prefetches it — but it means this endpoint gets expensive
+before the list screen does, not only when the list screen is opened.
+
 ### SEC-08
 **No length limits in the database — Medium**
 
@@ -272,12 +252,6 @@ Full detail on the contract seam is in [agents/08-api-contract.md](agents/08-api
 
 `[HttpGet("{id}")]` while `[HttpPut("{id:guid}")]` and `[HttpDelete("{id:guid}")]` are constrained. A malformed
 id reaches model binding instead of being rejected by routing, producing an inconsistent error shape.
-
-### BUG-09
-**Error recovery does a full page reload — Low**
-
-`RecipeList`'s retry button calls `window.location.reload()`, discarding all client state. TanStack Query's
-`refetch()` is already available from `useRecipes`.
 
 ### BUG-10
 **No recipe detail route, so cards are not clickable — Medium**
@@ -540,13 +514,6 @@ defeats structured logging: the value is baked into the message string and canno
 `MigrateDatabase` in `RecipeManager.Api/Startup/ApplicationInitializer.cs` writes migration progress with `Console.WriteLine`,
 bypassing the logging pipeline, log levels, and any structured sink.
 
-### QUAL-03
-**Deep relative imports for shared assets — Low**
-
-`RecipeCard.tsx` uses `import Logo from '../../../../assets/mainPhoto.png'` and `HomePage.tsx` uses
-`'../../assets/mainPhoto.png'`, while every other import in the codebase uses the `@/` aliases. Add an
-`@assets` alias (to **both** `vite.config.ts` and `tsconfig.json`) or use `@/assets`.
-
 ### QUAL-04
 **Routes, verbs, and status codes are still hand-typed on the client — Low**
 
@@ -632,50 +599,6 @@ both themes, and that is the entire verification story for the editorial token m
 enough screens for the cost to pay for itself. Not proposed for `R-16` — it is its own dependency decision and
 needs `01-architect`.
 
-### UX-08
-**The active nav pill's state indicator measures 1.09:1 — Medium**
-
-`NavLink.module.css`'s `.navLink.active` fills the pill with `--paper-2` against the `--paper` page background
-behind it. `--paper-2` on `--paper` is **1.09:1** in light mode (about 1.1:1 in dark) — nowhere near WCAG
-1.4.11's 3:1 requirement for the parts of a control that communicate its state. The pill is the design's primary
-"you are here" cue, and as a shape it is effectively invisible.
-
-`UX-06` already ruled `--rule` at 1.29:1 decorative-only and out of scope for control boundaries; this is a
-different, more serious case, because the pill *is* a non-decorative state indicator, not a separator. What
-actually carries the active state for a sighted user is not the pill at all: it is the `font-weight` jump to 600
-and a 2.25:1 text-colour change (`--ink-2` → `--ink`), with `aria-current="page"` covering assistive technology.
-The pill fill is currently doing none of the communicating it looks like it should be doing.
-
-**Fix.** Not applied here — it needs a `--field-border` hairline around the pill or a higher-contrast active
-surface, and either visibly deviates from the canonical design (spec
-[009](specs/009-editorial-design-system-and-shell.md)), so the choice belongs to the design owner
-([07-ux-ui](agents/07-ux-ui.md)), not to a fix wave. The cost of leaving it grows: `R-16` PR 3 is about to
-replicate this same pill pattern onto buttons and chips across three more screens, each one inheriting the same
-invisible-shape problem.
-
-### UX-09
-**The app shell has no scroll path — content below the fold is unreachable — Medium**
-
-`AppLayout.module.css`'s `.appShell` is `height: 100vh; overflow: hidden`, and `.main` inside it is
-`overflow: hidden` too. There is no scrollbar anywhere in the shell, so anything that does not fit inside the
-viewport is simply clipped rather than reachable by scrolling. Measured at 320×568 on `/nope`, on the tree as it
-stands after this fix wave (i.e. with `Footer`'s dead `padding-bottom: 4rem` already removed — see the settled
-entry above): `main`'s `clientHeight` is 353 against a `scrollHeight` of 359 — **6px permanently unreachable**,
-with no keyboard or touch path to it. At this viewport, the header, footer, and `BottomNav` together measure
-61px + 103px + 51px = 215px of chrome.
-
-This is pre-existing — `AppLayout` had this shape before `R-16` — and today's gap on the 404 page is small. But
-the defect is structural, not a fixed 6px: `.appShell` has no scroll mechanism at all, so the unreachable amount
-is simply "whatever doesn't fit," and a 404 page is close to the best case for it, since it has almost no
-content. A populated recipe list, which is what the shell exists to show, has much more content than a 404
-page's two lines of text and will hit this far harder — how much harder has not been measured, since no recipe
-list exists yet to measure against. Severity kept at Medium on that basis, not on today's 6px.
-
-**Fix.** Not applied here — it means changing `AppLayout`'s scroll model (most likely: let `.main` scroll
-independently while the header and footer/nav stay fixed), which is screen-shaping work that belongs with `R-16`
-PR 3 rather than a fix wave. Flagged so PR 3 budgets for it rather than discovering it against a real recipe
-list.
-
 ---
 
 ## Open decisions
@@ -722,7 +645,7 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `DEC-05` — generate TS types from OpenAPI? | **Yes**, after the contract defects are fixed by hand. **Shipped 2026-09-19.** | ADR-019 |
 | Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. | `R-10` |
 | Ingredients: shared catalogue or owned by the recipe? | **Owned by the recipe**, as value objects. No second aggregate, so ADR-006 (no unit of work) still holds. The cost is that "tomato" and "tomatoes" are unrelated names. Settled 2026-09-19. | `R-10` |
-| `DEC-06` — follow the OS colour-scheme preference on first visit? | **Yes, as an explicit choice, and now implemented.** Settled 2026-09-19 by the editorial design (screen 3e); **implemented the same day in PR 1 of `R-16`**: `ThemePreference` (`light`/`dark`/`system`, persisted) is now separate from the derived `Theme` (`light`/`dark`, rendered), `ThemeProvider` subscribes to `prefers-color-scheme` so `system` follows the OS live, and a visitor with nothing stored defaults to `system` rather than `light`. The segmented Light/Dark/System control itself, and its move into Settings, are still `R-16` PR 3 — until then the existing binary switch stays in the `Footer`. | ADR-021, `R-16` |
+| `DEC-06` — follow the OS colour-scheme preference on first visit? | **Yes, as an explicit choice, and now implemented.** Settled 2026-09-19 by the editorial design (screen 3e); **implemented the same day in PR 1 of `R-16`**: `ThemePreference` (`light`/`dark`/`system`, persisted) is now separate from the derived `Theme` (`light`/`dark`, rendered), `ThemeProvider` subscribes to `prefers-color-scheme` so `system` follows the OS live, and a visitor with nothing stored defaults to `system` rather than `light`. The segmented Light/Dark/System control itself, and its move into Settings, **shipped 2026-09-20 in `R-16` PR 3**: `ThemeControl` (three native radios in a `role="radiogroup"` fieldset) now lives in `ProfilePage`, the footer's binary switch is deleted, and `toggleTheme` is gone from the context. | ADR-021, `R-16` |
 | Only a title required (design) vs. full invariants (domain)? | **Draft recipes**: an explicit Draft/Published status, where drafts need only a title. Chosen over drafting only in the browser, and over relaxing the aggregate. Settled 2026-09-19. | `R-19`, `UX-05` |
 | CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
 | Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL.** Deferred until CI existed, since it needs Docker in both places; ADR-013 provided it. **Shipped 2026-09-17**, closing `TEST-06`: one container per test assembly, a database per test class, schema by `Database.Migrate()`, and a skip rather than a failure when Docker is missing. | ADR-017, `R-06` |

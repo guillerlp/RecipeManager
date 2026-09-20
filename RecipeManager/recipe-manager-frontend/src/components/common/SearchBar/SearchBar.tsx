@@ -10,7 +10,7 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({
     searchQuery,
     onSearchChange,
-    placeholder = "Search recipes..."
+    placeholder = "Search by name, ingredient or a word you remember"
 }) => {
 
     const handleInputChange = (e:React.ChangeEvent<HTMLInputElement>) => {

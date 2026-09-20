@@ -1,7 +1,6 @@
 import { Recipe } from "@/types";
 import { formatDuration, getISODuration } from "@/utils/duration";
 import React from "react";
-import Logo from '../../../../assets/mainPhoto.png';
 import styles from './RecipeCard.module.css';
 
 interface RecipeCardProps {
@@ -17,6 +16,8 @@ export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
         }
     }
 
+    // BUG-10: no detail route exists yet, so nothing ever passes onClick and rows render as
+    // <article> rather than a focusable <button> that would do nothing when activated.
     const CardComponent = onClick ? 'button' : 'article';
     const cardProps = onClick ? {
         type: 'button' as const,
@@ -24,36 +25,22 @@ export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
         'aria-label': `View ${recipe.title} recipe`,
     } : {};
 
-    return (
-        <CardComponent className={`${styles.recipesList} ${onClick ? styles.clickable : ''}`} {...cardProps}> 
-            <div className={styles.imageBox}>
-                <img
-                    src={Logo}
-                    className={styles.heroImage}
-                    alt={`${recipe.title} photo`}
-                    loading="lazy"
-                    decoding="async"
-                />
-            </div>
+    const totalMinutes = recipe.preparationTime + recipe.cookingTime;
 
-            <section className={styles.recipeInfo}>
-                <h3 className={styles.recipeTitle}>{recipe.title}</h3>
-                <p className={styles.heroSubtitle}>
+    return (
+        <CardComponent className={`${styles.row} ${onClick ? styles.clickable : ''}`} {...cardProps}>
+            <div className={styles.thumb} aria-hidden="true" />
+
+            <div className={styles.info}>
+                <h3 className={styles.title}>{recipe.title}</h3>
+                <p className={styles.description}>
                     {recipe.description || 'Delicious homemade recipe'}
                 </p>
-                <div className={styles.recipeTime}>
-                    <p className={styles.metaItem}>
-                        Prep: <time dateTime={getISODuration(recipe.preparationTime)}>
-                        {formatDuration(recipe.preparationTime)}
-                        </time>
-                    </p>
-                    <p className={styles.metaItem}>
-                        Cook: <time dateTime={getISODuration(recipe.cookingTime)}>
-                        {formatDuration(recipe.cookingTime)}
-                        </time>
-                    </p>
-                </div>
-            </section>
+            </div>
+
+            <time className={styles.time} dateTime={getISODuration(totalMinutes)}>
+                {formatDuration(totalMinutes)}
+            </time>
         </CardComponent>
     );
 };

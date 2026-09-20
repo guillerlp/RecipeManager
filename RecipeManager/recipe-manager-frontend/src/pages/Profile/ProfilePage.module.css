@@ -1,0 +1,140 @@
+/* ProfilePage.module.css */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+  max-width: 640px;
+  padding: var(--spacing-2xl) var(--spacing-xl);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.monogram {
+  composes: title from '@/styles/typography.module.css';
+  flex-shrink: 0;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--paper-2);
+  color: var(--ink-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.name {
+  composes: title from '@/styles/typography.module.css';
+  margin: 0;
+  color: var(--ink);
+}
+
+.since {
+  composes: label from '@/styles/typography.module.css';
+  margin: var(--spacing-xs) 0 0;
+  color: var(--ink-3);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.sectionTitle {
+  composes: label from '@/styles/typography.module.css';
+  margin: 0;
+  color: var(--ink-3);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--rule);
+}
+
+.rowTitle {
+  composes: ui from '@/styles/typography.module.css';
+  margin: 0;
+  color: var(--ink);
+}
+
+.rowDescription {
+  composes: ui from '@/styles/typography.module.css';
+  margin: var(--spacing-xs) 0 0;
+  color: var(--ink-3);
+}
+
+/*
+ * Qualified as `.section .rowDescription` (not bare `.rowDescription`) so this outranks the
+ * composed `ui` role's `font: var(--type-ui)` shorthand on specificity (0,0,2,0 vs. the role's
+ * 0,0,1,0) — same hazard as NavLink.module.css, BottomNav.module.css, NotFoundPage.module.css
+ * and HomePage.module.css. Without it, this smaller size would be set but never rendered.
+ */
+.section .rowDescription {
+  font-size: 0.8125rem;
+}
+
+.accountBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  border: 1px dashed var(--field-border);
+  border-radius: var(--radius-md);
+}
+
+.accountIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--ink-3);
+}
+
+.accountTitle {
+  composes: ui from '@/styles/typography.module.css';
+  margin: 0;
+  color: var(--ink);
+}
+
+.accountBody {
+  composes: body from '@/styles/typography.module.css';
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.accountActions {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+}
+
+/*
+ * Rendered as <span>, not <button> — these are not disabled controls, they are a picture of
+ * controls that do not exist until email/password sign-in ships. opacity alone conveys "off"
+ * here without any interactive semantics (no role, no tabindex), so they stay out of both the
+ * tab order and the accessibility tree's list of controls.
+ */
+.accountButton {
+  composes: ui from '@/styles/typography.module.css';
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-pill);
+  color: var(--ink-2);
+  opacity: 0.5;
+}
+
+@media (max-width: 480px) {
+  .row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+}

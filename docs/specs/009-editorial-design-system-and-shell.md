@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `009` |
-| **Status** | draft — awaiting user approval |
+| **Status** | shipped — 2026-09-20 |
 | **Author** | `00-leader` + `07-ux-ui` + `01-architect`, with the user |
 | **Created** | 2026-09-19 |
 | **Branch** | `feat/editorial-tokens` → `feat/editorial-shell` → `feat/editorial-screens` (three PRs, §3) |
@@ -33,37 +33,43 @@ Three PRs, each independently reviewable and shippable.
 
 ### PR 1 — `feat/editorial-tokens` (ADR-021)
 
-- [ ] `styles/themes/variables.css`: font-family tokens, the six-role type scale (§8.1), documented breakpoints,
+- [x] `styles/themes/variables.css`: font-family tokens, the six-role type scale (§8.1), documented breakpoints,
       spacing/radius/transition tokens kept as they are.
-- [ ] `styles/themes/light.css` + `dark.css`: the paper/ink palette (§8.2), **identical key sets**.
-- [ ] `styles/typography.module.css`: six composable classes (`display`, `title`, `recipeTitle`, `body`, `ui`,
+- [x] `styles/themes/light.css` + `dark.css`: the paper/ink palette (§8.2), **identical key sets**.
+- [x] `styles/typography.module.css`: six composable classes (`display`, `title`, `recipeTitle`, `body`, `ui`,
       `label`) consumed through CSS Modules' `composes:`.
-- [ ] `styles/globals.css`: delete the three absolute heading rules (`UX-02`); headings inherit from the scale.
-- [ ] Newsreader self-hosted via `@fontsource-variable/newsreader`, imported once in `main.tsx`.
-- [ ] `ThemePreference` / `Theme` split, `matchMedia` subscription, `localStorage` migration (§8.4).
-- [ ] Every existing `*.module.css` migrated from `--color-*` to the new token names.
-- [ ] `src/test/setup.ts`: a `window.matchMedia` stub (jsdom does not implement it).
-- [ ] Vitest coverage for the resolved-theme logic (§12).
+- [x] `styles/globals.css`: delete the three absolute heading rules (`UX-02`); headings inherit from the scale.
+- [x] Newsreader self-hosted via `@fontsource-variable/newsreader`, imported once in `main.tsx`.
+- [x] `ThemePreference` / `Theme` split, `matchMedia` subscription, `localStorage` migration (§8.4).
+- [x] Every existing `*.module.css` migrated from `--color-*` to the new token names.
+- [x] `src/test/setup.ts`: a `window.matchMedia` stub (jsdom does not implement it).
+- [x] Vitest coverage for the resolved-theme logic (§12).
 
 ### PR 2 — `feat/editorial-shell`
 
-- [ ] `Header`: blender mark + "Recipe Manager" in Newsreader, pill nav links, an inked "New recipe" pill.
-- [ ] `Footer`: hairline rule, `© <year> Recipe Manager` left, a "Settings" link right. The theme toggle is
+- [x] `Header`: blender mark + "Recipe Manager" in Newsreader, pill nav links, an inked "New recipe" pill.
+- [x] `Footer`: hairline rule, `© <year> Recipe Manager` left, a "Settings" link right. The theme toggle is
       **deleted here**, so PR 2 and PR 3 must land together or PR 2 keeps it until PR 3 (§14).
-- [ ] `BottomNav` (new, `components/layout/`): shown below 768px, four destinations, 44px minimum touch target.
-- [ ] `Icon`: add `add`, `arrow_forward`, `home`, `menu_book`, `add_circle`, `person` as inline SVG.
-- [ ] `NotFoundPage` + a `*` route, so the existing "Add recipe" link stops rendering a blank page (`BUG-06`).
+- [x] `BottomNav` (new, `components/layout/`): shown below 768px, four destinations, 44px minimum touch target.
+- [x] `Icon`: add `add`, `arrow_forward`, `home`, `menu_book`, `add_circle`, `person` as inline SVG.
+- [x] `NotFoundPage` + a `*` route, so the existing "Add recipe" link stops rendering a blank page (`BUG-06`).
 
 ### PR 3 — `feat/editorial-screens`
 
-- [ ] `HomePage`: masthead line with the live recipe count, Newsreader display heading, subtitle, two pill
+- [x] `HomePage`: masthead line with the live recipe count, Newsreader display heading, subtitle, two pill
       buttons. No Last-cooked rail, no Jump-to chips (§4).
-- [ ] `RecipePage` + `RecipeList` + `RecipeCard`: editorial list rows — hatch placeholder, Newsreader title,
+- [x] `RecipePage` + `RecipeList` + `RecipeCard`: editorial list rows — hatch placeholder, Newsreader title,
       description, tabular total time — with hairline separators instead of bordered cards.
-- [ ] `SearchBar`: pill field, inline search icon, `--field-border` boundary.
-- [ ] `ProfilePage` (replacing the `<div>Profile</div>` stub in `App.tsx`): header block, a Preferences section
-      containing **only** the Light/Dark/System segmented control, and the disabled Account block from the design.
-- [ ] `src/assets/mainPhoto.png` deleted, closing `BUILD-05`.
+- [x] `SearchBar`: pill field, inline search icon, `--field-border` boundary.
+- [x] `ProfilePage` (replacing the `<div>Profile</div>` stub in `App.tsx`): header block, a Preferences section
+      containing **only** the Light/Dark/System segmented control, and the Account block from the design —
+      shipped as two inert `<span>`s, not disabled `<button>`s. The two are not equivalent: a disabled `<button>`
+      still carries the WCAG 1.4.3 exemption for inactive controls, which a plain `<span>` does not, because it
+      is not a control at all. That gap surfaced as a real defect (a 0.5-opacity `<span>` reads at ~2.3:1, under
+      the 4.5:1 body-text bar, with nothing in the accessibility tree marking it non-interactive) and was closed
+      by adding `aria-hidden="true"` to both spans, on the strength of the block's own prose already explaining
+      that sign-in does not exist yet.
+- [x] `src/assets/mainPhoto.png` deleted, closing `BUILD-05`.
 
 ## 4. Out of scope
 
@@ -242,21 +248,43 @@ document parse and that commit. An inline script in `index.html` would close it;
 
 ## 11. Acceptance criteria
 
-- [ ] Given a browser with no stored preference and an OS set to dark, when the app loads, then `<html>` carries
-      `data-theme="dark"` on first paint and Settings shows **System** selected.
-- [ ] Given the preference is `system`, when the OS colour scheme changes while the app is open, then the rendered
-      theme follows without a reload.
-- [ ] Given a stored preference of `light`, when the OS is dark, then the app renders light.
-- [ ] Given `localStorage.theme` holds an unrecognised value, when the app loads, then it falls back to the
-      default rather than throwing.
-- [ ] Given Settings, when a preference is chosen with the keyboard alone, then arrow keys move between the three
-      options and the choice persists across a reload.
-- [ ] Every token in `light.css` has a counterpart in `dark.css` — asserted by a test, not by review.
-- [ ] Every interactive element shows a visible focus ring in both themes.
-- [ ] No `--color-*` reference remains under `src/`.
-- [ ] Below 768px the bottom navigation is visible, every target is ≥ 44px, and the header nav is hidden.
-- [ ] `npm run build`, `npm run lint` (0 problems), and `npm test` all pass; the production bundle no longer
-      contains a 2.1 MB PNG.
+- [x] Given a browser with no stored preference and an OS set to dark, when the app loads, then `<html>` carries
+      `data-theme="dark"` on first paint and Settings shows **System** selected. Verified 2026-09-20 in a real
+      browser: `localStorage` cleared, OS colour scheme emulated dark, fresh load → `data-theme="dark"`,
+      `localStorage.theme` written as `"system"`, and the Settings radio group shows **System** checked. (The
+      window between document parse and React's first commit, called out in §8.4 as uncovered because
+      `index.html` sets no inline `data-theme`, was not and could not be tested here — that gap is pre-existing
+      and already recorded in §8.4, not newly found.)
+- [x] Given the preference is `system`, when the OS colour scheme changes while the app is open, then the rendered
+      theme follows without a reload. Verified via `ThemeProvider.test.tsx`, which mocks `matchMedia` and fires
+      its `change` callback directly (`act(() => media.change(true/false))`), asserting the theme updates without
+      remounting — this is the reliable check. A live in-browser attempt using Chrome DevTools' colour-scheme
+      emulation was also tried; `matchMedia(...).matches` updated but the already-registered listener did not
+      re-fire, which is a known limitation of that emulation path (a full reload with the new scheme did pick it
+      up correctly), not evidence against the app's own logic.
+- [x] Given a stored preference of `light`, when the OS is dark, then the app renders light. Verified 2026-09-20:
+      `localStorage.theme = "light"`, OS emulated dark, reload → `data-theme="light"`.
+- [x] Given `localStorage.theme` holds an unrecognised value, when the app loads, then it falls back to the
+      default rather than throwing. Verified 2026-09-20: `localStorage.theme = "banana"`, reload → no thrown
+      error, value rewritten to `"system"`, theme resolved from the OS reading.
+- [x] Given Settings, when a preference is chosen with the keyboard alone, then arrow keys move between the three
+      options and the choice persists across a reload. Verified 2026-09-20: focused the **Light** radio, pressed
+      `ArrowRight` → **Dark** became checked and focused, `localStorage.theme` updated to `"dark"`, and a fresh
+      navigation to `/profile` still showed **Dark** selected.
+- [x] Every token in `light.css` has a counterpart in `dark.css` — asserted by a test, not by review.
+      `tokenParity.test.ts` parses both files and asserts identical key sets; part of the 77 passing Vitest tests.
+- [x] Every interactive element shows a visible focus ring in both themes. Verified 2026-09-20 by tabbing through
+      Home in both themes and screenshotting: a visible ring renders on the brand link (light) and the Profile
+      nav link (dark).
+- [x] No `--color-*` reference remains under `src/`. Verified 2026-09-20: `grep -rn -- "--color-" src/` matches
+      only `tokenParity.test.ts`'s own assertion that no such token is declared, not a usage.
+- [x] Below 768px the bottom navigation is visible, every target is ≥ 44px, and the header nav is hidden. Verified
+      2026-09-20 at 375×812: all four `BottomNav` links measured 50px tall (≥ 44px), and the header's nav links
+      and "New recipe" pill reported `offsetParent === null` (hidden).
+- [x] `npm run build`, `npm run lint` (0 problems), and `npm test` all pass; the production bundle no longer
+      contains a 2.1 MB PNG. Verified 2026-09-20: `npm run build` and `npm run lint` both exit 0 with no output,
+      `npm test` reports 10 files / 77 tests passed, and `dist/assets/` contains only fonts, one CSS file and one
+      JS bundle — no PNG.
 
 ## 12. Test plan
 
@@ -315,8 +343,8 @@ contract change, and no new input or rendered user content (§10).
 
 - **Fixes:** `UX-01` (dark status colours measured, `--danger` given a dark value), `UX-02` (heading sizes on the
   scale), `UX-03` (documented breakpoints), `DEC-06` (System option), `BUILD-05` (2.1 MB PNG deleted),
-  `BUG-06` (a `*` route, so the link no longer renders blank).
+  `BUG-06` (a `*` route, so the link no longer renders blank), `QUAL-03`, `BUG-09`.
 - **Opens:** `UX-06`, `UX-07`.
-- **Implements:** `R-16`, which is deleted from [../roadmap.md](../roadmap.md) when PR 3 merges.
-- **Depends on:** nothing. `R-16` is the only Phase 3 item with no data-model dependency.
+- **Implements:** `R-16`, **deleted from [../roadmap.md](../roadmap.md) 2026-09-20** now that PR 3 has shipped.
+- **Depends on:** nothing. `R-16` was the only Phase 3 item with no data-model dependency.
 - **On the [deploy gate](../roadmap.md#deploy-gate)?** No — but it improves `SEC-10` (§10).

@@ -28,13 +28,11 @@ function mockMatchMedia(prefersDark: boolean) {
 }
 
 function ThemeProbe() {
-  const { theme, preference, setPreference, toggleTheme } = useTheme();
+  const { theme, preference, setPreference } = useTheme();
   return (
     <>
       <span data-testid="preference">{preference}</span>
-      <button onClick={toggleTheme}>{theme}</button>
-      {/* Labelled distinctly from the toggle button above, whose own label IS the theme value
-          ('light'/'dark') — a name of 'dark' would collide with it whenever theme is dark. */}
+      <span data-testid="theme">{theme}</span>
       <button onClick={() => setPreference('dark')}>set dark</button>
     </>
   );
@@ -73,9 +71,7 @@ describe('ThemeProvider', () => {
 
     renderWithProvider();
 
-    // Positional: the probe has a second, static "dark" button, so a name-based query
-    // is ambiguous whenever the toggle button also reads "dark".
-    expect(screen.getAllByRole('button')[0].textContent).toBe(expected);
+    expect(screen.getByTestId('theme').textContent).toBe(expected);
     expect(dataTheme()).toBe(expected);
   });
 
@@ -85,16 +81,6 @@ describe('ThemeProvider', () => {
     renderWithProvider();
 
     expect(dataTheme()).toBe('light');
-  });
-
-  it('toggleTheme flips the theme, the data-theme attribute, and the stored value', () => {
-    renderWithProvider();
-
-    fireEvent.click(screen.getAllByRole('button')[0]);
-
-    expect(screen.getAllByRole('button')[0].textContent).toBe('dark');
-    expect(dataTheme()).toBe('dark');
-    expect(localStorage.getItem('theme')).toBe('dark');
   });
 });
 
