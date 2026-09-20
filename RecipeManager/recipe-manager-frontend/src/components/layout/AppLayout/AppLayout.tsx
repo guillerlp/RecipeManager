@@ -1,5 +1,5 @@
 import styles from "./AppLayout.module.css";
-import { Footer, Header } from "@/components";
+import { BottomNav, Footer, Header } from "@/components";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -13,6 +13,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         {children}
       </main>
       <Footer />
+      <BottomNav />
     </div>
   );
 };

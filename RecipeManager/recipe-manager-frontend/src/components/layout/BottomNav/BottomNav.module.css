@@ -1,0 +1,52 @@
+/* BottomNav.module.css */
+
+.bar {
+  display: none;
+  justify-content: space-around;
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+}
+
+@media (max-width: 768px) {
+  .bar {
+    display: flex;
+  }
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  min-height: 44px;
+  padding: 0.375rem 1rem;
+  color: var(--ink-3);
+  text-decoration: none;
+}
+
+.item.active {
+  color: var(--ink);
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+}
+
+.label {
+  composes: label from '@/styles/typography.module.css';
+}
+
+/*
+ * Qualified as `.item .label` (not bare `.label`) so this outranks the composed `label` role's
+ * `font: var(--type-label)` shorthand on specificity (0,0,2,0 vs. the role's 0,0,1,0). A bare
+ * `.label` rule here would tie with the role's own class and lose on source order, since
+ * typography.module.css's rule is emitted later in the bundle than this file's — the
+ * `font-size: 0.625rem` below would be set but never rendered. Same hazard as NavLink.module.css.
+ * `composes` must stay on the single-class `.label` rule above: CSS Modules rejects `composes`
+ * on a compound selector like `.item .label`.
+ */
+.item .label {
+  font-size: 0.625rem;
+}
