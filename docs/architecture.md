@@ -643,9 +643,9 @@ endpoint is anonymous and every recipe is world-writable. See
 
 ### ADR-021 — Self-hosted Newsreader and the editorial token set
 
-- **Status:** accepted; **PR 1 of `R-16` implemented 2026-09-19**
-  ([spec 009](specs/009-editorial-design-system-and-shell.md)). `R-16` ships as three PRs — PR 2 (shell) and
-  PR 3 (screens) are still to come, so `R-16` itself stays open on [roadmap.md](roadmap.md) until PR 3 merges.
+- **Status:** accepted; implemented across `R-16`'s three PRs — PR 1 (tokens and theme model) 2026-09-19, PR 2
+  (shell) and PR 3 (screens) 2026-09-20 ([spec 009](specs/009-editorial-design-system-and-shell.md)). `R-16` is
+  deleted from [roadmap.md](roadmap.md) now that PR 3 has shipped.
 - **Context:** the SPA's palette (`--color-*` in `light.css`/`dark.css`) was a generic blue-on-white scheme with
   dark-mode status colours nobody had contrast-checked (`UX-01`), and the design's own values were never brought
   in. The editorial design ([agents/07-ux-ui.md](agents/07-ux-ui.md#canonical-design-reference)) is the canonical

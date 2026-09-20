@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `009` |
-| **Status** | draft — awaiting user approval |
+| **Status** | shipped — 2026-09-20 |
 | **Author** | `00-leader` + `07-ux-ui` + `01-architect`, with the user |
 | **Created** | 2026-09-19 |
 | **Branch** | `feat/editorial-tokens` → `feat/editorial-shell` → `feat/editorial-screens` (three PRs, §3) |
@@ -33,37 +33,37 @@ Three PRs, each independently reviewable and shippable.
 
 ### PR 1 — `feat/editorial-tokens` (ADR-021)
 
-- [ ] `styles/themes/variables.css`: font-family tokens, the six-role type scale (§8.1), documented breakpoints,
+- [x] `styles/themes/variables.css`: font-family tokens, the six-role type scale (§8.1), documented breakpoints,
       spacing/radius/transition tokens kept as they are.
-- [ ] `styles/themes/light.css` + `dark.css`: the paper/ink palette (§8.2), **identical key sets**.
-- [ ] `styles/typography.module.css`: six composable classes (`display`, `title`, `recipeTitle`, `body`, `ui`,
+- [x] `styles/themes/light.css` + `dark.css`: the paper/ink palette (§8.2), **identical key sets**.
+- [x] `styles/typography.module.css`: six composable classes (`display`, `title`, `recipeTitle`, `body`, `ui`,
       `label`) consumed through CSS Modules' `composes:`.
-- [ ] `styles/globals.css`: delete the three absolute heading rules (`UX-02`); headings inherit from the scale.
-- [ ] Newsreader self-hosted via `@fontsource-variable/newsreader`, imported once in `main.tsx`.
-- [ ] `ThemePreference` / `Theme` split, `matchMedia` subscription, `localStorage` migration (§8.4).
-- [ ] Every existing `*.module.css` migrated from `--color-*` to the new token names.
-- [ ] `src/test/setup.ts`: a `window.matchMedia` stub (jsdom does not implement it).
-- [ ] Vitest coverage for the resolved-theme logic (§12).
+- [x] `styles/globals.css`: delete the three absolute heading rules (`UX-02`); headings inherit from the scale.
+- [x] Newsreader self-hosted via `@fontsource-variable/newsreader`, imported once in `main.tsx`.
+- [x] `ThemePreference` / `Theme` split, `matchMedia` subscription, `localStorage` migration (§8.4).
+- [x] Every existing `*.module.css` migrated from `--color-*` to the new token names.
+- [x] `src/test/setup.ts`: a `window.matchMedia` stub (jsdom does not implement it).
+- [x] Vitest coverage for the resolved-theme logic (§12).
 
 ### PR 2 — `feat/editorial-shell`
 
-- [ ] `Header`: blender mark + "Recipe Manager" in Newsreader, pill nav links, an inked "New recipe" pill.
-- [ ] `Footer`: hairline rule, `© <year> Recipe Manager` left, a "Settings" link right. The theme toggle is
+- [x] `Header`: blender mark + "Recipe Manager" in Newsreader, pill nav links, an inked "New recipe" pill.
+- [x] `Footer`: hairline rule, `© <year> Recipe Manager` left, a "Settings" link right. The theme toggle is
       **deleted here**, so PR 2 and PR 3 must land together or PR 2 keeps it until PR 3 (§14).
-- [ ] `BottomNav` (new, `components/layout/`): shown below 768px, four destinations, 44px minimum touch target.
-- [ ] `Icon`: add `add`, `arrow_forward`, `home`, `menu_book`, `add_circle`, `person` as inline SVG.
-- [ ] `NotFoundPage` + a `*` route, so the existing "Add recipe" link stops rendering a blank page (`BUG-06`).
+- [x] `BottomNav` (new, `components/layout/`): shown below 768px, four destinations, 44px minimum touch target.
+- [x] `Icon`: add `add`, `arrow_forward`, `home`, `menu_book`, `add_circle`, `person` as inline SVG.
+- [x] `NotFoundPage` + a `*` route, so the existing "Add recipe" link stops rendering a blank page (`BUG-06`).
 
 ### PR 3 — `feat/editorial-screens`
 
-- [ ] `HomePage`: masthead line with the live recipe count, Newsreader display heading, subtitle, two pill
+- [x] `HomePage`: masthead line with the live recipe count, Newsreader display heading, subtitle, two pill
       buttons. No Last-cooked rail, no Jump-to chips (§4).
-- [ ] `RecipePage` + `RecipeList` + `RecipeCard`: editorial list rows — hatch placeholder, Newsreader title,
+- [x] `RecipePage` + `RecipeList` + `RecipeCard`: editorial list rows — hatch placeholder, Newsreader title,
       description, tabular total time — with hairline separators instead of bordered cards.
-- [ ] `SearchBar`: pill field, inline search icon, `--field-border` boundary.
-- [ ] `ProfilePage` (replacing the `<div>Profile</div>` stub in `App.tsx`): header block, a Preferences section
+- [x] `SearchBar`: pill field, inline search icon, `--field-border` boundary.
+- [x] `ProfilePage` (replacing the `<div>Profile</div>` stub in `App.tsx`): header block, a Preferences section
       containing **only** the Light/Dark/System segmented control, and the disabled Account block from the design.
-- [ ] `src/assets/mainPhoto.png` deleted, closing `BUILD-05`.
+- [x] `src/assets/mainPhoto.png` deleted, closing `BUILD-05`.
 
 ## 4. Out of scope
 
@@ -315,8 +315,8 @@ contract change, and no new input or rendered user content (§10).
 
 - **Fixes:** `UX-01` (dark status colours measured, `--danger` given a dark value), `UX-02` (heading sizes on the
   scale), `UX-03` (documented breakpoints), `DEC-06` (System option), `BUILD-05` (2.1 MB PNG deleted),
-  `BUG-06` (a `*` route, so the link no longer renders blank).
-- **Opens:** `UX-06`, `UX-07`.
-- **Implements:** `R-16`, which is deleted from [../roadmap.md](../roadmap.md) when PR 3 merges.
-- **Depends on:** nothing. `R-16` is the only Phase 3 item with no data-model dependency.
+  `BUG-06` (a `*` route, so the link no longer renders blank), `QUAL-03`, `BUG-09`.
+- **Opens:** `UX-06`, `UX-07`, `UX-08`.
+- **Implements:** `R-16`, **deleted from [../roadmap.md](../roadmap.md) 2026-09-20** now that PR 3 has shipped.
+- **Depends on:** nothing. `R-16` was the only Phase 3 item with no data-model dependency.
 - **On the [deploy gate](../roadmap.md#deploy-gate)?** No — but it improves `SEC-10` (§10).

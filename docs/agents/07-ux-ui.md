@@ -138,11 +138,10 @@ throwing. This settles `DEC-06` in [../known-issues.md](../known-issues.md) and 
 - [ ] The three-option control is a **radio group, not three buttons**: arrow keys move between options
       natively and the selected one is announced as selected. `role="switch"` no longer fits — a switch is
       binary and this has three states.
-- [ ] **The control still lives in the `Footer`**, as a binary switch calling `toggleTheme` (which flips whatever
-      theme is currently *rendered*, pinning an explicit choice rather than fighting the next `system` change
-      event). The segmented Light/Dark/System control, and its move into a Settings screen, are `R-16` PR 3 —
-      until then `toggleTheme` exists only to keep that switch working and has no way to reach `system` once the
-      user has left it.
+- [ ] **The control lives in Settings (`ProfilePage`), not the `Footer`.** `R-16` PR 3 shipped
+      `components/ui/ThemeControl`: three native radios in a `fieldset role="radiogroup"`, reading `preference`
+      and calling `setPreference` directly — there is no separate binary toggle and no `toggleTheme` to reach
+      for. `Footer` now only links to `/profile`; the switch it used to render is gone.
 
 ### Styling approach
 
@@ -197,9 +196,11 @@ The codebase does all of this today; treat it as the minimum, not the goal.
 
 - [ ] Semantic landmarks: `header`, `nav`, `main` (`AppLayout` sets `role="main"`), `footer`, `section`,
       `article`, `aside`.
-- [ ] Icon-only and ambiguous controls have `aria-label` (e.g. `"Switch to dark mode"`,
+- [ ] Icon-only and ambiguous controls have `aria-label` (e.g. `"Search recipes"`,
       `"View {title} recipe"`).
-- [ ] Toggles use `role="switch"` with `aria-checked` (`Footer`).
+- [ ] A control with more than two states that are mutually exclusive is a native radio group
+      (`fieldset role="radiogroup"` with a `<legend>`), not a custom widget — `ThemeControl` is the reference.
+      `role="switch"` is for a genuinely binary toggle only; none exists in the app today.
 - [ ] Active navigation sets `aria-current="page"` (`NavLink`).
 - [ ] Decorative icons inside a labelled control are `aria-hidden="true"`.
 - [ ] Durations are marked up as `<time dateTime="PT1H30M">` (`RecipeCard.getISODuration`).

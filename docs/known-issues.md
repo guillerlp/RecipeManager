@@ -6,8 +6,8 @@ Every **defect and gap in what already exists**. Planned work that does not exis
 Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code. Build and
 test numbers re-measured on 2026-08-04 after `R-02`, and the frontend rows re-measured on 2026-08-08 after `R-03`
 and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12. The frontend
-tests row was added 2026-09-18 after `R-07` and re-measured 2026-09-20 after `R-16` PR 3 Task 9, by running
-`npm test` directly (9 files, 75 passed). Backend test numbers re-measured 2026-09-19 after `R-09` (ADR-019),
+tests row was added 2026-09-18 after `R-07` and re-measured 2026-09-20 after `R-16` PR 3 shipped in full, by
+running `npm test` directly (10 files, 77 passed). Backend test numbers re-measured 2026-09-19 after `R-09` (ADR-019),
 from CI run 35438379053, which shows 85 + 22 passed, 0 skipped.
 
 > **Rules for agents**
@@ -31,7 +31,7 @@ from CI run 35438379053, which shows 85 + 22 passed, 0 skipped.
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
 | Frontend lint | `npm run lint` | **0 problems** — Oxlint, 159 rules: the 71 type-aware ones on `src/**` plus the `correctness` category everywhere (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
-| Frontend tests | `npm test` | 75 pass — Vitest + RTL under jsdom (ADR-018) |
+| Frontend tests | `npm test` | 77 pass — Vitest + RTL under jsdom (ADR-018) |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
@@ -612,9 +612,13 @@ The pill fill is currently doing none of the communicating it looks like it shou
 **Fix.** Not applied here — it needs a `--field-border` hairline around the pill or a higher-contrast active
 surface, and either visibly deviates from the canonical design (spec
 [009](specs/009-editorial-design-system-and-shell.md)), so the choice belongs to the design owner
-([07-ux-ui](agents/07-ux-ui.md)), not to a fix wave. The cost of leaving it grows: `R-16` PR 3 is about to
-replicate this same pill pattern onto buttons and chips across three more screens, each one inheriting the same
-invisible-shape problem.
+([07-ux-ui](agents/07-ux-ui.md)), not to a fix wave. The cost predicted here materialised: `R-16` PR 3's
+`ThemeControl.module.css` fills its selected segment with the same `--paper`/`--paper-2` pairing (`.selected`
+against the `.group` background) as `NavLink`'s active pill — the identical low-contrast fill this entry
+describes. The risk is smaller there because the control is a native `<input type="radio">`: assistive
+technology reads the selected option from its `checked` state regardless of what the fill communicates, which
+`NavLink`'s `aria-current` covers for assistive technology but not for a sighted low-vision user reading the
+page, who has only the fill and the weight/colour change to go on.
 
 ---
 
@@ -662,7 +666,7 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `DEC-05` — generate TS types from OpenAPI? | **Yes**, after the contract defects are fixed by hand. **Shipped 2026-09-19.** | ADR-019 |
 | Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. | `R-10` |
 | Ingredients: shared catalogue or owned by the recipe? | **Owned by the recipe**, as value objects. No second aggregate, so ADR-006 (no unit of work) still holds. The cost is that "tomato" and "tomatoes" are unrelated names. Settled 2026-09-19. | `R-10` |
-| `DEC-06` — follow the OS colour-scheme preference on first visit? | **Yes, as an explicit choice, and now implemented.** Settled 2026-09-19 by the editorial design (screen 3e); **implemented the same day in PR 1 of `R-16`**: `ThemePreference` (`light`/`dark`/`system`, persisted) is now separate from the derived `Theme` (`light`/`dark`, rendered), `ThemeProvider` subscribes to `prefers-color-scheme` so `system` follows the OS live, and a visitor with nothing stored defaults to `system` rather than `light`. The segmented Light/Dark/System control itself, and its move into Settings, are still `R-16` PR 3 — until then the existing binary switch stays in the `Footer`. | ADR-021, `R-16` |
+| `DEC-06` — follow the OS colour-scheme preference on first visit? | **Yes, as an explicit choice, and now implemented.** Settled 2026-09-19 by the editorial design (screen 3e); **implemented the same day in PR 1 of `R-16`**: `ThemePreference` (`light`/`dark`/`system`, persisted) is now separate from the derived `Theme` (`light`/`dark`, rendered), `ThemeProvider` subscribes to `prefers-color-scheme` so `system` follows the OS live, and a visitor with nothing stored defaults to `system` rather than `light`. The segmented Light/Dark/System control itself, and its move into Settings, **shipped 2026-09-20 in `R-16` PR 3**: `ThemeControl` (three native radios in a `role="radiogroup"` fieldset) now lives in `ProfilePage`, the footer's binary switch is deleted, and `toggleTheme` is gone from the context. | ADR-021, `R-16` |
 | Only a title required (design) vs. full invariants (domain)? | **Draft recipes**: an explicit Draft/Published status, where drafts need only a title. Chosen over drafting only in the browser, and over relaxing the aggregate. Settled 2026-09-19. | `R-19`, `UX-05` |
 | CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
 | Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL.** Deferred until CI existed, since it needs Docker in both places; ADR-013 provided it. **Shipped 2026-09-17**, closing `TEST-06`: one container per test assembly, a database per test class, schema by `Database.Migrate()`, and a skip rather than a failure when Docker is missing. | ADR-017, `R-06` |
