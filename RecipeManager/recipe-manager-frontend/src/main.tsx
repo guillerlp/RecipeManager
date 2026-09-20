@@ -32,8 +32,16 @@ root.render(
     <QueryClientProvider client={queryClient}>
       <App />
       {import.meta.env.DEV && (
-        // bottom-left: the default bottom-right covers the Footer theme switch (UX-04).
-        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+        // top-right: bottom-left (the previous UX-04 fix) and bottom-right now sit on top of
+        // BottomNav's mobile tab bar below 768px, hiding a real destination (Home or Profile)
+        // behind the devtools button — reopened by R-16's bottom nav. top-left was tried next
+        // and rejected: the header brand sits there at every width. top-right is clear of the
+        // brand and of every BottomNav item at 375x812 (checked with elementFromPoint at each
+        // item's centre, as UX-04's re-review does). Trade-off accepted: at desktop widths the
+        // button's 48px box clips a ~20px sliver of the "New recipe" pill's right edge, but the
+        // pill's own centre still resolves to the link, not the button — a corner still has to
+        // lose, and desktop was not the width this defect was reported at.
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
       )}
     </QueryClientProvider>
   </StrictMode>

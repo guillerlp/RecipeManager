@@ -1,3 +1,3 @@
 // src/components/ui/Icon/index.ts
 
-export { BedtimeIcon, BlenderOutlinedIcon, SearchIcon, SunnyIcon } from './Icon'
+export { AddCircleIcon, AddIcon, BedtimeIcon, BlenderOutlinedIcon, HomeIcon, MenuBookIcon, PersonIcon, SearchIcon, SunnyIcon } from './Icon'

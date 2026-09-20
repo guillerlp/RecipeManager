@@ -1,11 +1,10 @@
 /* Header.module.css */
 
 .headerBar {
-  display: grid;
-  grid-template-columns: auto 1fr;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-md) var(--spacing-xl);
+  padding: 1.125rem 2.5rem;
   color: var(--ink);
   border-bottom: 1px solid var(--rule);
   box-sizing: border-box;
@@ -18,8 +17,12 @@
   min-width: 0;
 }
 
-/* Nav sits on the right on wide screens */
-.nav { justify-self: end; }
+/* Nav + "New recipe" pill grouped on the right */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
 
 /* Horizontal list of text links */
 .navList {
@@ -31,31 +34,33 @@
   padding: 0;
 }
 
-/* ---------- Responsive ---------- */
-@media (max-width: 768px) {
-  .headerBar {
-    grid-template-columns: 1fr;       
-    grid-auto-rows: auto;
-    row-gap: var(--spacing-sm);
-    padding: var(--spacing-md) var(--spacing-lg);
-  }
-
-  .brand {
-    justify-content: center;
-  }
-
-  .nav {
-    justify-self: center;              
-    width: 100%;
-  }
-
-  .navList {
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: var(--spacing-md);
-  }
+.newRecipe {
+  composes: ui from '@/styles/typography.module.css';
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.5rem 0.9375rem;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
 }
 
-@media (max-width: 480px) {
-  .navList { gap: var(--spacing-sm); }
+.newRecipeIcon {
+  font-size: 1em;
+}
+
+/* ---------- Responsive ---------- */
+/*
+ * Hides the desktop nav (and with it, Header's <nav aria-label="Primary navigation">) below
+ * 768px. This is one half of the never-both-navs invariant: BottomNav.module.css's `.bar` rule
+ * shows the mobile tab bar (its own <nav aria-label="Primary navigation">) at the same 768px
+ * breakpoint, so exactly one of the two duplicate-labelled landmarks is ever in the
+ * accessibility tree. The two breakpoints must stay equal and move together — change one
+ * without the other and the app gets two primary navs, or none.
+ */
+@media (max-width: 768px) {
+  .actions {
+    display: none;
+  }
 }

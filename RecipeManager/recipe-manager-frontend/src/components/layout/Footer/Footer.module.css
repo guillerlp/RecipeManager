@@ -1,10 +1,10 @@
 /* Footer with a top divider like the header */
 .footer {
-  margin-top: auto; 
+  margin-top: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-md) var(--spacing-xl);
+  padding: 1rem 2.5rem;
   background: var(--paper);
   color: var(--ink);
   border-top: 1px solid var(--rule);
@@ -13,7 +13,25 @@
 
 .text {
   composes: ui from '@/styles/typography.module.css';
+  color: var(--ink-3);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.settingsLink {
+  composes: label from '@/styles/typography.module.css';
   color: var(--ink-2);
+  text-decoration: none;
+}
+
+.settingsLink:hover,
+.settingsLink:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .toggleWrapper {
@@ -111,7 +129,6 @@
 /* Responsive footer layout */
 @media (max-width: 480px) {
   .footer {
-    flex-direction: row;
     gap: var(--spacing-sm);
   }
 }

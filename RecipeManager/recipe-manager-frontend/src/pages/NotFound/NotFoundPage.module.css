@@ -1,0 +1,49 @@
+/* NotFoundPage.module.css */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  text-align: center;
+  padding: var(--spacing-2xl) var(--spacing-xl);
+}
+
+.title {
+  composes: title from '@/styles/typography.module.css';
+  color: var(--ink);
+}
+
+.body {
+  composes: body from '@/styles/typography.module.css';
+  color: var(--ink-2);
+  max-width: 40ch;
+}
+
+.link {
+  composes: ui from '@/styles/typography.module.css';
+  text-decoration: none;
+  color: var(--ink);
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-pill);
+  padding: 0.625rem 1.5rem;
+  margin-top: var(--spacing-sm);
+  transition: border-color var(--transition-normal), background-color var(--transition-normal);
+}
+
+/*
+ * Qualified as `.wrapper .link` (not bare `.link`) so this outranks the composed `ui` role's
+ * `font: var(--type-ui)` shorthand on specificity (0,0,2,0 vs. the role's 0,0,1,0). A bare
+ * `font-weight` declaration on `.link` itself would tie with the role's own class on
+ * specificity, and bundle emission order between CSS Modules files is not a guarantee this repo
+ * can rely on to break that tie safely — so it stays qualified regardless of which file the
+ * bundler happens to emit first. Same hazard as NavLink.module.css and BottomNav.module.css.
+ */
+.wrapper .link {
+  font-weight: 600;
+}
+
+.link:hover {
+  border-color: var(--ink-3);
+  background: var(--paper-2);
+}

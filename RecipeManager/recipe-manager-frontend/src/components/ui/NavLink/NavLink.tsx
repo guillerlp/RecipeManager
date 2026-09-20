@@ -1,6 +1,7 @@
 // src/components/ui/NavLink/NavLink.tsx
 
 import { Link, useLocation } from 'react-router-dom';
+import { isPathActive } from '@/utils/navPath';
 import styles from "./NavLink.module.css";
 
 interface NavLinkProps {
@@ -9,15 +10,9 @@ interface NavLinkProps {
 }
 
 export const NavLink = ({ to, children }: NavLinkProps) => {
-  const location = useLocation();
-  const normalize = (p: string) =>
-    p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p;
-  const current = normalize(location.pathname);
-  const target = normalize(to);
-  const isActive =
-    current === target ||
-    (target !== '/' && current.startsWith(`${target}/`));
-  
+  const { pathname } = useLocation();
+  const isActive = isPathActive(to, pathname);
+
   return (
     <Link 
       to={to} 

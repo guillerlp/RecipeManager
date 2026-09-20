@@ -178,8 +178,8 @@ ingredients, or a child table) and normalisation (case, whitespace, duplicates) 
 
 Design screen 3d. The title field is typeset as the page title, there is a live preview of the list row, and
 ingredients are entered one per line and parsed into quantity, unit, and name. Adds the SPA's first mutation
-hooks (the `['recipes']` invalidation pattern in the feature workflow) and closes `BUG-06` (`/recipes/new`
-has no route). The existing checklist in [agents/07-ux-ui.md](agents/07-ux-ui.md) still applies: keyboard
+hooks (the `['recipes']` invalidation pattern in the feature workflow) and gives `/recipes/new` a real screen
+in place of the `R-16` 404 fallback. The existing checklist in [agents/07-ux-ui.md](agents/07-ux-ui.md) still applies: keyboard
 reorder, visible limits, cross-field errors, and 400/422 mapping. "Draft saved" in the design depends on
 `R-19`. The photo field depends on `R-12`.
 
