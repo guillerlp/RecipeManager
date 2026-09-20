@@ -60,26 +60,32 @@ Jump to every entry touching a topic.
 [agents/07-ux-ui.md](agents/07-ux-ui.md) stating that anything clickable takes `--field-border`. That same commit
 bounded `RecipeCard`'s `.recipesList` with `--rule`. `RecipeCard` renders that element as a `<button>` whenever
 it receives an `onClick`, so the rule was broken by the commit that wrote it, and stayed broken through PR 2.
+PR 3 (`7ae44b5`) then replaced the boxed card with an outline-less row, deleting the selector before anyone
+had fixed it.
 
-**Decision.** Fix the instance narrowly — `border-color: var(--field-border)` scoped to `.clickable`, so the
-inert `<article>` keeps its hairline and nothing on screen changes — and keep `UX-06` **open**. Its close
-condition requires the mistake to become *unrepresentable*; one instance fixed is not that.
+**Decision.** Record the lesson; leave the code alone. The one-line fix this entry was originally written around
+— `border-color: var(--field-border)` scoped to `.clickable` — was overtaken by `7ae44b5`. There is no card
+outline left to recolour, and applying it now would only darken the row separator *under clickable rows*, which
+identifies nothing. `UX-06` stays **open**, and the live requirement moves to `BUG-10`, where `R-18` will read
+it.
 
-**Rejected.** Filing a new register entry beside `UX-06`. Thirty lines describing a one-line fix with no open
-question in it is carrying cost, not documentation — every agent reads that file before starting work, and
-`BUG-10` already told the next developer "`RecipeCard` already switches to `<button>`", a claim better made true
-than annotated. Also rejected: closing `UX-06` on the grounds that its checklist item exists. It existed, and it
-did not work.
+**Rejected.** *Shipping the border recolour anyway*, to keep this PR's original shape — a change with no
+user-visible meaning, defended by a commit message. *Closing `UX-06`* now that its only known instance is gone:
+the instance was deleted by a redesign, not prevented, so the close condition — the mistake becoming
+*unrepresentable* — is no nearer than it was. *Filing a second register entry*: the same guardrail under a new
+ID is carrying cost, not documentation.
 
 **Cost.** The guardrail stays open with nothing enforcing it, so a recurrence is still possible. The lint rule
-that would close it is unbuilt and cannot be CSS-only — `Header`, `Footer`, and `BottomNav` all use `--rule` on
-a border legitimately, so the check must know whether a selector can land on an interactive element.
+that would close it is unbuilt and cannot be CSS-only — six files use `--rule` on a border legitimately, so the
+check must know whether a selector can land on an interactive element.
 
 **Takeaway.** *Neither file was wrong on its own.* The stylesheet sets a border colour; the component picks
 `button` or `article` from a prop. The defect exists only in their combination, which is how a CSS reviewer, a
 React reviewer, and a written checklist all passed it. When a convention's precondition lives in a different
 file from the code it governs, writing it down does not enforce it — and the author of a rule is not immune to
-breaking it in the act of writing it.
+breaking it in the act of writing it. Nor does the codebase learn anything when such a defect disappears because
+the code around it was redesigned: the instance goes, the hole stays, and only the write-up survives — which is
+why this entry outlived the fix it was written for.
 
 ---
 

@@ -267,6 +267,18 @@ as an action, and doing nothing when activated. Removing the debug log (`BUG-08`
 **Fix.** Build the detail screen, add the `/recipes/:id` route, and pass `onClick` again — `RecipeCard` already
 switches to `<button>` when it receives one. The screen is planned as `R-18`.
 
+**`R-18` also has to decide what makes a row look clickable.** Since `7ae44b5` the row has no outline, no fill
+and no `:hover` — a clickable row differs from an inert one only by `cursor: pointer`, which says nothing to a
+touch user and nothing at rest. The app-wide `:focus-visible` outline in `globals.css` covers keyboard users;
+the gap is the resting and hover state for pointer and touch.
+
+That is not a measurable WCAG 1.4.11 failure — the criterion governs the visual information an author provides
+to identify a control, and here there is none to measure. It is the problem one step earlier: the control is
+not identifiable at all. Whatever `R-18` adds becomes that visual information the moment it exists, and then
+has to clear 3:1 against what sits behind it. A fill change alone will not carry it — `--paper-2` on `--paper`
+is 1.09:1 in both themes — and neither will `--rule` (1.29:1 light, 1.36:1 dark). `--field-border` does
+(3.58:1 light, 3.67:1 dark). See `UX-06`.
+
 **Owner:** `03-senior-react` + `07-ux-ui`
 
 ### BUG-11
@@ -584,25 +596,32 @@ footer rule — where nothing needs to be identified as clickable. Recorded so a
 `--rule` to bound an input, a button outline, or any other control and reintroduce the problem `--field-border`
 was added to fix.
 
-**It has already happened once.** `RecipeCard.module.css` bounds `.recipesList` with `--rule`, and
-`RecipeCard.tsx` renders that same element as a `<button>` whenever it is given an `onClick` — so the hairline
-became the boundary of a control at 1.29:1 (1.18:1 against the card's own `--paper-2` fill). Fixed in PR #59 by
-scoping `border-color: var(--field-border)` to `.clickable`, leaving the inert `<article>` its decorative
-hairline. Two things are worth keeping from it:
+**It has already happened once, and it was not caught — it was outgrown.** `RecipeCard.module.css` bounded
+`.recipesList` with `--rule` while `RecipeCard.tsx` rendered that same element as a `<button>` whenever it was
+given an `onClick`, so the hairline was the boundary of a control at 1.29:1 (1.18:1 against the card's own
+`--paper-2` fill). It entered in `e482720` — **the same commit that introduced `--rule` and wrote the checklist
+item in [agents/07-ux-ui.md](agents/07-ux-ui.md)** — and survived until `7ae44b5` (`R-16` PR 3) replaced the
+boxed card with an editorial row carrying no outline at all. The selector is gone, so the instance is gone. That
+is weaker than a fix: nothing detected it, and nothing would have stopped it persisting had the redesign not
+happened to delete it.
 
-- **The mistake entered in `e482720` — the same commit that introduced `--rule` and wrote the checklist item in
-  [agents/07-ux-ui.md](agents/07-ux-ui.md).** That commit converted `HomePage`'s `.actionButton` to
-  `--field-border` correctly and `RecipeCard` to `--rule` incorrectly. The checklist did not survive its own
-  first outing.
+Two things are worth keeping:
+
+- **The checklist did not survive its own first outing.** `e482720` converted `HomePage`'s `.actionButton` to
+  `--field-border` correctly and `RecipeCard` to `--rule` incorrectly, in one commit.
 - **It was invisible to CSS review**, because the offending selector and the element switch that makes it a
-  control live in different files. Nothing in `RecipeCard.module.css` says that border ever bounds a `<button>`.
+  control live in different files. Nothing in `RecipeCard.module.css` said that border ever bounded a `<button>`.
 
-**Fix.** Still open, and still a guardrail rather than a live defect — the one known instance is closed, but
-nothing stops the next one. Note that a review checklist item does **not** satisfy the close condition below:
-one existed and did not work. Close this when a lint rule makes the pattern unrepresentable — bearing in mind a
-CSS-only rule cannot, since `Header`, `Footer`, and `BottomNav` all use `--rule` on a border legitimately. The
-check has to know whether a selector can land on an interactive element, which means spanning the CSS and the
-TSX together.
+Every `--rule` border on `main` today is legitimate: `Header`, `Footer`, `BottomNav`, `RecipeList` and
+`ProfilePage` use it as a container edge, and `RecipeCard`'s is the separator between rows — which stays a
+separator even when the row is a `<button>`, because it is not what identifies the control. The live
+consequence now sits in `BUG-10`.
+
+**Fix.** Still open, still a guardrail rather than a live defect. Note that a review checklist item does **not**
+satisfy the close condition: one existed and did not work. Close this when a lint rule makes the pattern
+unrepresentable — bearing in mind a CSS-only rule cannot, since six files use `--rule` on a border legitimately.
+The check has to know whether a selector can land on an interactive element, which means reading the CSS and
+the TSX together.
 
 ### UX-07
 **No visual-regression tooling — Low**
