@@ -171,7 +171,7 @@ recipe-manager-frontend/src/
   services/    recipeService (axios)
   styles/      globals.css, themes/{variables,light,dark}.css
   types/       recipe.ts, theme.ts
-  assets/      mainPhoto.png, react.svg
+  assets/      react.svg (unused Vite scaffold leftover)
 ```
 
 ### Barrel files — required

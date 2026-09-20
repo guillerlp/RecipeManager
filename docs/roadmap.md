@@ -228,8 +228,8 @@ endpoint, not three new endpoints. The last one needs `R-22`.
 **Recipe images** · `01-architect` + `05-security-reviewer` (both required) → full stack · ~1 day
 
 `RecipeDto` has no image field, and `recipe-manager-frontend/src/types/recipe.ts` no longer declares one
-(`BUG-04` resolved by dropping it — spec 007), so every card falls back to a 2.1 MB bundled placeholder
-(`BUILD-05`).
+(`BUG-04` resolved by dropping it — spec 007), so every card falls back to the CSS hatch placeholder introduced
+by `R-16` Task 10 (`BUILD-05`, resolved) instead of a real photo.
 
 **Do not start without the security requirements** in
 [agents/05-security-reviewer.md](agents/05-security-reviewer.md#recipe-image-upload--none-exists-yet-requirements-if-one-is-added):

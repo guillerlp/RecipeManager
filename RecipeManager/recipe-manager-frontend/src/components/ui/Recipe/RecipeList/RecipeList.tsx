@@ -14,6 +14,7 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
       data: recipes = [],
       isLoading: loading,
       error,
+      refetch,
   } = useRecipes();
 
   const filteredRecipes = useMemo(() => {
@@ -35,12 +36,12 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
     });
   }, [recipes, searchQuery])
 
-  if (loading) return <div className={styles.loadingSection}>Loading…</div>;
+  if (loading) return <p className={styles.loadingSection}>Loading…</p>;
   if (error) {
     return (
       <div className={styles.errorSection}>
         Error: {error instanceof Error ? error.message : 'Unknown error'}
-        <button onClick={() => window.location.reload()}>
+        <button onClick={() => void refetch()}>
           Retry
         </button>
       </div>
@@ -48,40 +49,41 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
   }
 
   return (
-    <section className={styles.heroSection}>  
-      {filteredRecipes.length === 0 ? 
+    <section className={styles.heroSection}>
+      {filteredRecipes.length === 0 ?
       (
         <div>
-          { searchQuery ? 
+          { searchQuery ?
           (
             <>
               <h3 className={styles.emptyTitle}>No recipes found</h3>
-              <p>No recipes match "{searchQuery}". Try a different search term.</p>
+              <p className={styles.emptyBody}>No recipes match "{searchQuery}". Try a different search term.</p>
             </>
-          ) : 
+          ) :
           (
             <>
               <h3 className={styles.emptyTitle}>No recipes available</h3>
-              <p>Start by adding some recipes to your collection.</p>
+              <p className={styles.emptyBody}>Start by adding some recipes to your collection.</p>
             </>
           )}
         </div>
-      ) : 
+      ) :
       (
         <>
           {searchQuery && (
             <div>
-              Found {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''} 
+              Found {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''}
               {searchQuery && ` matching "${searchQuery}"`}
             </div>
           )}
 
-          {filteredRecipes.map((recipe) => (
-            <RecipeCard
-              key={recipe.id}
-              recipe={recipe}
-            />
-          ))}
+          <ul className={styles.list}>
+            {filteredRecipes.map((recipe) => (
+              <li key={recipe.id}>
+                <RecipeCard recipe={recipe} />
+              </li>
+            ))}
+          </ul>
         </>
       )}
     </section>

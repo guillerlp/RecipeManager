@@ -34,21 +34,35 @@
     background: var(--ink-3);
 }
 
-.loadingSection{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.loadingSection {
+    composes: body from '@/styles/typography.module.css';
+    color: var(--ink-2);
 }
 
-.errorSection{
+.errorSection {
+    composes: body from '@/styles/typography.module.css';
     display: flex;
     flex-direction: column;
     align-items: center;
+    color: var(--danger);
 }
 
 .emptyTitle {
     composes: recipeTitle from '@/styles/typography.module.css';
     margin: 0 0 0.25rem;
+}
+
+.emptyBody {
+    composes: body from '@/styles/typography.module.css';
+    color: var(--ink-2);
+}
+
+.list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    border-top: 1px solid var(--rule);
 }
 
 @media (max-width: 420px) {

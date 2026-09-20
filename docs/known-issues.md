@@ -54,7 +54,6 @@ kind of negative test.
 
 | ID | Severity | Area | Issue |
 | --- | --- | --- | --- |
-| [BUILD-05](#build-05) | Medium | Perf | `mainPhoto.png` is 2.1 MB — 6× the entire JS bundle |
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
@@ -68,7 +67,6 @@ kind of negative test.
 | [SEC-11](#sec-11) | Low | Ops | No health/readiness endpoint |
 | [SEC-12](#sec-12) | Low | Config | `.env.production` points at a placeholder host |
 | [BUG-07](#bug-07) | Low | API | `GET /api/recipes/{id}` missing the `:guid` route constraint |
-| [BUG-09](#bug-09) | Low | Frontend | Error recovery does a full page reload |
 | [BUG-10](#bug-10) | Medium | Frontend | No recipe detail route, so cards are not clickable |
 | [BUG-11](#bug-11) | Low | Domain | Recipes loaded from the database expose a mutable `List<string>` ([#8](https://github.com/guillerlp/RecipeManager/issues/8)) |
 | [BUG-12](#bug-12) | Low | Frontend | A paused recipe query renders "No recipes available" |
@@ -85,7 +83,6 @@ kind of negative test.
 | [INFRA-05](#infra-05) | Low | DX | No seed data |
 | [QUAL-01](#qual-01) | Low | Quality | `ILogger` called with interpolated strings |
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
-| [QUAL-03](#qual-03) | Low | Quality | Deep relative imports for shared assets |
 | [QUAL-04](#qual-04) | Low | Quality | Routes, verbs, and status codes are still hand-typed on the client |
 | [QUAL-05](#qual-05) | Low | Quality | Frontend indentation is mixed and no formatter enforces it |
 | [UX-05](#ux-05) | Medium | UX | The canonical design says only the title is required; the domain requires more |
@@ -102,26 +99,6 @@ Resolved decisions and items promoted to planned work are recorded in [Settled](
 ---
 
 ## Build & tooling
-
-### BUILD-05
-**`mainPhoto.png` is 2.1 MB — Medium**
-
-Production build output (2026-09-16, React 19.3 on Vite 8):
-
-```
-dist/assets/mainPhoto-DpyCXFCt.png   2,115.47 kB
-dist/assets/index-DnV4jc7g.js          353.62 kB │ gzip: 113.93 kB
-dist/assets/index-D9pZeVVo.css          12.02 kB │ gzip:   2.97 kB
-```
-
-The image is **6× larger than all JavaScript combined** and is shipped unoptimized. It is used twice — as the
-hero image on `HomePage` and as the fallback thumbnail in every `RecipeCard`, so a list of 20 recipes references
-a 2 MB asset 20 times (cached, but decoded at full resolution each time).
-
-**Fix.** Re-encode to WebP/AVIF at the sizes actually rendered, and ship a separate small placeholder for the
-card fallback rather than reusing the hero image. Consider `srcset` for the hero.
-
-**Owner:** `03-senior-react` + `07-ux-ui` · **Effort:** ~1 h
 
 ### BUILD-06
 **`run-coverage.ps1` measures only the unit-test project — Low**
@@ -271,12 +248,6 @@ Full detail on the contract seam is in [agents/08-api-contract.md](agents/08-api
 
 `[HttpGet("{id}")]` while `[HttpPut("{id:guid}")]` and `[HttpDelete("{id:guid}")]` are constrained. A malformed
 id reaches model binding instead of being rejected by routing, producing an inconsistent error shape.
-
-### BUG-09
-**Error recovery does a full page reload — Low**
-
-`RecipeList`'s retry button calls `window.location.reload()`, discarding all client state. TanStack Query's
-`refetch()` is already available from `useRecipes`.
 
 ### BUG-10
 **No recipe detail route, so cards are not clickable — Medium**
@@ -538,13 +509,6 @@ defeats structured logging: the value is baked into the message string and canno
 
 `MigrateDatabase` in `RecipeManager.Api/Startup/ApplicationInitializer.cs` writes migration progress with `Console.WriteLine`,
 bypassing the logging pipeline, log levels, and any structured sink.
-
-### QUAL-03
-**Deep relative imports for shared assets — Low**
-
-`RecipeCard.tsx` uses `import Logo from '../../../../assets/mainPhoto.png'` and `HomePage.tsx` uses
-`'../../assets/mainPhoto.png'`, while every other import in the codebase uses the `@/` aliases. Add an
-`@assets` alias (to **both** `vite.config.ts` and `tsconfig.json`) or use `@/assets`.
 
 ### QUAL-04
 **Routes, verbs, and status codes are still hand-typed on the client — Low**
