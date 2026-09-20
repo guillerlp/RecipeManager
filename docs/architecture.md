@@ -709,6 +709,13 @@ endpoint is anonymous and every recipe is world-writable. See
   - Pattern applied: design tokens with a derived, not stored, resolved value (the theme model's
     `ThemePreference`/`Theme` split follows the same shape) and CSS Modules `composes:` for shared typography,
     rather than global utility classes.
+  - The `useLayoutEffect` that sets `data-theme` closes the gap only for **React's own** first paint: it runs
+    before the browser paints React's first commit, so there is no flash of the wrong theme once React has
+    mounted. It does nothing for the interval before that — `index.html` sets no `data-theme`, and neither
+    `light.css` nor `dark.css` has a `prefers-color-scheme` fallback, so a dark-OS visitor briefly sees the
+    browser's default frame between document parse and that first commit. Unchanged by this branch; an inline
+    script in `index.html` reading the stored preference (or `matchMedia`) before any stylesheet applies would
+    close it, but none is added here — this bullet only records the limit.
 
 ---
 
