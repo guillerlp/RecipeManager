@@ -6,7 +6,8 @@ Every **defect and gap in what already exists**. Planned work that does not exis
 Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain — not by reading code. Build and
 test numbers re-measured on 2026-08-04 after `R-02`, and the frontend rows re-measured on 2026-08-08 after `R-03`
 and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12. The frontend
-tests row was added 2026-09-18 after `R-07`. Backend test numbers re-measured 2026-09-19 after `R-09` (ADR-019),
+tests row was added 2026-09-18 after `R-07` and re-measured 2026-09-20 after `R-16` PR 2, by running
+`npm test` directly (8 files, 70 passed). Backend test numbers re-measured 2026-09-19 after `R-09` (ADR-019),
 from CI run 35438379053, which shows 85 + 22 passed, 0 skipped.
 
 > **Rules for agents**
@@ -30,7 +31,7 @@ from CI run 35438379053, which shows 85 + 22 passed, 0 skipped.
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
 | Frontend lint | `npm run lint` | **0 problems** — Oxlint, 159 rules: the 71 type-aware ones on `src/**` plus the `correctness` category everywhere (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
-| Frontend tests | `npm test` | 40 pass — Vitest + RTL under jsdom (ADR-018) |
+| Frontend tests | `npm test` | 70 pass — Vitest + RTL under jsdom (ADR-018) |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
@@ -90,6 +91,8 @@ kind of negative test.
 | [UX-05](#ux-05) | Medium | UX | The canonical design says only the title is required; the domain requires more |
 | [UX-06](#ux-06) | Medium | UX | `--rule` is a decorative hairline, not a control boundary |
 | [UX-07](#ux-07) | Low | UX | No visual-regression tooling |
+| [UX-08](#ux-08) | Medium | UX | The active nav pill's state indicator is sub-3:1 contrast |
+| [UX-09](#ux-09) | Medium | UX | The app shell has no scroll path; content below the fold is unreachable |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-07](#dec-07) | — | Decision | 24 h cap excludes slow-cooked and fermented recipes |
@@ -629,6 +632,50 @@ both themes, and that is the entire verification story for the editorial token m
 enough screens for the cost to pay for itself. Not proposed for `R-16` — it is its own dependency decision and
 needs `01-architect`.
 
+### UX-08
+**The active nav pill's state indicator measures 1.09:1 — Medium**
+
+`NavLink.module.css`'s `.navLink.active` fills the pill with `--paper-2` against the `--paper` page background
+behind it. `--paper-2` on `--paper` is **1.09:1** in light mode (about 1.1:1 in dark) — nowhere near WCAG
+1.4.11's 3:1 requirement for the parts of a control that communicate its state. The pill is the design's primary
+"you are here" cue, and as a shape it is effectively invisible.
+
+`UX-06` already ruled `--rule` at 1.29:1 decorative-only and out of scope for control boundaries; this is a
+different, more serious case, because the pill *is* a non-decorative state indicator, not a separator. What
+actually carries the active state for a sighted user is not the pill at all: it is the `font-weight` jump to 600
+and a 2.25:1 text-colour change (`--ink-2` → `--ink`), with `aria-current="page"` covering assistive technology.
+The pill fill is currently doing none of the communicating it looks like it should be doing.
+
+**Fix.** Not applied here — it needs a `--field-border` hairline around the pill or a higher-contrast active
+surface, and either visibly deviates from the canonical design (spec
+[009](specs/009-editorial-design-system-and-shell.md)), so the choice belongs to the design owner
+([07-ux-ui](agents/07-ux-ui.md)), not to a fix wave. The cost of leaving it grows: `R-16` PR 3 is about to
+replicate this same pill pattern onto buttons and chips across three more screens, each one inheriting the same
+invisible-shape problem.
+
+### UX-09
+**The app shell has no scroll path — content below the fold is unreachable — Medium**
+
+`AppLayout.module.css`'s `.appShell` is `height: 100vh; overflow: hidden`, and `.main` inside it is
+`overflow: hidden` too. There is no scrollbar anywhere in the shell, so anything that does not fit inside the
+viewport is simply clipped rather than reachable by scrolling. Measured at 320×568 on `/nope`, on the tree as it
+stands after this fix wave (i.e. with `Footer`'s dead `padding-bottom: 4rem` already removed — see the settled
+entry above): `main`'s `clientHeight` is 353 against a `scrollHeight` of 359 — **6px permanently unreachable**,
+with no keyboard or touch path to it. At this viewport, the header, footer, and `BottomNav` together measure
+61px + 103px + 51px = 215px of chrome.
+
+This is pre-existing — `AppLayout` had this shape before `R-16` — and today's gap on the 404 page is small. But
+the defect is structural, not a fixed 6px: `.appShell` has no scroll mechanism at all, so the unreachable amount
+is simply "whatever doesn't fit," and a 404 page is close to the best case for it, since it has almost no
+content. A populated recipe list, which is what the shell exists to show, has much more content than a 404
+page's two lines of text and will hit this far harder — how much harder has not been measured, since no recipe
+list exists yet to measure against. Severity kept at Medium on that basis, not on today's 6px.
+
+**Fix.** Not applied here — it means changing `AppLayout`'s scroll model (most likely: let `.main` scroll
+independently while the header and footer/nav stay fixed), which is screen-shaping work that belongs with `R-16`
+PR 3 rather than a fix wave. Flagged so PR 3 budgets for it rather than discovering it against a real recipe
+list.
+
 ---
 
 ## Open decisions
@@ -696,4 +743,4 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `SEC-03` — 68 open Dependabot alerts (13 npm advisories, `axios` the largest) | **Fixed** by `npm audit fix`. Every advisory resolved **within the declared semver ranges** — `package.json` did not change, only `package-lock.json`. The entry's fear that `react-router` and `vite` were "majors-adjacent" was wrong: all bumps were minor (`axios` 1.10→1.19, `react-router` 7.7→7.18, `vite` 7.0→7.3). Verified by clean `npm ci` + typecheck + lint + build, and by exercising routing, search, and theming in a browser against a live API. **Shipped 2026-08-08.** | — |
 | `BUG-08` — `console.log` in shipped code | **Removed**, and `no-console` added to the ESLint config — the rule had never been configured, so the entry's claim that lint "would have caught" them was wrong. **Shipped 2026-08-08.** | ADR-012, `R-03` |
 | Was the ESLint config lintable as written? | **No.** Type-aware rules were applied to `**/*.{ts,tsx}` while `tsconfig.json` includes only `src`, so `eslint.config.ts` and `vite.config.ts` were parse errors. Typed rules now scope to `src/**`; root tooling files lint without type information. | ADR-012 |
-| `UX-04` — React Query Devtools button covered the theme switch in development | **Fixed** with `buttonPosition="bottom-left"`, where only the non-interactive copyright text sits beneath it. Verified at 1024×768 and 375×812: the switch centre is hit-testable and toggles under real clicks. Production output is byte-identical. **Shipped 2026-09-16.** | `main.tsx` |
+| `UX-04` — React Query Devtools button covered the theme switch in development | **Fixed, then reopened, then fixed again.** Originally fixed with `buttonPosition="bottom-left"` on 2026-09-16, where only the non-interactive copyright text in the `Footer` sat beneath it. `R-16`'s `BottomNav` (PR 2) invalidated that fix: below 768px the footer and the new mobile tab bar both occupy the bottom of the viewport, so `bottom-left` landed squarely on `BottomNav`'s Home destination — measured at 375×812, the devtools button covered (16,756)–(56,796) against Home's (15.7,762)–(74.5,812), so `elementFromPoint` on Home's centre returned the devtools button, not the link. `bottom-right` was checked too and fares no better: it lands on the Profile ("You") tab in the same way. **Re-fixed 2026-09-20** with `buttonPosition="top-right"`: `top-left` was tried first and rejected because the header brand sits there at every width; `top-right` is clear of the brand and of every `BottomNav` item at 375×812 (verified with `elementFromPoint` at each item's centre). Trade-off accepted: at desktop widths the button's 48px box clips a ~20px sliver of the header's "New recipe" pill, but the pill's centre still resolves to the link — a corner had to lose, and desktop was not the width the reopened defect was reported at. Dev-only in both cases; production output unaffected. | `main.tsx` |

@@ -28,8 +28,10 @@
   text-decoration: none;
 }
 
-.settingsLink:hover {
+.settingsLink:hover,
+.settingsLink:focus-visible {
   color: var(--accent);
+  text-decoration: underline;
 }
 
 .toggleWrapper {
@@ -127,18 +129,6 @@
 /* Responsive footer layout */
 @media (max-width: 480px) {
   .footer {
-    flex-direction: row;
     gap: var(--spacing-sm);
-  }
-}
-
-/*
- * BottomNav (Task 7) renders after this footer, in normal flow, only below 768px — measured at
- * 51px tall in a real browser at 375px width. Extra bottom padding keeps the copyright from
- * sitting flush against it.
- */
-@media (max-width: 768px) {
-  .footer {
-    padding-bottom: 4rem;
   }
 }

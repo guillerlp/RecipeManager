@@ -73,7 +73,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Api/               RecipesController, Startup/*, Middlewares/*, Extensions/*
     RecipeManager.UnitTests/         85 tests — xUnit + NSubstitute (Domain + Application handlers + Api result mapping)
     RecipeManager.IntegrationTests/  22 tests — xUnit + WebApplicationFactory (18 real PostgreSQL via Testcontainers, 4 OpenAPI contract, no Docker needed)
-    recipe-manager-frontend/         React 19 + Vite SPA — 40 Vitest tests, colocated
+    recipe-manager-frontend/         React 19 + Vite SPA — 70 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
 
@@ -119,7 +119,7 @@ dotnet test RecipeManager.sln
 Current state: build succeeds with **0 warnings** and **107 tests pass** (85 unit + 22 integration) — of the 22,
 18 need Docker and are reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019)
 need no Docker, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip.
-The frontend has 40 Vitest tests (`npm test`).
+The frontend has 70 Vitest tests (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note. Code style is too: the root `.editorconfig` makes `IDE0055` formatting,
 `IDE0005` unused usings, and `IDE0161` file-scoped namespaces build errors (ADR-020), so fix them with

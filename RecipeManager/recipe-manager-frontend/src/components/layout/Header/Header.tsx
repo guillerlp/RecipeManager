@@ -12,6 +12,8 @@ export const Header: React.FC = () => {
       </div>
 
       <div className={styles.actions}>
+        {/* BottomNav.tsx renders its own <nav aria-label="Primary navigation"> for mobile; see
+            the comment there for why the duplicate label is intentional and jsdom-only-visible. */}
         <nav aria-label="Primary navigation">
           <ul className={styles.navList}>
             <li>

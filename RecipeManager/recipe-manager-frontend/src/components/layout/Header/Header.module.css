@@ -35,6 +35,7 @@
 }
 
 .newRecipe {
+  composes: ui from '@/styles/typography.module.css';
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -43,7 +44,6 @@
   padding: 0.5rem 0.9375rem;
   border-radius: var(--radius-pill);
   text-decoration: none;
-  composes: ui from '@/styles/typography.module.css';
 }
 
 .newRecipeIcon {
@@ -51,6 +51,14 @@
 }
 
 /* ---------- Responsive ---------- */
+/*
+ * Hides the desktop nav (and with it, Header's <nav aria-label="Primary navigation">) below
+ * 768px. This is one half of the never-both-navs invariant: BottomNav.module.css's `.bar` rule
+ * shows the mobile tab bar (its own <nav aria-label="Primary navigation">) at the same 768px
+ * breakpoint, so exactly one of the two duplicate-labelled landmarks is ever in the
+ * accessibility tree. The two breakpoints must stay equal and move together — change one
+ * without the other and the app gets two primary navs, or none.
+ */
 @media (max-width: 768px) {
   .actions {
     display: none;

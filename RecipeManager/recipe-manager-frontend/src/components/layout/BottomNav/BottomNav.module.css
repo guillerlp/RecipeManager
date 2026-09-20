@@ -5,8 +5,23 @@
   justify-content: space-around;
   border-top: 1px solid var(--rule);
   background: var(--paper);
+  /* On a notched phone, without this the bar (and the bottom of a focus ring on its items)
+   * sits under the home indicator. Needs BOTH halves: `viewport-fit=cover` in index.html's
+   * viewport meta tag lets the page extend under the safe areas at all, and `env()` here
+   * reads back how much to pad. Either half alone does nothing — env() resolves to 0 without
+   * the meta tag, and the meta tag alone just extends content further under the indicator.
+   */
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
+/*
+ * Shows the mobile tab bar (this component's own <nav aria-label="Primary navigation">) below
+ * 768px. This is one half of the never-both-navs invariant: Header.module.css's `.actions` rule
+ * hides the desktop nav (Header's own <nav aria-label="Primary navigation">) at the same 768px
+ * breakpoint, so exactly one of the two duplicate-labelled landmarks is ever in the
+ * accessibility tree. The two breakpoints must stay equal and move together — change one
+ * without the other and the app gets two primary navs, or none.
+ */
 @media (max-width: 768px) {
   .bar {
     display: flex;
