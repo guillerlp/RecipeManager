@@ -3,7 +3,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from '@/contexts';
-import { HomePage, NotFoundPage, RecipePage } from '@/pages';
+import { HomePage, NotFoundPage, ProfilePage, RecipePage } from '@/pages';
 import { AppLayout } from '@/components';
 
 const App: React.FC = () => {
@@ -23,9 +23,7 @@ const App: React.FC = () => {
           } />
           <Route path='/profile' element={
             <AppLayout>
-              <div>
-                Profile
-              </div>
+              <ProfilePage/>
             </AppLayout>
           } />
           <Route path='*' element={

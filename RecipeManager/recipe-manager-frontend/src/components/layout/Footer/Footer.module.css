@@ -16,12 +16,6 @@
   color: var(--ink-3);
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
-}
-
 .settingsLink {
   composes: label from '@/styles/typography.module.css';
   color: var(--ink-2);
@@ -32,98 +26,6 @@
 .settingsLink:focus-visible {
   color: var(--accent);
   text-decoration: underline;
-}
-
-.toggleWrapper {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.toggleLabel {
-  composes: ui from '@/styles/typography.module.css';
-  color: var(--ink-2);
-}
-
-/* --- Toggle --- */
-.toggle {
-  position: relative;
-  width: 56px;
-  height: 28px;
-  /* No background at rest: the old rest and hover surface tokens both resolve to
-     --paper-2 now, so keeping a rest-state background would make hover a no-op.
-     The highlighted --paper-2 fill appears only on hover and in the .dark state. */
-  border: 1px solid var(--field-border);
-  border-radius: 999px;
-  cursor: pointer;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    background var(--transition-normal),
-    border-color var(--transition-normal);
-}
-
-/* Icons on track */
-.icon {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  opacity: 0.65;
-  transition: opacity var(--transition-normal);
-  color: var(--ink);
-}
-
-.iconSun { left: 6px; }
-.iconMoon { right: 6px; }
-
-.iconToggle {
-  font-size: 20px;
-}
-
-/* Sliding knob */
-.knob {
-  position: absolute;
-  left: 2px;       
-  right: 2px;                     
-  width: 24px;
-  height: 24px;
-  background: var(--ink-3);
-  border-radius: 50%;
-  box-shadow: 0 1px 2px rgba(0,0,0,.08);
-  transition: transform var(--transition-normal), background var(--transition-normal);
-}
-
-/* Hover affordance */
-.toggle:hover {
-  border-color: var(--ink-3);
-  background: var(--paper-2);
-}
-
-/* Dark mode active: move knob to right & tint track */
-.dark {
-  background: var(--paper-2);
-  border-color: var(--ink-3);
-}
-
-.dark .knob {
-  transform: translateX(28px);       /* 56 - 24 - 2 - 2 = 28px */
-}
-
-/* Emphasize the relevant icon based on theme */
-.toggle:not(.dark) .iconSun { opacity: 1; }
-.toggle.dark .iconMoon { opacity: 1; }
-
-/* Reduced motion for users who prefer it */
-@media (prefers-reduced-motion: reduce) {
-  .knob,
-  .icon {
-    transition: none;
-  }
 }
 
 /* Responsive footer layout */
