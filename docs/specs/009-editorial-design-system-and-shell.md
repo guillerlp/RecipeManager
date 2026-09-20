@@ -179,7 +179,10 @@ export type Theme = 'light' | 'dark';                      // what is rendered  
 from a `matchMedia` subscription) — and derives the **theme** from both with `useMemo`:
 `preference === 'system' ? (osPrefersDark ? 'dark' : 'light') : preference`. The theme itself is never stored,
 since that would duplicate derived state; it is written to `<html data-theme>` inside a `useLayoutEffect`, which
-still runs before paint and preserves the existing no-flash first render.
+still runs before paint and preserves the existing no-flash render — for React's own first paint only. The
+window before React's first commit is not covered: `index.html` sets no `data-theme` and neither theme file
+falls back to `prefers-color-scheme`, so a dark-OS visitor can briefly see a browser-default frame between
+document parse and that commit. An inline script in `index.html` would close it; this spec does not add one.
 
 - The context exposes `{ preference, theme, setPreference }`. `toggleTheme` survives PR 1 only to keep the footer
   switch working, and is deleted in PR 3 with the switch itself.

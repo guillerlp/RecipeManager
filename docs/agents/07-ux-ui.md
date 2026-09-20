@@ -126,7 +126,10 @@ export type Theme = 'light' | 'dark';                      // what is rendered, 
 apart the moment the OS changes: `preference === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches
 ? 'dark' : 'light') : preference`. It subscribes to that media query's `change` event, so a preference of
 `system` follows the OS live while the app is open, not only at load. `data-theme` is still set inside a
-`useLayoutEffect` so there is no flash of the wrong theme on first paint. A visitor with nothing in
+`useLayoutEffect`, so there is no flash of the wrong theme once React has mounted — the window before that
+first commit is not covered: `index.html` sets no `data-theme` and neither theme file has a
+`prefers-color-scheme` fallback, so a dark-OS visitor can briefly see a browser-default frame. An inline script
+in `index.html` would close it; none is added. A visitor with nothing in
 `localStorage` now defaults to `system` rather than `light`; an existing stored `light` or `dark` is treated as
 an explicit choice and is not migrated. An unrecognised stored value falls back to `system` rather than
 throwing. This settles `DEC-06` in [../known-issues.md](../known-issues.md) and is ADR-021 (PR 1 of `R-16`).
