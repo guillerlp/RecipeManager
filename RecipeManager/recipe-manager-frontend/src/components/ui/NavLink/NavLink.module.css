@@ -1,19 +1,26 @@
 /* NavLink.module.css */
 
 .navLink {
+  composes: ui from '@/styles/typography.module.css';
   text-decoration: none;
-  padding: 0.3rem 1rem;
-  color: var(--ink);
-  font-size: 1.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-pill);
+  color: var(--ink-2);
   display: inline-block;
-  font-weight: 500;
 }
 
 .navLink:not(.active):hover {
   color: var(--accent);
 }
 
-.active {
-  color: var(--ink-2);
-  font-weight: 400;
+/*
+ * Qualified as `.navLink.active` (not bare `.active`) so this outranks the composed `ui` role's
+ * `font: var(--type-ui)` shorthand on specificity. A single class here would tie with `.navLink`
+ * on specificity and lose on source order, since `typography.module.css`'s rule is emitted after
+ * this file's in the bundle — `font-weight: 600` would be set but never rendered.
+ */
+.navLink.active {
+  color: var(--ink);
+  background: var(--paper-2);
+  font-weight: 600;
 }

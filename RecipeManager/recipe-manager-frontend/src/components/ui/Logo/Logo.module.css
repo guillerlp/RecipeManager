@@ -8,11 +8,10 @@
 }
 
 .icon {
-  font-size: 28px;
+  color: var(--ink-2);
 }
 
 .text {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font: 500 1.0625rem/1 var(--font-serif);
   white-space: nowrap;
 }
