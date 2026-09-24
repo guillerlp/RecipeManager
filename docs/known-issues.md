@@ -7,8 +7,11 @@ Verified against `main` @ `edfd057` on 2026-07-26 by running the real toolchain 
 test numbers re-measured on 2026-08-04 after `R-02`, and the frontend rows re-measured on 2026-08-08 after `R-03`
 and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12. The frontend
 tests row was added 2026-09-18 after `R-07` and re-measured 2026-09-20 after `R-16` PR 3 shipped in full, by
-running `npm test` directly (10 files, 77 passed). Backend test numbers re-measured 2026-09-19 after `R-09` (ADR-019),
-from CI run 35438379053, which shows 85 + 22 passed, 0 skipped.
+running `npm test` directly (10 files, 77 passed). Backend test numbers re-measured 2026-09-24 after `R-10`
+(ADR-022), from **CI run 36022927670**, which shows 104 unit + 33 integration passed, 0 failed, 0 skipped, and
+77 frontend tests across 10 files. They were measured on CI rather than locally on purpose: Docker is not
+installed on the author's machine, and Smart App Control intermittently blocks freshly-built assemblies there
+(`INFRA-06`), so CI is the only place these numbers can be taken honestly.
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -25,7 +28,7 @@ from CI run 35438379053, which shows 85 + 22 passed, 0 skipped.
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **0 warnings** — enforced by `TreatWarningsAsErrors` (ADR-010) |
-| Backend tests | `dotnet test RecipeManager.sln` | **107 passing** (85 unit + 22 integration), 0 failing. Of the 22, 18 need Docker and are reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need no Docker, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** with `FileLoadException` rather than skip |
+| Backend tests | `dotnet test RecipeManager.sln` | **137 passing** (104 unit + 33 integration), 0 failing, 0 skipped on CI. Of the 33 integration tests, **29 need Docker** and report as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need none, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** with `FileLoadException` rather than skip |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
@@ -62,19 +65,21 @@ kind of negative test.
 | [SEC-06](#sec-06) | Medium | Security | `DeleteRecipeHandler` echoes `ex.Message` to the client |
 | [SEC-07](#sec-07) | Medium | Security | `GET /api/recipes` is unbounded and cached whole |
 | [SEC-08](#sec-08) | Medium | Security | No length limits in the database |
-| [SEC-09](#sec-09) | Medium | Security | No per-item length cap on ingredient/instruction strings |
+| [SEC-09](#sec-09) | Medium | Security | No per-item length cap on instruction strings |
 | [SEC-10](#sec-10) | Medium | Security | No security headers, no HSTS |
 | [SEC-11](#sec-11) | Low | Ops | No health/readiness endpoint |
 | [SEC-12](#sec-12) | Low | Config | `.env.production` points at a placeholder host |
 | [BUG-07](#bug-07) | Low | API | `GET /api/recipes/{id}` missing the `:guid` route constraint |
 | [BUG-10](#bug-10) | Medium | Frontend | No recipe detail route, so cards are not clickable |
-| [BUG-11](#bug-11) | Low | Domain | Recipes loaded from the database expose a mutable `List<string>` ([#8](https://github.com/guillerlp/RecipeManager/issues/8)) |
+| [BUG-11](#bug-11) | Low | Domain | `Instructions` loaded from the database is a mutable `List<string>` ([#8](https://github.com/guillerlp/RecipeManager/issues/8)) |
 | [BUG-12](#bug-12) | Low | Frontend | A paused recipe query renders "No recipes available" |
 | [BUG-13](#bug-13) | Low | Frontend | Whitespace-only search query shows a misleading "matching" heading |
-| [BUG-14](#bug-14) | Medium | Caching | An update mutates the cached `Recipe` instance before it is persisted |
+| [BUG-14](#bug-14) | Low | Caching | The cache still hands out shared entity instances; the write path no longer takes one |
+| [BUG-15](#bug-15) | Medium | API | A client-supplied ingredient id is never checked against the recipe being updated |
 | [TEST-03](#test-03) | Medium | Tests | Instruction ordering never asserted |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
+| [TEST-07](#test-07) | Low | Tests | `StructureIngredientsMigrationTests` leaks a database when an assertion fails |
 | [INFRA-07](#infra-07) | Medium | CI/CD | CI runs on every PR but is not yet *required* to merge |
 | [INFRA-02](#infra-02) | Medium | CI/CD | No versioning or tags |
 | [INFRA-03](#infra-03) | Medium | CI/CD | No rollback procedure |
@@ -102,7 +107,7 @@ Resolved decisions and items promoted to planned work are recorded in [Settled](
 ### BUILD-06
 **`run-coverage.ps1` measures only the unit-test project — Low**
 
-The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 22 integration tests
+The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 33 integration tests
 contribute nothing and the reported percentage understates real coverage — particularly for `Api` and
 `Infrastructure`, which unit tests never touch.
 
@@ -192,35 +197,40 @@ before the list screen does, not only when the list screen is opened.
 ### SEC-08
 **No length limits in the database — Medium**
 
-`Title` and `Description` are unbounded `text`; `Ingredients`/`Instructions` are `text[]`. The 200/1000-character
+`Title` and `Description` are unbounded `text`, and `Instructions` is an unbounded `text[]`. The 200/1000-character
 caps exist **only** in FluentValidation, so anything writing outside the API — a future bulk import, a direct
 psql session, a second service — can store unbounded values.
 
-**Fix.** Add `HasMaxLength` in an `IEntityTypeConfiguration` and a migration.
+`"RecipeIngredients"."Name"` and `"Notes"` are the exception: ADR-022 bounded both at `varchar(200)` in the
+database as well as in the validator, which is what this entry asks for everywhere else.
 
-**Update 2026-09-24.** The architecture half is settled: ADR-022 approves `IEntityTypeConfiguration<T>` plus
-`OnModelCreating`, and `R-10`'s implementation introduces both, bounding the new ingredient columns at 200
-characters. This entry stays open for `Title` and `Description`, which are **existing** columns — altering them
-is its own migration and was deliberately kept out of [spec 010](specs/010-structured-ingredients.md). It is now
-a small task with no architecture work left.
+**Fix.** Add `HasMaxLength` for `Title` and `Description` to `RecipeConfiguration` and generate a migration.
 
-**Owner:** `02-senior-csharp`
+**Update 2026-09-24.** The architecture blocker is gone. `AppDbContext.OnModelCreating` and
+`RecipeManager.Infrastructure/Context/Configurations/RecipeConfiguration.cs` now exist (ADR-022), so this is
+one `HasMaxLength` pair plus a migration — no architecture work, no sign-off, and nowhere left to put it but
+the file that is already there. `Title` and `Description` stayed out of
+[spec 010](specs/010-structured-ingredients.md) because altering an **existing** column is a different
+migration risk from creating a new one, and mixing the two would have hidden it.
+
+**Owner:** `02-senior-csharp` · **Effort:** ~30 min
 
 ### SEC-09
-**No per-item length cap on array elements — Medium**
+**No per-item length cap on instruction strings — Medium**
 
-`RecipeValidationRules` caps the ingredient and instruction **lists** at 50 items but never limits the length of
-each string. A single 10 MB ingredient string passes validation.
+`RecipeValidationRules.ValidateInstructions` caps the instruction **list** at 50 items but never limits the
+length of each string. A single 10 MB instruction string passes validation.
 
-**Fix.** Add `.ForEach(item => item.MaximumLength(<n>))` to `ValidateIngredients` / `ValidateInstructions`.
+**Fix.** Add `.ForEach(item => item.MaximumLength(<n>))` to `ValidateInstructions`, and the matching database
+cap once `Instructions` stops being a `text[]`.
 
-**Update 2026-09-24.** The **ingredient half closes with `R-10`**: `ValidateIngredients` is rewritten anyway for
-the new `IngredientInputDto`, so `Name` and `Notes` get `MaximumLength(200)` there — and, uniquely in this
-codebase so far, the same cap in the database ([spec 010](specs/010-structured-ingredients.md), ADR-022).
-Shipping the new validator *without* the cap would have been knowingly re-introducing this gap. The
-**instruction half stays open** until `R-17`; delete this entry then.
+**The ingredient half shipped 2026-09-24** (`R-10`, ADR-022,
+[spec 010](specs/010-structured-ingredients.md)): `ValidateIngredients` now delegates to
+`IngredientInputDtoValidator`, which caps `Name` and `Notes` at 200 characters — and, uniquely in this codebase
+so far, the same cap exists in the database. The **instruction half stays open** until `R-17`, which reshapes
+`Instructions` anyway and is the right place to add both caps at once. Delete this entry then.
 
-**Owner:** `02-senior-csharp` · **Effort:** ~15 min (instruction half)
+**Owner:** `02-senior-csharp` · **Effort:** ~15 min (validator only; the database cap comes with `R-17`)
 
 ### SEC-10
 **No security headers — Medium**
@@ -292,15 +302,16 @@ is 1.09:1 in both themes — and neither will `--rule` (1.29:1 light, 1.36:1 dar
 **Owner:** `03-senior-react` + `07-ux-ui`
 
 ### BUG-11
-**Recipes loaded from the database expose a mutable `List<string>` behind `IReadOnlyList<string>` — Low**
+**`Recipe.Instructions` loaded from the database is a mutable `List<string>` behind `IReadOnlyList<string>` — Low**
 
-Tracked on GitHub as [#8](https://github.com/guillerlp/RecipeManager/issues/8).
+Tracked on GitHub as [#8](https://github.com/guillerlp/RecipeManager/issues/8). The issue covers ingredients as
+well; **that half closed on 2026-09-24** — see the update at the end of this entry. The issue stays open for the
+instruction half, so do not close it yet.
 
-`Recipe.Ingredients` and `Recipe.Instructions` are auto-properties with a `private set`
-(`RecipeManager.Domain/Entities/Recipe.cs:14-15`). `Recipe.Create` and `Recipe.Update` assign
+`Recipe.Instructions` is an auto-property with a `private set`. `Recipe.Create` and `Recipe.Update` assign
 `ToList().AsReadOnly()`, which is genuinely read-only. EF Core, however, materializes a primitive collection as a
-`List<string>` and assigns it straight through the private setter. Nothing in `AppDbContext` redirects it. So the
-same entity is protected when constructed and unprotected when read:
+`List<string>` and assigns it straight through the private setter, and `RecipeConfiguration` says nothing about
+it. So the same entity is protected when constructed and unprotected when read:
 
 ```
 [construct] System.Collections.ObjectModel.ReadOnlyCollection`1[System.String]
@@ -312,7 +323,7 @@ Reproduced 2026-09-13 against local PostgreSQL on `main` @ `84226dc` (EF Core 10
 throwaway probe that created, re-read, and deleted one recipe. That confirms the July finding in #8 still holds.
 
 **Consequences.**
-- `((List<string>)recipe.Ingredients).Add(…)` compiles and bypasses the validation in `Recipe.Update`, which
+- `((List<string>)recipe.Instructions).Add(…)` compiles and bypasses the validation in `Recipe.Update`, which
   breaks the rule that the domain owns every invariant (CLAUDE.md global rule 5). On a tracked entity the
   change persists.
 - **The cache makes it worse (found while verifying #8, not stated in it).** Both repository reads use
@@ -328,12 +339,12 @@ own code. It is recorded because it silently falsifies an encapsulation guarante
 **Fix (as proposed in #8).** Private backing fields, with the properties exposing a read-only view:
 
 ```csharp
-private readonly List<string> _ingredients = new();
-public IReadOnlyList<string> Ingredients => _ingredients.AsReadOnly();
+private readonly List<string> _instructions = new();
+public IReadOnlyList<string> Instructions => _instructions.AsReadOnly();
 ```
 
-EF is then pointed at the fields (`UsePropertyAccessMode(PropertyAccessMode.Field)` in
-`AppDbContext.OnModelCreating`). The issue also sets two constraints. They are recorded here as its author's
+EF is then pointed at the field (`UsePropertyAccessMode(PropertyAccessMode.Field)` in `RecipeConfiguration`,
+which now exists). The issue also sets two constraints. They are recorded here as its author's
 reasoning and were not re-verified for this entry:
 - no `ValueConverter` on these collections, which would likely collapse the native `text[]` mapping into a
   serialized scalar;
@@ -343,13 +354,21 @@ reasoning and were not re-verified for this entry:
 regression test for this can finally be written there. Also check that a schema diff produces no migration,
 since the column should not change.
 
-**Update 2026-09-24.** The **ingredient half closes with `R-10`**. ADR-022 retypes `Ingredients` to
-`IReadOnlyList<Ingredient>` over exactly the private backing field proposed above — which is independently the
-idiomatic EF pattern for an owned collection, so the fix costs nothing on top of a rewrite that was happening
-anyway. `OnModelCreating` arrives in the same change, giving EF somewhere to be pointed at the field. Note the
-"no migration should result" check does **not** apply to that half: `R-10` changes the column deliberately. The
-**instruction half stays open** until `R-17`; delete this entry and close
-[#8](https://github.com/guillerlp/RecipeManager/issues/8) then.
+**The ingredient half shipped 2026-09-24** (`R-10`, ADR-022). `Recipe.Ingredients` is now
+`IReadOnlyList<Ingredient>` over exactly the private backing field proposed above — independently the idiomatic
+EF pattern for an owned collection, so the fix cost nothing on top of a rewrite that was happening anyway — and
+`RecipeConfiguration` points EF at the field with `UsePropertyAccessMode(PropertyAccessMode.Field)`. The getter
+returns a fresh `.OrderBy(...).ToList().AsReadOnly()` on every access, so a downcast to `List<Ingredient>` fails
+and even a successful one would only mutate a throwaway. The "no migration should result" check did **not**
+apply to that half: `R-10` replaced the column deliberately.
+
+One caveat, recorded rather than glossed: [spec 010](specs/010-structured-ingredients.md) §11 lists "the cast
+fails" as an acceptance criterion, and **no test pins it**. The guarantee currently rests on reading the getter.
+Whoever writes the instruction-half fix should add that assertion for both collections at once.
+
+The **instruction half stays open** until `R-17`; delete this entry and close
+[#8](https://github.com/guillerlp/RecipeManager/issues/8) then — not before, since half of the issue is still
+live.
 
 **Owner:** `02-senior-csharp` (fix) · `01-architect` if the property-access-mode choice needs an ADR
 
@@ -382,28 +401,65 @@ but the render path tests the raw `searchQuery` for truthiness, so the list is h
 Fix: derive one trimmed query and use it for both the filter and the render branches.
 
 ### BUG-14
-**An update mutates the cached `Recipe` instance before it is persisted — Medium**
+**The cache still hands out shared entity instances — Low** *(was Medium; the write path was the severe half and it is fixed)*
 
-`IMemoryCache` stores object references, not copies. `UpdateRecipeHandler` loads the recipe through
-`GetByIdAsync`. On a cache hit, `CachedRecipeRepository` returns *the instance held in the `recipe_{id}` entry*,
-and `Recipe.Update(...)` then mutates it in place before `UpdateAsync` saves anything. If `SaveChangesAsync`
-throws, the exception skips `InvalidateRecipeRelatedCaches`, so `GET /api/recipes/{id}` serves values that were
-never persisted until the entry expires (`CacheDuration`, up to 10 minutes). The same instance is also shared
-across concurrent requests, because the cache is a singleton while the repository is scoped.
+`IMemoryCache` stores object references, not copies, and `CachedRecipeRepository` caches `Recipe` **entities**
+rather than an immutable read model. `GetAllAsync` and `GetByIdAsync` therefore return the same object to every
+caller until the entry expires, while the cache is a singleton and the repository is scoped.
 
-Found while designing `R-08` (spec 006). It is also why `RecipeCacheTests` cannot prove that `UpdateAsync`
-removes `recipe_{id}`: the cached object already holds the new values, so the detail read passes either way.
+Found while designing `R-08` (spec 006).
 
-**Fix.** Never hand out a cached entity for mutation. Either load the entity for writes from the undecorated
-repository, or cache an immutable read model (for example `RecipeDto`) instead of the entity. Then tighten the
-detail assertion in `RecipeCacheTests.UpdateRecipe_AfterListAndDetailWereCached_ShouldReturnNewValuesFromBoth`
-so it detects a missing `recipe_{id}` invalidation.
+**What closed on 2026-09-24** (`R-10`, ADR-022 — incidentally, while fixing the `PUT` 500s). The original
+mechanism was that `UpdateRecipeHandler` loaded through `GetByIdAsync`, got the cached instance on a hit, and
+`Recipe.Update(...)` mutated it in place before anything was saved; a failed `SaveChangesAsync` then skipped
+`InvalidateRecipeRelatedCaches` and the API served values that were never persisted. **The write path no longer
+touches the cache at all**: `UpdateRecipeHandler` loads through `IRecipeRepository.GetByIdForUpdateAsync`, and
+`CachedRecipeRepository` implements that method by delegating straight to the database with no cache read and no
+cache write, with the reason stated in a comment on the method. A failed save now leaves the cache holding the
+*previously persisted* values, which is stale but not fictitious.
 
-**Update 2026-09-24.** `R-10` does **not** fix this, and [spec 010](specs/010-structured-ingredients.md) says so
-explicitly rather than letting it look handled. It does make the failure mode wider: after ADR-022 a failed save
-leaves a cached recipe whose whole ingredient collection — objects, not strings — was already replaced in place,
-so what is served for up to ten minutes differs structurally, not just by a value. Worth fixing before `R-21`
-gives users a form that produces failed saves regularly.
+**What is still open.** Handing out a shared mutable entity is still the design, and its safety now rests
+entirely on [BUG-11](#bug-11): a cached recipe's `Instructions` is a mutable `List<string>`, so anything that
+downcasts it corrupts every later reader. `Ingredients` is safe since ADR-022. Severity drops to Low for the
+same reason `BUG-11` is Low — nothing reachable over HTTP triggers it.
+
+**Fix.** Cache an immutable read model (`RecipeDto`) instead of the entity, which also removes the `BUG-11`
+exposure. Then tighten the detail assertion in
+`RecipeCacheTests.UpdateRecipe_AfterListAndDetailWereCached_ShouldReturnNewValuesFromBoth` so it detects a
+missing `recipe_{id}` invalidation — the entry previously noted that this was impossible because the cached
+object already held the new values. That is no longer true, so the assertion can now be written.
+
+### BUG-15
+**A client-supplied ingredient id is never checked against the recipe being updated — Medium**
+
+Found 2026-09-24 while closing `R-10`. `IngredientInputDto.Id` exists so a client can echo back the ids the API
+gave it, keeping future step references (`R-17`) stable across an edit; a null means "this ingredient is new".
+`Ingredient.Create` takes that id and uses it verbatim — `id ?? Guid.NewGuid()` — and nothing between the
+controller and `SaveChangesAsync` asks whether the id belongs to **this** recipe.
+
+**Consequences.**
+- An id invented at random is almost always harmless: `PaintAction` sees `ValueGeneratedNever` plus an untracked
+  key and inserts a new row.
+- An id that **collides with an ingredient row of another recipe** violates the primary key on
+  `"RecipeIngredients"`, so `SaveChangesAsync` throws `DbUpdateException` and the client gets a **500** where a
+  422 naming `ingredients` is what the contract implies.
+- A `PUT` can therefore be used to probe whether a given `Guid` exists as an ingredient anywhere in the
+  database, by distinguishing 204 from 500. That is a weak oracle, but it is one.
+
+**Severity: Medium.** Not Low, because the failure is a 500 rather than a handled error and the underlying rule
+("an ingredient belongs to exactly one recipe") is a domain invariant the aggregate is supposed to own — CLAUDE.md
+global rule 5 and rule 6 both point at it. Not High: there is no authentication and no ownership yet
+([SEC-01](#sec-01), [SEC-02](#sec-02)), so "another user's row" does not mean anything today — every recipe is
+already world-writable, and an attacker who wants to damage another recipe can simply `PUT` it directly. That
+changes the moment `R-14` lands, and this must be closed **before** it: after ownership exists, a cross-recipe id
+is a genuine cross-tenant write attempt, and today's code would answer it with a database error rather than a
+refusal.
+
+**Fix.** In `Recipe.Update`, reject any supplied ingredient id that is not already in `_ingredients`, with a new
+`RecipeErrors` factory in the `Validation`/`ingredients` shape. The check belongs in the domain, not the
+validator: it is a rule about the aggregate's contents, not about payload shape.
+
+**Owner:** `02-senior-csharp` · `01-architect` if the error's `field` or kind is contested
 
 ---
 
@@ -416,6 +472,30 @@ Instructions are an ordered `text[]` and order is semantically essential, but ev
 `BeEquivalentTo`, which is order-**insensitive**. A bug that reversed or shuffled steps would pass.
 
 **Fix.** Use `Should().Equal(...)` where order is the property under test.
+
+**Scope narrowed 2026-09-24.** This is now about **instructions only**. `R-10` applied the lesson prospectively
+to the collection it introduced: ingredient ordering is asserted with `Should().Equal(...)` in
+`RecipesControllerTests.UpdateRecipe_WhenReordered_ShouldKeepTheIdsAndTheNewOrder`,
+`StructureIngredientsMigrationTests`, and the `Recipe` unit tests. Close this entry with `R-17`, which reshapes
+the instructions and is exactly the change an order-insensitive assertion would let through.
+
+### TEST-07
+**`StructureIngredientsMigrationTests` leaks a database when an assertion fails — Low**
+
+Found 2026-09-24 during the `R-10` review. The test creates a throwaway database on the shared Testcontainers
+container (`MigrationDb_{guid}`) and drops it with `await context.Database.EnsureDeletedAsync();` as the **last
+statement of the test body**. Any failing assertion above that line throws, so the drop never runs and the
+database survives for the lifetime of the container.
+
+**Consequences.** Low: the container dies with the test assembly, so nothing outlives a run, and a failing run
+has a bigger problem than a stray database. It matters as a pattern — this is the only test in the suite that
+creates a database outside `IntegrationTestBase`'s per-class lifecycle, so it is the one future tests of this
+kind will be copied from.
+
+**Fix.** Wrap the body in `try`/`finally`, or give the class an `IAsyncLifetime` that owns the database name and
+disposes it. The second is better if a second migration test is ever added, and needless if not.
+
+**Owner:** `06-qa-tester` · **Effort:** ~10 min
 
 ### TEST-04
 **`Location` header never asserted — Low**
@@ -703,8 +783,8 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `DEC-01` — local tool or deployed product? | **Practice project with deployment intent.** The production-grade bar applies; Critical security items are sequenced behind the deploy gate rather than waived. | [roadmap.md](roadmap.md) project stance + [Deploy gate](roadmap.md#deploy-gate) |
 | `DEC-02` — Development-only seeder? | **Yes**, gated on `IsDevelopment()`. | `R-13` |
 | `DEC-05` — generate TS types from OpenAPI? | **Yes**, after the contract defects are fixed by hand. **Shipped 2026-09-19.** | ADR-019 |
-| Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. | `R-10` |
-| Ingredients: shared catalogue or owned by the recipe? | **Owned by the recipe**, as value objects. No second aggregate, so ADR-006 (no unit of work) still holds. The cost is that "tomato" and "tomatoes" are unrelated names. Settled 2026-09-19. | `R-10` |
+| Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. **Shipped 2026-09-24** as `R-10`, which is consequently gone from the roadmap. | ADR-022, [spec 010](specs/010-structured-ingredients.md) |
+| Ingredients: shared catalogue or owned by the recipe? | **Owned by the recipe.** No second aggregate, so ADR-006 (no unit of work) still holds. The cost is that "tomato" and "tomatoes" are unrelated names. Settled 2026-09-19; **shipped 2026-09-24**. Note the wording "as value objects" recorded here was superseded before it was built: ADR-022 made `Ingredient` an owned **entity** with its own `Guid Id`, because indices are not stable references for `R-17`'s steps. Ownership was the part that was settled; the value-object phrasing was not. | ADR-022, [spec 010](specs/010-structured-ingredients.md) |
 | `DEC-06` — follow the OS colour-scheme preference on first visit? | **Yes, as an explicit choice, and now implemented.** Settled 2026-09-19 by the editorial design (screen 3e); **implemented the same day in PR 1 of `R-16`**: `ThemePreference` (`light`/`dark`/`system`, persisted) is now separate from the derived `Theme` (`light`/`dark`, rendered), `ThemeProvider` subscribes to `prefers-color-scheme` so `system` follows the OS live, and a visitor with nothing stored defaults to `system` rather than `light`. The segmented Light/Dark/System control itself, and its move into Settings, **shipped 2026-09-20 in `R-16` PR 3**: `ThemeControl` (three native radios in a `role="radiogroup"` fieldset) now lives in `ProfilePage`, the footer's binary switch is deleted, and `toggleTheme` is gone from the context. | ADR-021, `R-16` |
 | Only a title required (design) vs. full invariants (domain)? | **Draft recipes**: an explicit Draft/Published status, where drafts need only a title. Chosen over drafting only in the browser, and over relaxing the aggregate. Settled 2026-09-19. | `R-19`, `UX-05` |
 | CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
@@ -720,7 +800,7 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `BUILD-08` — `ts-node` was a devDependency nothing used | **Removed.** Lint, typecheck and build unchanged; installed packages 83 → 66. **Shipped 2026-09-16.** | — |
 | `BUILD-10` — root tooling files were linted by no rule and type-checked by nothing | **Fixed.** Oxlint's `correctness` category is on for every file (overrides cannot set categories, so it applies to `src/` too — 88 more rules, 0 findings), and `tsconfig.node.json` type-checks `vite.config.ts` with Node types kept out of `src/`. Verified by negative tests: `use-isnan` + `no-debugger` on a root probe file, `TS2769` on a bad `server.port`, `TS2591` still on `process` in `src/`. This also corrects the "root tooling files lint without type information" claim in the ESLint row below — that block enabled no rules. **Shipped 2026-09-16.** | ADR-016 (amended) |
 | `INFRA-01` — no CI pipeline | **Fixed.** `.github/workflows/ci.yml` runs build, test, typecheck, lint, and both vulnerability checks on every PR. Every gate verified by negative test. **Shipped 2026-08-08.** | ADR-013, `R-04`; residual `INFRA-07` |
-| `INFRA-06` — Smart App Control blocks the integration tests | **Resolved as designed.** The 14 integration tests run on a clean `ubuntu-latest` runner where no Application Control policy applies. It was always an environment constraint rather than a defect, so the fix was to run them somewhere the constraint does not exist. Local Windows runs remain unreliable straight after an Api change; CI is now the authority. | ADR-013, `R-04` |
+| `INFRA-06` — Smart App Control blocks the integration tests | **Resolved as designed.** The 14 integration tests that existed then run on a clean `ubuntu-latest` runner where no Application Control policy applies. It was always an environment constraint rather than a defect, so the fix was to run them somewhere the constraint does not exist. Local Windows runs remain unreliable straight after an Api change; CI is now the authority. **Corrected 2026-09-24** — the scope recorded above was too narrow. It is **not** limited to the contract tests, nor to the integration suite: Smart App Control intermittently blocks **any freshly-built assembly** on that machine, `dotnet ef` included, so migration scaffolding can fail the same way. It is not fixable while Smart App Control is on, and turning it off is permanent and irreversible on Windows — the repository owner has declined, which is a reasonable trade rather than a deferral. The consequence to plan around: **numbers and green runs are taken from CI, not from a local Windows run**, and a local failure naming `FileLoadException` is not evidence of a defect. | ADR-013, `R-04` |
 | `BUILD-07` — Node version not pinned | **Fixed.** `.nvmrc` (24) and `engines: { node: ">=20" }`. The workflow reads `node-version-file: .nvmrc`, so CI and a developer's machine cannot disagree — the two values say different things deliberately: what is *used* versus what is *supported*. | ADR-013, `R-04` |
 | Should CI build Release or Debug? | **Debug.** ADR-005 makes the `IntegrationTest` environment throw in RELEASE builds, so a Release CI build fails all 14 integration tests by design (measured: 84 → 70). `TreatWarningsAsErrors` is unconditional, so the warning gate is identical in Debug. | ADR-013, ADR-005 |
 | `SEC-03` — 68 open Dependabot alerts (13 npm advisories, `axios` the largest) | **Fixed** by `npm audit fix`. Every advisory resolved **within the declared semver ranges** — `package.json` did not change, only `package-lock.json`. The entry's fear that `react-router` and `vite` were "majors-adjacent" was wrong: all bumps were minor (`axios` 1.10→1.19, `react-router` 7.7→7.18, `vite` 7.0→7.3). Verified by clean `npm ci` + typecheck + lint + build, and by exercising routing, search, and theming in a browser against a live API. **Shipped 2026-08-08.** | — |

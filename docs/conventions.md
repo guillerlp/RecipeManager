@@ -118,13 +118,18 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
 
 ### EF Core / PostgreSQL
 
-- `AppDbContext` has no `OnModelCreating`; mapping is entirely convention-based.
-  **⚠ Target:** convention-based mapping is why every string column is unbounded `text` (`SEC-08`). New
-  constraints — max lengths, indexes, required-ness beyond nullability — belong in an
-  `IEntityTypeConfiguration<T>` in a new `RecipeManager.Infrastructure/Context/Configurations/` folder, applied via
-  `modelBuilder.ApplyConfigurationsFromAssembly(...)`. Introducing the first one is a small architecture change:
-  clear it with `01-architect`.
-- Reads use `.AsNoTracking()`. Writes call `SaveChangesAsync(cancellationToken)` inside the repository method.
+- `AppDbContext.OnModelCreating` calls `modelBuilder.ApplyConfigurationsFromAssembly(...)`, so every
+  `IEntityTypeConfiguration<T>` in `RecipeManager.Infrastructure/Context/Configurations/` is picked up with no
+  registration step (ADR-022). `RecipeConfiguration` is currently the only one. New constraints — max lengths,
+  indexes, required-ness beyond nullability, owned collections — belong there, and no longer need
+  `01-architect` sign-off. `Title` and `Description` are still unbounded `text` because nothing has bounded them
+  yet (`SEC-08`), not because there is nowhere to do it.
+- A `Guid` key minted by the domain must be mapped `ValueGeneratedNever()`. EF's convention is
+  `ValueGeneratedOnAdd`, under which an already-set key makes a new row look like an existing one. See ADR-022.
+- Reads use `.AsNoTracking()` — except a read whose purpose is a write. `GetByIdForUpdateAsync` tracks
+  deliberately, so EF's change tracker can work out the inserts, updates, and deletes inside an owned
+  collection; `UpdateAsync` then calls `SaveChangesAsync` alone, never `Update()` or `Attach()`. Writes call
+  `SaveChangesAsync(cancellationToken)` inside the repository method.
 - Provider is Npgsql (`UseNpgsql`). `string` → `text`, `Guid` → `uuid`, `IReadOnlyList<string>` → `text[]`.
 - Schema changes require a migration:
   ```bash

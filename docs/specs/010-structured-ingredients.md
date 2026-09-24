@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `010` |
-| **Status** | approved |
+| **Status** | implemented — CI green (run 36022927670), awaiting merge. Two §-level **corrections** were made on 2026-09-24 during implementation; both are marked in place, in §6 and §7 |
 | **Author** | `00-leader` + `01-architect` |
 | **Created** | `2026-09-24` |
 | **Branch** | `docs/structured-ingredients-spec` (this spec), then `feat/structured-ingredients` (implementation) |
@@ -30,18 +30,18 @@ and record the `InstructionStep` shape that `R-17` will implement.
 
 ## 3. In scope
 
-- [ ] `Ingredient` owned entity — `Position`, `Quantity`, `Unit`, `Name`, `Notes` — with a `Create` factory
+- [x] `Ingredient` owned entity — `Position`, `Quantity`, `Unit`, `Name`, `Notes` — with a `Create` factory
       returning `Result<Ingredient>`
-- [ ] `Unit` enum (metric, imperial, count), persisted as a string
-- [ ] `Recipe.Ingredients` becomes `IReadOnlyList<Ingredient>` over a private backing field
-- [ ] New domain invariants and their `RecipeErrors` factories
-- [ ] New FluentValidation rules, including a per-item length cap
-- [ ] First `IEntityTypeConfiguration<Recipe>` and `OnModelCreating`, applied by assembly scan
-- [ ] Migration `StructureIngredients` with a lossless backfill from the existing `text[]`
-- [ ] `RecipeDto`, `CreateRecipeCommand`, `UpdateRecipeDto` carry `IngredientDto` / `IngredientInputDto`
-- [ ] Regenerated OpenAPI snapshot and TypeScript contract
-- [ ] `RecipeList.tsx` search keeps working against the new shape
-- [ ] ADR-022 recording the decision, including the `InstructionStep` shape for `R-17`
+- [x] `Unit` enum (metric, imperial, count), persisted as a string
+- [x] `Recipe.Ingredients` becomes `IReadOnlyList<Ingredient>` over a private backing field
+- [x] New domain invariants and their `RecipeErrors` factories
+- [x] New FluentValidation rules, including a per-item length cap
+- [x] First `IEntityTypeConfiguration<Recipe>` and `OnModelCreating`, applied by assembly scan
+- [x] Migration `StructureIngredients` with a lossless backfill from the existing `text[]`
+- [x] `RecipeDto`, `CreateRecipeCommand`, `UpdateRecipeDto` carry `IngredientDto` / `IngredientInputDto`
+- [x] Regenerated OpenAPI snapshot and TypeScript contract
+- [x] `RecipeList.tsx` search keeps working against the new shape
+- [x] ADR-022 recording the decision, including the `InstructionStep` shape for `R-17`
 
 ## 4. Out of scope
 
@@ -102,9 +102,14 @@ never exercised against accumulated data. Recorded in §14.
   `Notes` `MaximumLength(200)`, and `Quantity` `InclusiveBetween(0, 100000)` when present.
 - **Migration required:** yes — `StructureIngredients`. Not destructive to data (the backfill is lossless), but
   it **drops a column**, so it is destructive to schema. `Down()` is lossy: quantities, units, and notes are
-  discarded when the `text[]` is reconstructed.
+  discarded when the `text[]` is reconstructed. *As built, two migrations shipped, not one:*
+  `20260924153243_SyncIdValueGeneration` carries **no DDL** and exists only to bring
+  `AppDbContextModelSnapshot.cs` back in step after `ValueGeneratedNever()` was added to both `Guid` keys — see
+  the §7 correction. Without it the next `dotnet ef migrations add` would silently fold that metadata diff into
+  an unrelated migration.
 - **Known limitations touched:** closes item 1 (unstructured ingredients). Item 2 (unstructured instructions)
-  is *decided* here and closed by `R-17`.
+  is *decided* here and closed by `R-17`. *Those are the numbers as they stood on 2026-09-24; after item 1 was
+  deleted, instructions became item 1.*
 
 ### Existing rows
 
@@ -123,6 +128,21 @@ migrates as `Name = "200g flour"`; it is not parsed. Best-effort parsing was rej
 string longer than 200 would survive the backfill but fail a later update. No such row can exist in practice —
 `Title` and `Description` were the only unbounded fields anyone exercised — but the cap is deliberately generous
 for this reason.
+
+> **Correction, 2026-09-24 (found during implementation).** The sentence above is **wrong** and the
+> implementation had to depart from it. Such a string would **not** survive the backfill: the `INSERT`
+> writes unbounded `text` into `"RecipeIngredients"."Name"`, which is `character varying(200)`, so PostgreSQL
+> raises `22001` (*value too long for type character varying(200)*) and aborts the whole migration
+> transaction. Because `Program.cs` calls `app.MigrateDatabase()` at startup and there is no rollback
+> procedure (`INFRA-03`), the API would then **crash-loop on boot** with an opaque error code and no
+> indication of which row caused it.
+>
+> The shipped migration therefore carries a **pre-flight guard** ahead of the backfill — a
+> `DO $$ … RAISE EXCEPTION … END $$;` block that scans `unnest(r."Ingredients")` for any element longer than
+> 200 characters and aborts with a message naming the limit, the column, and the fact that the backfill will
+> not truncate. The migration still fails, which is correct — the alternative is silent data loss — but it
+> fails with something a human can act on. The generous cap remains the reason no such row is expected; the
+> guard is what happens when the expectation is wrong.
 
 ## 7. API impact
 
@@ -149,6 +169,21 @@ for this reason.
 - **Update semantics:** `Recipe.Update` **replaces** the collection wholesale rather than diffing it. Supplied
   ids are preserved; nulls mint new ones. EF deletes and re-inserts the owned rows, which is correct and cheap
   at 50 items or fewer.
+
+  > **Correction, 2026-09-24 (found during implementation).** "EF deletes and re-inserts the owned rows" is
+  > true only of a **change-tracked** graph. As first written, the update path loaded the recipe with
+  > `AsNoTracking()` and called `DbSet.Update()` on the detached result, which marks the whole graph
+  > `Modified` — so EF issued an `UPDATE` for every ingredient, including ones that did not exist yet, and
+  > every `PUT` returned 500 with `DbUpdateConcurrencyException` ("expected to affect 1 row(s), but actually
+  > affected 0").
+  >
+  > What the code actually does now: `UpdateRecipeHandler` loads through a dedicated
+  > `IRecipeRepository.GetByIdForUpdateAsync`, which returns a **change-tracked** entity and deliberately
+  > bypasses the cache (`CachedRecipeRepository` neither reads nor writes a cache entry for it, because a
+  > cached instance is detached and shared across requests). `RecipeRepository.UpdateAsync` then calls only
+  > `SaveChangesAsync` — no `Update()`, no `Attach()` — and throws `InvalidOperationException` if it is
+  > handed a detached recipe, so the silent-no-op variant of this bug cannot come back unnoticed. EF's change
+  > tracker computes the real inserts, updates, and deletes from the replaced collection.
 - **Breaking for the client?** yes — `08-api-contract` ships `contracts/openapi.json` and
   `src/types/generated/api.ts` in the same PR.
 - **Enum serialisation:** no change needed. `JsonStringEnumConverter` is already registered in
@@ -273,27 +308,30 @@ Examples: `2 tbsp butter, cold` gives `(2, Tablespoon, "butter", "cold")`; `salt
 
 ## 11. Acceptance criteria
 
-- [ ] Given a valid payload with `{"quantity": 2, "unit": "Tablespoon", "name": "butter", "notes": "cold"}`, when
+- [x] Given a valid payload with `{"quantity": 2, "unit": "Tablespoon", "name": "butter", "notes": "cold"}`, when
       `POST /api/recipes`, then 201 and the response ingredient round-trips all four values plus a non-empty `id`.
-- [ ] Given a payload whose ingredient has `"name": "  "`, when `POST /api/recipes`, then 422 with
+- [x] Given a payload whose ingredient has `"name": "  "`, when `POST /api/recipes`, then 422 with
       `field: "ingredients"`.
-- [ ] Given a payload whose ingredient has `"quantity": 0`, when `POST /api/recipes`, then 422 with
+- [x] Given a payload whose ingredient has `"quantity": 0`, when `POST /api/recipes`, then 422 with
       `field: "ingredients"`.
-- [ ] Given a payload whose ingredient has `"unit": "Gram"` and no `quantity`, when `POST /api/recipes`, then 422
+- [x] Given a payload whose ingredient has `"unit": "Gram"` and no `quantity`, when `POST /api/recipes`, then 422
       with `field: "ingredients"`.
-- [ ] Given a payload whose ingredient `name` is 201 characters, when `POST /api/recipes`, then 400.
-- [ ] Given a payload whose ingredient has `"unit": "Furlong"`, when `POST /api/recipes`, then 400.
-- [ ] Given a recipe created with ingredients in the order A, B, C, when `GET /api/recipes/{id}`, then they are
+- [x] Given a payload whose ingredient `name` is 201 characters, when `POST /api/recipes`, then 400.
+- [x] Given a payload whose ingredient has `"unit": "Furlong"`, when `POST /api/recipes`, then 400.
+- [x] Given a recipe created with ingredients in the order A, B, C, when `GET /api/recipes/{id}`, then they are
       returned in exactly that order.
-- [ ] Given a stored recipe, when `PUT` sends its ingredients reordered as C, A, B with their existing ids, then a
+- [x] Given a stored recipe, when `PUT` sends its ingredients reordered as C, A, B with their existing ids, then a
       subsequent `GET` returns C, A, B **and** the three ids are unchanged.
-- [ ] Given a stored recipe, when `PUT` sends one ingredient with `"id": null`, then that ingredient receives a new
+- [x] Given a stored recipe, when `PUT` sends one ingredient with `"id": null`, then that ingredient receives a new
       id and the others keep theirs.
-- [ ] Given a recipe with ingredients, when the recipe is deleted, then no orphan rows remain in
+- [x] Given a recipe with ingredients, when the recipe is deleted, then no orphan rows remain in
       `"RecipeIngredients"`.
 - [ ] Given a `Recipe` materialised by EF, when its `Ingredients` is cast to `List<Ingredient>`, then the cast
-      fails (`BUG-11`, ingredient half).
-- [ ] Given a database at `InitialCreate` with a recipe whose `Ingredients` is `{'flour','water'}`, when the
+      fails (`BUG-11`, ingredient half). **Not pinned by a test.** The property holds by construction — the
+      getter returns a fresh `.OrderBy(...).ToList().AsReadOnly()` — but nothing asserts it, so a later refactor
+      of that getter could remove the guarantee silently. Recorded in [BUG-11](../known-issues.md#bug-11); write
+      the assertion for both collections when `R-17` closes the instruction half.
+- [x] Given a database at `InitialCreate` with a recipe whose `Ingredients` is `{'flour','water'}`, when the
       migration is applied, then two rows exist at `Position` 0 and 1 with those names and null quantity, unit,
       and notes.
 

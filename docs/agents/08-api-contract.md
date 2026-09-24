@@ -48,13 +48,30 @@ type Schemas = components['schemas'];
 export type Recipe = Schemas['RecipeDto'];
 export type CreateRecipeRequest = Schemas['CreateRecipeCommand'];
 export type UpdateRecipeRequest = Schemas['UpdateRecipeDto'];
+export type Ingredient = Schemas['IngredientDto'];
+export type IngredientInput = Schemas['IngredientInputDto'];
 ```
 
-`Recipe` still has the shape the mapping rules below describe (`id: string`, `title`, `description`,
-`preparationTime`, `cookingTime`, `servings`, `ingredients: string[]`, `instructions: string[]`) — the generator
-just produces it from `RecipeDto` now instead of a hand-written interface. `CreateRecipeRequest` and
-`UpdateRecipeRequest` alias `CreateRecipeCommand` and `UpdateRecipeDto` directly rather than being computed with
-`Omit<Recipe, 'id'>`, because those are now separate generated schemas, not derived types.
+`Recipe` is `id: string`, `title`, `description`, `preparationTime`, `cookingTime`, `servings`,
+`ingredients: Ingredient[]`, `instructions: string[]` — the generator produces it from `RecipeDto` rather than a
+hand-written interface. `CreateRecipeRequest` and `UpdateRecipeRequest` alias `CreateRecipeCommand` and
+`UpdateRecipeDto` directly rather than being computed with `Omit<Recipe, 'id'>`, because those are separate
+generated schemas, not derived types. The last two aliases arrived with ADR-022 and are legal under ADR-019
+precisely because they are genuinely new generated schemas, not hand-written fields.
+
+Three things about the ingredient pair are deliberate and must survive any regeneration:
+
+- **`IngredientDto.id` is required, `IngredientInputDto.id` is nullable.** The server always knows an
+  ingredient's id; the client only sometimes does, and a null on the way in means "this one is new".
+- **`unit` is nullable on both, and that took work to express.** OpenAPI 3.0 forbids sibling keywords beside a
+  `$ref`, so Swashbuckle emitted the enum reference with its nullability silently dropped, and
+  `RequireNonNullablePropertiesSchemaFilter` then listed it in `required`. The generated TypeScript claimed
+  `unit` was always present while the API returns `null` for "salt to taste".
+  `RecipeManager.Api/Startup/Swagger/NullableEnumSchemaFilter.cs` wraps those references in `allOf` so
+  `nullable: true` can sit beside them. **If a regenerated `api.ts` ever shows `unit` as non-nullable, that
+  filter has stopped applying** — fix the filter, never the generated file.
+- **`unit` is a closed enum**, so its members are part of the contract: adding one is a code-and-deploy change
+  on both sides, not a data change.
 
 ---
 
@@ -68,6 +85,10 @@ just produces it from `RecipeDto` now instead of a hand-written interface. `Crea
 | `int` | `number` | |
 | `string` | `string` | |
 | `List<string>` / `IReadOnlyList<string>` | `string[]` | |
+| `List<T>` of a record | `T[]` of the generated schema | e.g. `List<IngredientDto>` → `IngredientDto[]` |
+| `enum` | a string union | `JsonStringEnumConverter` is registered, so it crosses the wire as the member name |
+| nullable `enum` (`Unit?`) | union `\| null` | **Needs `NullableEnumSchemaFilter`** — see above. Without it the nullability is lost and the property is wrongly `required` |
+| `decimal?` | `number \| null` | |
 | `record` with all-required members | `interface` with all-required properties | Only make a property optional if the server can genuinely omit it |
 | C# `PascalCase` property | TS `camelCase` | ASP.NET's default JSON policy camelCases output |
 

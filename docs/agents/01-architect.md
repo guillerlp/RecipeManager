@@ -56,8 +56,8 @@ These were settled on 2026-07-26. Implement towards them; do not re-litigate the
 | Project stance | Practice project **with deployment intent** — production-grade bar, security sequenced behind the [deploy gate](../roadmap.md#deploy-gate), never waived | [roadmap.md](../roadmap.md) |
 | CQRS | Keep hand-rolled; handlers auto-registered with Scrutor (**shipped**) | ADR-008 |
 | Domain error codes | HTTP status moved out of the Domain into a semantic error kind (**shipped**) | ADR-009, `R-05` |
-| Ingredients | Owned entities with a `Guid Id` in a `RecipeIngredients` child table; `Unit` a closed enum; conversion is a presentation concern (2026-09-24) | ADR-022, [spec 010](../specs/010-structured-ingredients.md), `R-10` |
-| Ingredient catalogue | None — ingredients are owned by their recipe (2026-09-19) | `R-10` |
+| Ingredients | Owned entities with a `Guid Id` in a `RecipeIngredients` child table; `Unit` a closed enum; conversion is a presentation concern (**shipped** 2026-09-24) | ADR-022, [spec 010](../specs/010-structured-ingredients.md) |
+| Ingredient catalogue | None — ingredients are owned by their recipe (2026-09-19, **shipped**) | ADR-022 |
 | Instructions | `InstructionStep` — `Position`, `Text`, `DurationMinutes int?`, `IngredientIds Guid[]` (2026-09-24) | ADR-022, `R-17` |
 | "Only a title required" | Draft recipes with a Draft/Published status, not a relaxed aggregate (2026-09-19) | `R-19` |
 | Fonts and icons | Self-hosted; icons stay inline SVG (ADR-014), no runtime Google Fonts (2026-09-19) | `R-16` |
@@ -72,7 +72,10 @@ Do not defer these silently — each will be forced by a feature request sooner 
   [spec 010](../specs/010-structured-ingredients.md): `Ingredient` is an owned entity with a `Guid Id` in a
   child table, `Unit` is a closed enum stored as a string, conversion is a presentation concern with no
   canonical stored unit, existing `text[]` rows migrate losslessly as name-only ingredients, and
-  `InstructionStep` is fixed for `R-17`. Both remain unbuilt — the decision shipped, the code has not.
+  `InstructionStep` is fixed for `R-17`. **The ingredient half was built and shipped on 2026-09-24**; the
+  instruction half is decided and unbuilt. Two consequences were appended to ADR-022 during implementation —
+  `ValueGeneratedNever()` on domain-minted `Guid` keys, and a Swashbuckle schema filter for nullable enums —
+  and both apply again to `R-17`.
 - **Ownership / multi-tenancy.** Requires a `User` aggregate, `OwnerId` on `Recipe`, a filter on every query, a
   migration for existing rows, and an auth stack. Choose the identity source (ASP.NET Core Identity vs. an
   external IdP) *before* touching the schema. `R-14`, on the deploy gate.
@@ -99,11 +102,12 @@ Do not defer these silently — each will be forced by a feature request sooner 
   transaction is impossible today (ADR-006). The second aggregate introduced — `User`, whichever comes first —
   forces this decision. Plan it with that aggregate, not after. Note `Ingredient` is **not** that second
   aggregate: ADR-022 makes it an *owned* entity, so a recipe and its ingredients still save in one call.
-- **Convention-only EF mapping.** No `OnModelCreating`, so every string is unbounded `text` (`SEC-08`).
-  **Approved once, in ADR-022:** `IEntityTypeConfiguration<T>` in
-  `RecipeManager.Infrastructure/Context/Configurations/`, applied by `ApplyConfigurationsFromAssembly`. It
-  arrives with `R-10`'s implementation. No further case-by-case approval is needed — but `SEC-08` itself stays
-  open, because bounding `Title` and `Description` alters existing columns and is its own migration.
+- ~~**Convention-only EF mapping.**~~ **Settled and built 2026-09-24.** `AppDbContext.OnModelCreating` applies
+  `IEntityTypeConfiguration<T>` from `RecipeManager.Infrastructure/Context/Configurations/` by
+  `ApplyConfigurationsFromAssembly`, and `RecipeConfiguration` is the first one (ADR-022). No case-by-case
+  approval is needed to add mapping there any more. `SEC-08` stays open all the same: `Title` and `Description`
+  are still unbounded `text`, and bounding them alters existing columns, which is its own migration — but it is
+  now a small task with no architecture work left in it.
 
 ### ADR format — append to [../architecture.md](../architecture.md)
 

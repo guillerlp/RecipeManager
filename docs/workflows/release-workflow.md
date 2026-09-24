@@ -69,7 +69,7 @@ a failure found in twenty seconds on your machine is cheaper than one found in t
    ```bash
    dotnet test RecipeManager.sln
    ```
-   Currently **107 passing** — 85 unit + 22 integration (of which 4, `OpenApiContractTests`, need no Docker).
+   Currently **137 passing** — 104 unit + 33 integration (of which 4, `OpenApiContractTests`, need no Docker; the other 29 skip without it). Measured on CI run 36022927670, not locally: see `INFRA-06`.
 
 3. **Frontend builds, type-checks, lints, and tests.** From `recipe-manager-frontend/`:
    ```bash
@@ -125,7 +125,7 @@ None | RecipeDto changed: <fields> — frontend updated in this PR (08-api-contr
 
 ## Verification
 - dotnet build: <N> warnings (must be 0 — warnings are errors)
-- dotnet test: <N>/<N> passing (currently 107)
+- dotnet test: <N>/<N> passing (currently 137)
 - npm run build + npx tsc --noEmit: pass | n/a
 - npm test: <N>/<N> passing (currently 40) | n/a
 - Manual check against a real PostgreSQL: <what you did> | n/a
