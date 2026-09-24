@@ -29,7 +29,7 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
       const searchableText = [
         recipe.title,
         recipe.description,
-        ...recipe.ingredients
+        ...recipe.ingredients.map(i => i.name)
       ].join(' ').toLowerCase();
 
       return searchableText.includes(query);
