@@ -75,11 +75,10 @@ kind of negative test.
 | [BUG-12](#bug-12) | Low | Frontend | A paused recipe query renders "No recipes available" |
 | [BUG-13](#bug-13) | Low | Frontend | Whitespace-only search query shows a misleading "matching" heading |
 | [BUG-14](#bug-14) | Low | Caching | The cache still hands out shared entity instances; the write path no longer takes one |
-| [BUG-15](#bug-15) | Medium | API | A client-supplied ingredient id is never checked against the recipe being updated |
+| [BUG-15](#bug-15) | Medium | API | A client-supplied ingredient id can trigger a duplicate-key 500 on create, on update, or within one payload |
 | [TEST-03](#test-03) | Medium | Tests | Instruction ordering never asserted |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
-| [TEST-07](#test-07) | Low | Tests | `StructureIngredientsMigrationTests` leaks a database when an assertion fails |
 | [INFRA-07](#infra-07) | Medium | CI/CD | CI runs on every PR but is not yet *required* to merge |
 | [INFRA-02](#infra-02) | Medium | CI/CD | No versioning or tags |
 | [INFRA-03](#infra-03) | Medium | CI/CD | No rollback procedure |
@@ -430,34 +429,63 @@ missing `recipe_{id}` invalidation — the entry previously noted that this was 
 object already held the new values. That is no longer true, so the assertion can now be written.
 
 ### BUG-15
-**A client-supplied ingredient id is never checked against the recipe being updated — Medium**
+**A client-supplied ingredient id can trigger a duplicate-key 500 by three separate routes — Medium**
 
 Found 2026-09-24 while closing `R-10`. `IngredientInputDto.Id` exists so a client can echo back the ids the API
 gave it, keeping future step references (`R-17`) stable across an edit; a null means "this ingredient is new".
 `Ingredient.Create` takes that id and uses it verbatim — `id ?? Guid.NewGuid()` — and nothing between the
-controller and `SaveChangesAsync` asks whether the id belongs to **this** recipe.
+controller and `SaveChangesAsync` checks it. Three independent routes reach the same duplicate-key crash;
+an earlier version of this entry named only (b) and its stated fix would have left (a) and (c) open.
+
+**(a) Two ingredients in one payload sharing the same id.** `IngredientMappingExtensions.ToIngredients` builds
+one `Ingredient` per `IngredientInputDto` with no de-duplication, so two DTOs carrying the same id produce two
+distinct `Ingredient` instances that both hold it. `Recipe.ReplaceIngredients` (called from both `Recipe.Create`
+and `Recipe.Update`) adds every instance to `_ingredients` unconditionally, so this is reachable from **both**
+`POST` and `PUT` — both route through `ToIngredients`. EF then tracks two owned entities on one key in the same
+`SaveChanges` call.
+
+**(b) An update supplying an id that belongs to a different recipe.** `Recipe.Update` never checks a supplied id
+against its own `_ingredients`, so an id copied from another recipe's row is accepted as-is. EF inserts it rather
+than updating an existing row, colliding with the primary key that row already occupies on `"RecipeIngredients"`.
+This is the route the original entry described, and the only one its stated fix ("reject any supplied id not
+already in `_ingredients`") would have closed.
+
+**(c) A create supplying any pre-existing id.** `Recipe.Create` has no existing ingredient set to check a
+supplied id against at all — there is nothing before it — so `POST /api/recipes` with a client-chosen id that
+already exists on `"RecipeIngredients"` (belonging to any recipe) collides on insert. This route never touches
+`Recipe.Update`, so a fix scoped to that method cannot see it.
 
 **Consequences.**
-- An id invented at random is almost always harmless: `PaintAction` sees `ValueGeneratedNever` plus an untracked
-  key and inserts a new row.
-- An id that **collides with an ingredient row of another recipe** violates the primary key on
-  `"RecipeIngredients"`, so `SaveChangesAsync` throws `DbUpdateException` and the client gets a **500** where a
-  422 naming `ingredients` is what the contract implies.
-- A `PUT` can therefore be used to probe whether a given `Guid` exists as an ingredient anywhere in the
-  database, by distinguishing 204 from 500. That is a weak oracle, but it is one.
+- All three routes end the same way: EF's `SaveChangesAsync` throws (`InvalidOperationException` for two tracked
+  entities sharing one key within a single `SaveChanges` call — route (a); `DbUpdateException` for a primary-key
+  violation against already-persisted data — routes (b) and (c)), and the client gets a **500** where a 422
+  naming `ingredients` is what the contract implies.
+- A `PUT` or `POST` can therefore be used to probe whether a given `Guid` exists as an ingredient anywhere in the
+  database, by distinguishing 204/201 from 500. That is a weak oracle, but it is one.
 
 **Severity: Medium.** Not Low, because the failure is a 500 rather than a handled error and the underlying rule
-("an ingredient belongs to exactly one recipe") is a domain invariant the aggregate is supposed to own — CLAUDE.md
-global rule 5 and rule 6 both point at it. Not High: there is no authentication and no ownership yet
-([SEC-01](#sec-01), [SEC-02](#sec-02)), so "another user's row" does not mean anything today — every recipe is
-already world-writable, and an attacker who wants to damage another recipe can simply `PUT` it directly. That
-changes the moment `R-14` lands, and this must be closed **before** it: after ownership exists, a cross-recipe id
-is a genuine cross-tenant write attempt, and today's code would answer it with a database error rather than a
-refusal.
+("an ingredient id is assigned by the server and belongs to exactly one recipe") is a domain invariant the
+aggregate is supposed to own — CLAUDE.md global rule 5 and rule 6 both point at it. Not High: there is no
+authentication and no ownership yet ([SEC-01](#sec-01), [SEC-02](#sec-02)), so "another user's row" does not mean
+anything today — every recipe is already world-writable, and an attacker who wants to damage another recipe can
+simply `PUT` it directly. That changes the moment `R-14` lands, and this must be closed **before** it: after
+ownership exists, a cross-recipe id is a genuine cross-tenant write attempt, and today's code would answer it
+with a database error rather than a refusal.
 
-**Fix.** In `Recipe.Update`, reject any supplied ingredient id that is not already in `_ingredients`, with a new
-`RecipeErrors` factory in the `Validation`/`ingredients` shape. The check belongs in the domain, not the
-validator: it is a rule about the aggregate's contents, not about payload shape.
+**Fix.** Closing this needs all three routes covered:
+- Reject a payload containing duplicate, non-null ingredient ids before it reaches persistence — in
+  `IngredientMappingExtensions.ToIngredients`, or in `Recipe` itself — closing route (a) on both `POST` and
+  `PUT`.
+- In `Recipe.Update`, reject any supplied non-null ingredient id that is not already in `_ingredients` — closing
+  route (b). The check belongs in the domain, not the validator: it is a rule about the aggregate's contents, not
+  about payload shape.
+- On create, never honour a client-supplied id — `Recipe.Create` (via `Ingredient.Create`) should mint every id
+  itself, since a brand-new recipe has no existing ingredient for a client-supplied id to legitimately reference
+  — closing route (c).
+
+All three need a `RecipeErrors` factory in the `Validation`/`ingredients` shape, consistent with the existing
+error style; a single factory reused for all three is plausible, but that is an implementation choice for
+whoever picks this up, not something this entry should pre-decide.
 
 **Owner:** `02-senior-csharp` · `01-architect` if the error's `field` or kind is contested
 
@@ -478,24 +506,6 @@ to the collection it introduced: ingredient ordering is asserted with `Should().
 `RecipesControllerTests.UpdateRecipe_WhenReordered_ShouldKeepTheIdsAndTheNewOrder`,
 `StructureIngredientsMigrationTests`, and the `Recipe` unit tests. Close this entry with `R-17`, which reshapes
 the instructions and is exactly the change an order-insensitive assertion would let through.
-
-### TEST-07
-**`StructureIngredientsMigrationTests` leaks a database when an assertion fails — Low**
-
-Found 2026-09-24 during the `R-10` review. The test creates a throwaway database on the shared Testcontainers
-container (`MigrationDb_{guid}`) and drops it with `await context.Database.EnsureDeletedAsync();` as the **last
-statement of the test body**. Any failing assertion above that line throws, so the drop never runs and the
-database survives for the lifetime of the container.
-
-**Consequences.** Low: the container dies with the test assembly, so nothing outlives a run, and a failing run
-has a bigger problem than a stray database. It matters as a pattern — this is the only test in the suite that
-creates a database outside `IntegrationTestBase`'s per-class lifecycle, so it is the one future tests of this
-kind will be copied from.
-
-**Fix.** Wrap the body in `try`/`finally`, or give the class an `IAsyncLifetime` that owns the database name and
-disposes it. The second is better if a second migration test is ever added, and needless if not.
-
-**Owner:** `06-qa-tester` · **Effort:** ~10 min
 
 ### TEST-04
 **`Location` header never asserted — Low**
