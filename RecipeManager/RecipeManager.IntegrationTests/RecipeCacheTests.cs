@@ -57,7 +57,7 @@ public class RecipeCacheTests : IntegrationTestBase
             PreparationTime: 10,
             CookingTime: 20,
             Servings: 2,
-            Ingredients: ["Ingredient A"],
+            Ingredients: [new IngredientInputDto(null, null, null, "Ingredient A", null)],
             Instructions: ["Step 1"]);
 
         // ==================== ACT ====================
@@ -89,7 +89,7 @@ public class RecipeCacheTests : IntegrationTestBase
             5,
             25,
             3,
-            ["Ingredient B"],
+            [new IngredientInputDto(null, null, null, "Ingredient B", null)],
             ["Step 1B"]);
 
         // ==================== ACT ====================
@@ -132,7 +132,9 @@ public class RecipeCacheTests : IntegrationTestBase
     }
 
     private static Recipe CreateRecipe(string title) =>
-        Recipe.Create(title, "Description", 10, 15, 4, ["Ingredient A"], ["Step 1"]).Value;
+        Recipe.Create(title, "Description", 10, 15, 4, [Ing("Ingredient A")], ["Step 1"]).Value;
+
+    private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
 
     private async Task<List<RecipeDto>> GetAllRecipes()
     {

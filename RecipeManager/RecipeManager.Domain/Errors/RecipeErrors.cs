@@ -30,9 +30,6 @@ public static class RecipeErrors
     public static Error IngredientsRequired() =>
         Validation("At least one ingredient is required").Field("ingredients");
 
-    public static Error IngredientEmpty() =>
-        Validation("Ingredients cannot be empty").Field("ingredients");
-
     public static Error IngredientNameRequired() =>
         Validation("Ingredient name is required").Field("ingredients");
 

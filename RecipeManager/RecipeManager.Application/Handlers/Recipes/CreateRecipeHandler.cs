@@ -19,8 +19,13 @@ public class CreateRecipeHandler : ICommandHandler<CreateRecipeCommand, Result<R
 
     public async Task<Result<RecipeDto>> Handle(CreateRecipeCommand request, CancellationToken cancellationToken)
     {
+        Result<List<Ingredient>> ingredients = request.Ingredients.ToIngredients();
+
+        if (ingredients.IsFailed)
+            return Result.Fail<RecipeDto>(ingredients.Errors);
+
         Result<Recipe> recipe = Recipe.Create(request.Title, request.Description, request.PreparationTime,
-            request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
+            request.CookingTime, request.Servings, ingredients.Value, request.Instructions);
 
         if (recipe.IsFailed)
             return Result.Fail<RecipeDto>(recipe.Errors);

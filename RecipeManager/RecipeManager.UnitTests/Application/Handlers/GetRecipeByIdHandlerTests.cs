@@ -24,6 +24,8 @@ public class GetRecipeByIdHandlerTests
         _handler = new GetRecipeByIdHandler(_recipeRepository, Substitute.For<Microsoft.Extensions.Logging.ILogger<GetRecipeByIdHandler>>());
     }
 
+    private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
+
     #region Success Scenarios
 
     [Fact]
@@ -37,7 +39,7 @@ public class GetRecipeByIdHandlerTests
             20,
             30,
             8,
-            new List<string> { "Flour", "Sugar", "Cocoa" },
+            new List<Ingredient> { Ing("Flour"), Ing("Sugar"), Ing("Cocoa") },
             new List<string> { "Mix", "Bake" }
         );
         var existingRecipe = existingRecipeResult.Value;
@@ -59,7 +61,8 @@ public class GetRecipeByIdHandlerTests
         result.Value.PreparationTime.Should().Be(existingRecipe.PreparationTime);
         result.Value.CookingTime.Should().Be(existingRecipe.CookingTime);
         result.Value.Servings.Should().Be(existingRecipe.Servings);
-        result.Value.Ingredients.Should().BeEquivalentTo(existingRecipe.Ingredients);
+        result.Value.Ingredients.Select(i => i.Name).Should()
+            .BeEquivalentTo(existingRecipe.Ingredients.Select(i => i.Name));
         result.Value.Instructions.Should().BeEquivalentTo(existingRecipe.Instructions);
 
         await _recipeRepository.Received(1).GetByIdAsync(recipeId, Arg.Any<CancellationToken>());
@@ -76,7 +79,7 @@ public class GetRecipeByIdHandlerTests
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 
@@ -97,7 +100,7 @@ public class GetRecipeByIdHandlerTests
     {
         // Arrange
         var recipeId = Guid.NewGuid();
-        var ingredients = new List<string> { "Flour", "Sugar", "Eggs", "Butter" };
+        var ingredients = new List<Ingredient> { Ing("Flour"), Ing("Sugar"), Ing("Eggs"), Ing("Butter") };
         var instructions = new List<string> { "Mix dry ingredients", "Add wet ingredients", "Bake" };
 
         var existingRecipeResult = Recipe.Create(
@@ -122,7 +125,7 @@ public class GetRecipeByIdHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Ingredients.Should().HaveCount(4);
         result.Value.Instructions.Should().HaveCount(3);
-        result.Value.Ingredients.Should().BeEquivalentTo(ingredients);
+        result.Value.Ingredients.Select(i => i.Name).Should().BeEquivalentTo(ingredients.Select(i => i.Name));
         result.Value.Instructions.Should().BeEquivalentTo(instructions);
     }
 
@@ -207,7 +210,7 @@ public class GetRecipeByIdHandlerTests
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 

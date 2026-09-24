@@ -25,21 +25,26 @@ public class CreateRecipeHandlerTests
     [Fact]
     public async Task Handle_WithValidCommand_ShouldReturnSuccessResultWithRecipeDto()
     {
-        // Arrange 
+        // Arrange
         var command = new CreateRecipeCommand(
             Title: "Chocolate Cake",
             Description: "Delicious chocolate cake",
             PreparationTime: 20,
             CookingTime: 30,
             Servings: 8,
-            Ingredients: new List<string> { "Flour", "Sugar", "Cocoa" },
+            Ingredients:
+            [
+                new IngredientInputDto(null, null, null, "Flour", null),
+                new IngredientInputDto(null, null, null, "Sugar", null),
+                new IngredientInputDto(null, null, null, "Cocoa", null)
+            ],
             Instructions: new List<string> { "Mix", "Bake" }
         );
 
-        // Act 
+        // Act
         Result<RecipeDto> result = await _handler.Handle(command, CancellationToken.None);
 
-        // Assert 
+        // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().NotBeNull();
         result.Value.Title.Should().Be(command.Title);
@@ -47,7 +52,8 @@ public class CreateRecipeHandlerTests
         result.Value.PreparationTime.Should().Be(command.PreparationTime);
         result.Value.CookingTime.Should().Be(command.CookingTime);
         result.Value.Servings.Should().Be(command.Servings);
-        result.Value.Ingredients.Should().BeEquivalentTo(command.Ingredients);
+        result.Value.Ingredients.Select(i => i.Name).Should()
+            .Equal(command.Ingredients.Select(i => i.Name));
         result.Value.Instructions.Should().BeEquivalentTo(command.Instructions);
         result.Value.Id.Should().NotBeEmpty();
 
@@ -62,14 +68,17 @@ public class CreateRecipeHandlerTests
         // Arrange
         var command = new CreateRecipeCommand(
             "Pasta", "Italian pasta", 10, 15, 4,
-            new List<string> { "Pasta", "Tomatoes" },
+            [
+                new IngredientInputDto(null, null, null, "Pasta", null),
+                new IngredientInputDto(null, null, null, "Tomatoes", null)
+            ],
             new List<string> { "Boil", "Mix" }
         );
 
         // Act
         await _handler.Handle(command, CancellationToken.None);
 
-        // Assert 
+        // Assert
         await _recipeRepository.Received(1).AddAsync(
             Arg.Any<Recipe>(),
             Arg.Any<CancellationToken>());
@@ -81,7 +90,7 @@ public class CreateRecipeHandlerTests
         // Arrange
         var command = new CreateRecipeCommand(
             "Test Recipe", "Test Description", 5, 10, 2,
-            new List<string> { "Ingredient1" },
+            [new IngredientInputDto(null, null, null, "Ingredient1", null)],
             new List<string> { "Step1" }
         );
 
@@ -94,7 +103,7 @@ public class CreateRecipeHandlerTests
         // Act
         await _handler.Handle(command, CancellationToken.None);
 
-        // Assert 
+        // Assert
         capturedRecipe.Should().NotBeNull();
         capturedRecipe!.Title.Should().Be(command.Title);
         capturedRecipe.Description.Should().Be(command.Description);
@@ -110,14 +119,14 @@ public class CreateRecipeHandlerTests
     [Fact]
     public async Task Handle_WithInvalidTitle_ShouldReturnFailureResult()
     {
-        // Arrange 
+        // Arrange
         var command = new CreateRecipeCommand(
             Title: "",
             Description: "Valid description",
             PreparationTime: 10,
             CookingTime: 20,
             Servings: 2,
-            Ingredients: new List<string> { "Flour" },
+            Ingredients: [new IngredientInputDto(null, null, null, "Flour", null)],
             Instructions: new List<string> { "Mix" }
         );
 
@@ -144,7 +153,7 @@ public class CreateRecipeHandlerTests
             PreparationTime: -5,
             CookingTime: -10,
             Servings: 0,
-            Ingredients: new List<string>(),
+            Ingredients: new List<IngredientInputDto>(),
             Instructions: new List<string>()
         );
 
@@ -166,7 +175,7 @@ public class CreateRecipeHandlerTests
         // Arrange
         var command = new CreateRecipeCommand(
             "Valid Title", "Valid Description", 10, 20, 2,
-            Ingredients: new List<string>(),
+            Ingredients: new List<IngredientInputDto>(),
             Instructions: new List<string> { "Step1" }
         );
 
@@ -184,7 +193,7 @@ public class CreateRecipeHandlerTests
         // Arrange
         var command = new CreateRecipeCommand(
             "Valid Title", "Valid Description", 10, 20, 2,
-            Ingredients: new List<string> { "Flour" },
+            Ingredients: [new IngredientInputDto(null, null, null, "Flour", null)],
             Instructions: new List<string>()
         );
 
@@ -199,13 +208,13 @@ public class CreateRecipeHandlerTests
     [Fact]
     public async Task Handle_WithBothTimesZero_ShouldReturnFailureResult()
     {
-        // Arrange 
+        // Arrange
         var command = new CreateRecipeCommand(
             "Valid Title", "Valid Description",
             PreparationTime: 0, // Both zero is invalid
             CookingTime: 0,
             Servings: 2,
-            Ingredients: new List<string> { "Flour" },
+            Ingredients: [new IngredientInputDto(null, null, null, "Flour", null)],
             Instructions: new List<string> { "Mix" }
         );
 
@@ -218,6 +227,18 @@ public class CreateRecipeHandlerTests
             e.Message.Contains("At least one of preparation or cooking time must be greater than 0"));
     }
 
+    [Fact]
+    public async Task Handle_WithInvalidIngredient_ShouldFailWithoutCallingTheRepository()
+    {
+        var command = new CreateRecipeCommand("Title", "Description", 10, 0, 1,
+            [new IngredientInputDto(null, null, Unit.Gram, "Flour", null)], ["Mix"]);
+
+        Result<RecipeDto> result = await _handler.Handle(command, CancellationToken.None);
+
+        result.IsFailed.Should().BeTrue();
+        await _recipeRepository.DidNotReceive().AddAsync(Arg.Any<Recipe>(), Arg.Any<CancellationToken>());
+    }
+
     #endregion
 
     #region Edge Cases
@@ -228,7 +249,7 @@ public class CreateRecipeHandlerTests
         // Arrange
         var command = new CreateRecipeCommand(
             "Title", "Description", 10, 20, 2,
-            new List<string> { "Flour" },
+            [new IngredientInputDto(null, null, null, "Flour", null)],
             new List<string> { "Mix" }
         );
         var cancellationToken = new CancellationToken();
@@ -251,7 +272,7 @@ public class CreateRecipeHandlerTests
             PreparationTime: 10,
             CookingTime: 0, // No cooking needed
             Servings: 2,
-            Ingredients: new List<string> { "Lettuce" },
+            Ingredients: [new IngredientInputDto(null, null, null, "Lettuce", null)],
             Instructions: new List<string> { "Chop" }
         );
 
@@ -271,7 +292,7 @@ public class CreateRecipeHandlerTests
             PreparationTime: 0, // No prep needed
             CookingTime: 15,
             Servings: 2,
-            Ingredients: new List<string> { "Frozen pizza" },
+            Ingredients: [new IngredientInputDto(null, null, null, "Frozen pizza", null)],
             Instructions: new List<string> { "Bake" }
         );
 

@@ -21,6 +21,8 @@ public class DeleteRecipeHandlerTests
         _handler = new DeleteRecipeHandler(_recipeRepository, logger);
     }
 
+    private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
+
     #region Success Scenarios
 
     [Fact]
@@ -34,7 +36,7 @@ public class DeleteRecipeHandlerTests
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
         var existingRecipe = existingRecipeResult.Value;
@@ -68,7 +70,7 @@ public class DeleteRecipeHandlerTests
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 
@@ -168,7 +170,7 @@ public class DeleteRecipeHandlerTests
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 
@@ -204,7 +206,7 @@ public class DeleteRecipeHandlerTests
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 

@@ -1,7 +1,8 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using FluentResults;
 using NSubstitute;
 using RecipeManager.Application.Commands.Recipes;
+using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Handlers.Recipes;
 using RecipeManager.Domain.Entities;
 using RecipeManager.Domain.Interfaces.Repositories;
@@ -19,6 +20,8 @@ public class UpdateRecipeHandlerTest
         _handler = new UpdateRecipeHandler(_recipeRepository);
     }
 
+    private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
+
     #region Success Scenarios
 
     [Fact]
@@ -32,7 +35,7 @@ public class UpdateRecipeHandlerTest
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            [Ing("Flour")],
             new List<string> { "Mix" }
         );
 
@@ -48,7 +51,10 @@ public class UpdateRecipeHandlerTest
             15,
             25,
             4,
-            new List<string> { "Sugar", "Butter" },
+            [
+                new IngredientInputDto(null, null, null, "Sugar", null),
+                new IngredientInputDto(null, null, null, "Butter", null)
+            ],
             new List<string> { "Cream", "Mix" }
         );
 
@@ -92,7 +98,10 @@ public class UpdateRecipeHandlerTest
             15,
             25,
             4,
-            new List<string> { "Sugar", "Butter" },
+            [
+                new IngredientInputDto(null, null, null, "Sugar", null),
+                new IngredientInputDto(null, null, null, "Butter", null)
+            ],
             new List<string> { "Cream", "Mix" }
         );
 
@@ -120,7 +129,7 @@ public class UpdateRecipeHandlerTest
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            [Ing("Flour")],
             new List<string> { "Mix" }
         );
 
@@ -134,7 +143,10 @@ public class UpdateRecipeHandlerTest
             15,
             25,
             4,
-            new List<string> { "Sugar", "Butter" },
+            [
+                new IngredientInputDto(null, null, null, "Sugar", null),
+                new IngredientInputDto(null, null, null, "Butter", null)
+            ],
             new List<string> { "Cream", "Mix" }
         );
 
@@ -162,7 +174,7 @@ public class UpdateRecipeHandlerTest
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            [Ing("Flour")],
             new List<string> { "Mix" }
         );
 
@@ -176,7 +188,7 @@ public class UpdateRecipeHandlerTest
             15,
             25,
             4,
-            new List<string>(), // Invalid: empty ingredients
+            new List<IngredientInputDto>(), // Invalid: empty ingredients
             new List<string> { "Cream", "Mix" }
         );
 
@@ -186,6 +198,46 @@ public class UpdateRecipeHandlerTest
         // Assert
         result.IsFailed.Should().BeTrue();
         result.Errors.Should().Contain(e => e.Message.Contains("ingredient"));
+    }
+
+    [Fact]
+    public async Task Handle_WithInvalidIngredient_ShouldFailWithoutCallingTheRepository()
+    {
+        // Arrange
+        Guid recipeId = Guid.NewGuid();
+        Result<Recipe> existingRecipeResult = Recipe.Create(
+            "Original Title",
+            "Original Description",
+            10,
+            20,
+            2,
+            [Ing("Flour")],
+            new List<string> { "Mix" }
+        );
+
+        _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
+            .Returns(existingRecipeResult.Value);
+
+        UpdateRecipeCommand command = new(
+            recipeId,
+            "Updated Title",
+            "Updated Description",
+            15,
+            25,
+            4,
+            [new IngredientInputDto(null, null, Unit.Gram, "Sugar", null)],
+            new List<string> { "Cream", "Mix" }
+        );
+
+        // Act
+        Result result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.IsFailed.Should().BeTrue();
+
+        await _recipeRepository.DidNotReceive().UpdateAsync(
+            Arg.Any<Recipe>(),
+            Arg.Any<CancellationToken>());
     }
 
     #endregion
@@ -203,7 +255,7 @@ public class UpdateRecipeHandlerTest
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            [Ing("Flour")],
             new List<string> { "Mix" }
         );
 
@@ -219,7 +271,10 @@ public class UpdateRecipeHandlerTest
             15,
             0,
             4,
-            new List<string> { "Sugar", "Butter" },
+            [
+                new IngredientInputDto(null, null, null, "Sugar", null),
+                new IngredientInputDto(null, null, null, "Butter", null)
+            ],
             new List<string> { "Cream", "Mix" }
         );
 
@@ -248,7 +303,7 @@ public class UpdateRecipeHandlerTest
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            [Ing("Flour")],
             new List<string> { "Mix" }
         );
 
@@ -262,7 +317,10 @@ public class UpdateRecipeHandlerTest
             0, // Only cooking time
             30,
             4,
-            new List<string> { "Sugar", "Butter" },
+            [
+                new IngredientInputDto(null, null, null, "Sugar", null),
+                new IngredientInputDto(null, null, null, "Butter", null)
+            ],
             new List<string> { "Cream", "Mix" }
         );
 

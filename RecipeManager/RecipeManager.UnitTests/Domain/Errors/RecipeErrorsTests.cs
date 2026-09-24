@@ -30,13 +30,15 @@ public class RecipeErrorsTests
             RecipeErrors.BothTimesZero(),
             RecipeErrors.ServingsOutOfRange(1),
             RecipeErrors.IngredientsRequired(),
-            RecipeErrors.IngredientEmpty(),
+            RecipeErrors.IngredientNameRequired(),
+            RecipeErrors.IngredientQuantityNotPositive(),
+            RecipeErrors.IngredientUnitWithoutQuantity(),
             RecipeErrors.InstructionsRequired(),
             RecipeErrors.InstructionEmpty()
         ];
 
         // Assert
-        errors.Should().HaveCount(10).And.AllSatisfy(error =>
+        errors.Should().HaveCount(12).And.AllSatisfy(error =>
             error.Should().BeOfType<DomainError>()
                 .Which.Kind.Should().Be(ErrorKind.Validation));
     }

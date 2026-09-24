@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using RecipeManager.Application.DTO.Recipes;
 
 namespace RecipeManager.Application.Validators.Recipes;
 
@@ -39,12 +40,16 @@ public static class RecipeValidationRules
             .LessThan(1000).WithMessage("Servings cannot exceed 1000");
     }
 
-    public static IRuleBuilderOptions<T, List<string>> ValidateIngredients<T>(
-        this IRuleBuilder<T, List<string>> ruleBuilder)
+    public static IRuleBuilderOptions<T, List<IngredientInputDto>> ValidateIngredients<T>(
+        this IRuleBuilder<T, List<IngredientInputDto>> ruleBuilder)
     {
-        return ruleBuilder
+        // FluentValidation's ForEach() is only declared over IEnumerable<TElement>, so the covariant
+        // IRuleBuilderOptions<T, TProperty> it returns needs an explicit (but safe — same underlying
+        // rule object) cast back down to the List<TElement> this method promises its callers.
+        return (IRuleBuilderOptions<T, List<IngredientInputDto>>)ruleBuilder
             .NotNull().WithMessage("Ingredients list cannot be null")
-            .Must(list => list.Count <= 50).WithMessage("Cannot exceed 50 ingredients");
+            .Must(list => list.Count <= 50).WithMessage("Cannot exceed 50 ingredients")
+            .ForEach(item => item.SetValidator(new IngredientInputDtoValidator()));
     }
 
     public static IRuleBuilderOptions<T, List<string>> ValidateInstructions<T>(

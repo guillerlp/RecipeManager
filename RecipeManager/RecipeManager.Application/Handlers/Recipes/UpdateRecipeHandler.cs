@@ -1,6 +1,7 @@
 ﻿using FluentResults;
 using RecipeManager.Application.Commands.Recipes;
 using RecipeManager.Application.Common.Interfaces.Messaging;
+using RecipeManager.Application.Mappings;
 using RecipeManager.Domain.Entities;
 using RecipeManager.Domain.Errors;
 using RecipeManager.Domain.Interfaces.Repositories;
@@ -23,8 +24,13 @@ public class UpdateRecipeHandler : ICommandHandler<UpdateRecipeCommand, Result>
         if (recipeToUpdate is null)
             return Result.Fail(RecipeErrors.RecipeNotFound(request.Id));
 
+        Result<List<Ingredient>> ingredients = request.Ingredients.ToIngredients();
+
+        if (ingredients.IsFailed)
+            return ingredients.ToResult();
+
         Result updateResult = recipeToUpdate.Update(request.Title, request.Description, request.PreparationTime,
-            request.CookingTime, request.Servings, request.Ingredients, request.Instructions);
+            request.CookingTime, request.Servings, ingredients.Value, request.Instructions);
 
         if (updateResult.IsFailed)
         {

@@ -14,6 +14,8 @@ public class RecipesControllerTests : IntegrationTestBase
     {
     }
 
+    private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
+
     [SkippableFact]
     public async Task CreateRecipe_WithValidData_ShouldReturnCreatedStatusAndSaveToDatabase()
     {
@@ -24,7 +26,13 @@ public class RecipesControllerTests : IntegrationTestBase
             PreparationTime: 20,
             CookingTime: 30,
             Servings: 8,
-            Ingredients: ["Flour", "Sugar", "Cocoa powder", "Eggs"],
+            Ingredients:
+            [
+                new IngredientInputDto(null, null, null, "Flour", null),
+                new IngredientInputDto(null, null, null, "Sugar", null),
+                new IngredientInputDto(null, null, null, "Cocoa powder", null),
+                new IngredientInputDto(null, null, null, "Eggs", null)
+            ],
             Instructions: ["Mix dry ingredients", "Add wet ingredients", "Bake at 350°F for 30 minutes"]
         );
 
@@ -43,7 +51,7 @@ public class RecipesControllerTests : IntegrationTestBase
         createdRecipe.PreparationTime.Should().Be(command.PreparationTime);
         createdRecipe.CookingTime.Should().Be(command.CookingTime);
         createdRecipe.Servings.Should().Be(command.Servings);
-        createdRecipe.Ingredients.Should().BeEquivalentTo(command.Ingredients);
+        createdRecipe.Ingredients.Select(i => i.Name).Should().BeEquivalentTo(command.Ingredients.Select(i => i.Name));
         createdRecipe.Instructions.Should().BeEquivalentTo(command.Instructions);
 
         Recipe? recipeInDb = await DbContext.Recipes.FindAsync(createdRecipe.Id);
@@ -61,7 +69,7 @@ public class RecipesControllerTests : IntegrationTestBase
             PreparationTime: 10,
             CookingTime: 20,
             Servings: 4,
-            Ingredients: ["Ingredient 1"],
+            Ingredients: [new IngredientInputDto(null, null, null, "Ingredient 1", null)],
             Instructions: ["Step 1"]
         );
 
@@ -85,7 +93,7 @@ public class RecipesControllerTests : IntegrationTestBase
             15,
             25,
             6,
-            new List<string> { "Ingredient A", "Ingredient B" },
+            new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
             new List<string> { "Step 1", "Step 2" }
         );
         Recipe existingRecipe = existingRecipeResult.Value;
@@ -128,7 +136,7 @@ public class RecipesControllerTests : IntegrationTestBase
             10,
             15,
             4,
-            new List<string> { "Ingredient A", "Ingredient B" },
+            new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
             new List<string> { "Step 1", "Step 2" });
 
         var recipe2Result = Recipe.Create(
@@ -137,7 +145,7 @@ public class RecipesControllerTests : IntegrationTestBase
             10,
             15,
             4,
-            new List<string> { "Ingredient A", "Ingredient B" },
+            new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
             new List<string> { "Step 1", "Step 2" });
 
         var recipe3Result = Recipe.Create(
@@ -146,7 +154,7 @@ public class RecipesControllerTests : IntegrationTestBase
             10,
             15,
             4,
-            new List<string> { "Ingredient A", "Ingredient B" },
+            new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
             new List<string> { "Step 1", "Step 2" });
 
         await SeedDatabase(recipe1Result.Value, recipe2Result.Value, recipe3Result.Value);
@@ -175,7 +183,7 @@ public class RecipesControllerTests : IntegrationTestBase
             10,
             15,
             4,
-            new List<string> { "Ingredient A", "Ingredient B" },
+            new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
             new List<string> { "Step 1", "Step 2" });
 
         await SeedDatabase(currentRecipeResult.Value);
@@ -186,7 +194,10 @@ public class RecipesControllerTests : IntegrationTestBase
             20,
             20,
             6,
-            ["Ingredient A1", "Ingredient B1"],
+            [
+                new IngredientInputDto(null, null, null, "Ingredient A1", null),
+                new IngredientInputDto(null, null, null, "Ingredient B1", null)
+            ],
             ["Step 1B", "Step 2B"]);
 
         var currentId = currentRecipeResult.Value.Id;
@@ -207,7 +218,7 @@ public class RecipesControllerTests : IntegrationTestBase
         updatedRecipe.PreparationTime.Should().Be(updateRecipeDto.PreparationTime);
         updatedRecipe.CookingTime.Should().Be(updateRecipeDto.CookingTime);
         updatedRecipe.Servings.Should().Be(updateRecipeDto.Servings);
-        updatedRecipe.Ingredients.Should().BeEquivalentTo(updateRecipeDto.Ingredients);
+        updatedRecipe.Ingredients.Select(i => i.Name).Should().BeEquivalentTo(updateRecipeDto.Ingredients.Select(i => i.Name));
         updatedRecipe.Instructions.Should().BeEquivalentTo(updateRecipeDto.Instructions);
     }
 
@@ -221,7 +232,7 @@ public class RecipesControllerTests : IntegrationTestBase
             10,
             15,
             4,
-            new List<string> { "Ingredient A", "Ingredient B" },
+            new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
             new List<string> { "Step 1", "Step 2" });
 
         await SeedDatabase(existingRecipe.Value);
