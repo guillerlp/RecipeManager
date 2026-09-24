@@ -25,13 +25,13 @@ const makeRecipe = (overrides: Partial<Recipe>): Recipe => ({
 });
 
 // A stable, distinct id per ingredient without depending on crypto.randomUUID's jsdom availability;
-// the id is never asserted on, only the name matters for these fixtures. `unit` is required by the
-// generated contract (unlike `quantity`/`notes`), so an arbitrary valid value stands in here.
+// the id is never asserted on, only the name matters for these fixtures. `unit` is genuinely nullable
+// (e.g. "salt to taste" has no unit), so the fixture reflects that rather than standing in a fake value.
 let ingredientId = 0;
 const ing = (name: string): Ingredient => ({
   id: `00000000-0000-0000-0000-${String(++ingredientId).padStart(12, '0')}`,
   quantity: null,
-  unit: 'Gram',
+  unit: null,
   name,
   notes: null,
 });

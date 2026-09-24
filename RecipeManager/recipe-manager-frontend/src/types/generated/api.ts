@@ -168,7 +168,7 @@ export interface components {
             id: string;
             /** Format: double */
             quantity?: number | null;
-            unit: components["schemas"]["Unit"];
+            unit?: components["schemas"]["Unit"] | null;
             name: string;
             notes?: string | null;
         };
@@ -177,7 +177,7 @@ export interface components {
             id?: string | null;
             /** Format: double */
             quantity?: number | null;
-            unit: components["schemas"]["Unit"];
+            unit?: components["schemas"]["Unit"] | null;
             name: string;
             notes?: string | null;
         };

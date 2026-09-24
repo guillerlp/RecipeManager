@@ -224,8 +224,7 @@
       "IngredientDto": {
         "required": [
           "id",
-          "name",
-          "unit"
+          "name"
         ],
         "type": "object",
         "properties": {
@@ -239,7 +238,12 @@
             "nullable": true
           },
           "unit": {
-            "$ref": "#/components/schemas/Unit"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Unit"
+              }
+            ],
+            "nullable": true
           },
           "name": {
             "type": "string"
@@ -253,8 +257,7 @@
       },
       "IngredientInputDto": {
         "required": [
-          "name",
-          "unit"
+          "name"
         ],
         "type": "object",
         "properties": {
@@ -269,7 +272,12 @@
             "nullable": true
           },
           "unit": {
-            "$ref": "#/components/schemas/Unit"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Unit"
+              }
+            ],
+            "nullable": true
           },
           "name": {
             "type": "string"

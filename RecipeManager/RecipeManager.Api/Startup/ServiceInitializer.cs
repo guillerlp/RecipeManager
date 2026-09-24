@@ -101,6 +101,7 @@ public static class ServiceInitializer
             // moment to resolve it.
             options.SupportNonNullableReferenceTypes();
             options.SchemaFilter<RequireNonNullablePropertiesSchemaFilter>();
+            options.SchemaFilter<NullableEnumSchemaFilter>();
             options.DescribeAllParametersInCamelCase();
         });
         return services;
