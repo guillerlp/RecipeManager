@@ -212,7 +212,9 @@ endpoint is anonymous and every recipe is world-writable. See
 
 ### ADR-004 — Ingredients and instructions as `IReadOnlyList<string>`
 
-- **Status:** accepted (initial migration).
+- **Status:** **superseded by ADR-022** (2026-09-24). ADR-022 restructures ingredients and fixes the
+  `InstructionStep` shape; `Instructions` stays `text[]` in code until `R-17` implements it. Originally
+  accepted (initial migration).
 - **Decision:** no `Ingredient`, `Step`, `Unit` or `Quantity` entities; both are primitive string collections
   persisted as PostgreSQL `text[]`.
 - **Consequences:** trivially simple, and `text[]` *is* queryable in PostgreSQL — but there is no quantity,
@@ -716,6 +718,39 @@ endpoint is anonymous and every recipe is world-writable. See
     browser's default frame between document parse and that first commit. Unchanged by this branch; an inline
     script in `index.html` reading the stored preference (or `matchMedia`) before any stylesheet applies would
     close it, but none is added here — this bullet only records the limit.
+
+### ADR-022 — Ingredients become owned entities in a child table; instructions get a shape
+
+- **Status:** accepted (2026-09-24). **Supersedes ADR-004.** Full detail:
+  [specs/010-structured-ingredients.md](specs/010-structured-ingredients.md).
+- **Context:** `Recipe.Ingredients` is `IReadOnlyList<string>` — ADR-004's acknowledged temporary shortcut.
+  Five roadmap items (`R-17`, `R-18`, `R-19`, `R-21`) assume quantities, units, and per-step ingredient
+  references, so the shape can no longer be deferred. `R-10` requires this ADR to settle `Instructions` too.
+- **Decision:**
+  1. `Ingredient` is an **owned entity** (`Position`, `Quantity` `decimal?`, `Unit` `Unit?`, `Name`,
+     `Notes` `string?`) with its own `Guid Id`, persisted to a `RecipeIngredients` child table via `OwnsMany`.
+     `Recipe` stays the only aggregate root; ADR-006 is untouched.
+  2. `Unit` is a **closed C# enum** covering metric, imperial, and countable units, stored as a string.
+     `Unit?` null means "no unit"; there is no `None` member.
+  3. **Conversion is a presentation concern.** The database stores what was entered. No canonical unit, no
+     domain converter. `R-16`'s metric/imperial preference is satisfied client-side in `R-18`.
+  4. An explicit `int Position` carries order, because a child table has none — `text[]` gave it for free.
+  5. `InstructionStep` (`Position`, `Text`, `DurationMinutes int?`, `IngredientIds Guid[]`) is the shape
+     `R-17` implements. Step references point at ingredient ids; integrity is a domain invariant, not an FK.
+  6. Existing `text[]` rows migrate **losslessly** as name-only ingredients. No parsing.
+- **Alternatives:** `Unit` as an open-set value object (no compile-time safety, leaves `R-21`'s parser with no
+  vocabulary); a canonical base unit converted on write (needs per-ingredient density, which the no-catalogue
+  decision removed the place to store, and round-trips lossily); a pure value object with steps referencing by
+  array index (reordering silently corrupts every reference, and `R-21` is specified with keyboard reorder);
+  `OwnsMany(...).ToJson()` into a `jsonb` column (EF's translation into JSON is limited, so `R-11`'s ingredient
+  search falls back to raw SQL or the client — the problem this ADR exists to fix). Each is weighed in spec 010.
+- **Consequences:** quantities, serving scaling, and SQL ingredient search become possible; `BUG-11` and
+  `SEC-09` close for ingredients; `OnModelCreating` and the first `IEntityTypeConfiguration<T>` arrive, which
+  partly unblocks `SEC-08`. Harder: `RecipeDto` carries an id the client must round-trip or step references
+  break, and nothing in the type system enforces it; adding a unit is a code-and-deploy change; the
+  `Ingredients` getter allocates a sorted copy per access; `Down()` is **lossy** and `app.MigrateDatabase()`
+  applies migrations at startup with no rollback procedure (`INFRA-03`). `SEC-07` worsens in degree — each
+  recipe's payload grows while `GET /api/recipes` stays unpaginated.
 
 ---
 

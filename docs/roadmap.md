@@ -70,8 +70,8 @@ Build order. Each item names what it waits on, so a later item can move up if it
 
 | Order | Item | Waits on |
 | --- | --- | --- |
-| 1 | `R-10` Structured ingredients (ADR also settles the instructions shape) | — |
-| 2 | `R-17` Structured instructions | `R-10` ADR |
+| 1 | `R-10` Structured ingredients — **specced ([010](specs/010-structured-ingredients.md)), ADR-022 accepted** | — |
+| 2 | `R-17` Structured instructions — shape decided in ADR-022, so **unblocked** | ~~`R-10` ADR~~ |
 | 3 | `R-18` Recipe detail screen | `R-10` |
 | 4 | `R-19` Draft recipes | `R-10` |
 | 5 | `R-20` Tags | — |
@@ -85,45 +85,43 @@ the design asks of it. `R-13` is worth doing early, since every screen above is 
 data.
 
 ### R-10
-**Structured ingredients** · `01-architect` (ADR required) → `02-senior-csharp` → full stack · ~2–3 days · **decided**
+**Structured ingredients** · `02-senior-csharp` → full stack · ~2–3 days · **specced, ADR accepted, not built**
 
 The largest latent change in the model, and an acknowledged temporary shortcut. `Ingredients` is
 `IReadOnlyList<string>` of free text, which makes all of these impossible: quantities, unit conversion, serving
 scaling, shopping lists, and querying "recipes containing tomato" in SQL (the frontend filters the whole list
 client-side instead).
 
-**Target shape** — settle these in the ADR before any code:
+**The design is settled**, 2026-09-24, in [spec 010](specs/010-structured-ingredients.md) and **ADR-022**
+(which supersedes ADR-004). What remains is implementation. In short:
 
-- An `Ingredient` value object or entity: `Quantity` (decimal), `Unit`, `Name`, optional `Notes`.
-- A `Unit` value object or enum covering metric and imperial, with an explicit conversion policy — decide
-  whether conversion is a domain service or a presentation concern, and what the canonical stored unit is.
-- ~~Whether an ingredient **catalogue** exists~~ — **settled 2026-09-19: no catalogue.** Ingredients are value
-  objects owned by their recipe. `Recipe` stays the only aggregate and each write stays one repository call
-  (ADR-006 holds). "Recipes containing tomato" becomes a name match in SQL. The cost is that "tomato" and
-  "tomatoes" are different ingredients, with no shared identity to join on.
-- Migration for existing rows: `text[]` free text cannot be parsed reliably into structured data. Decide
-  between a best-effort parse, a nullable structured column alongside the text one, or accepting data loss.
-  If `Quantity` and `Unit` are optional (needed anyway for "salt to taste"), every old string migrates
-  losslessly as a name-only ingredient.
+- `Ingredient` is an **owned entity** with its own `Guid Id` — `Position`, `Quantity` `decimal?`, `Unit`
+  `Unit?`, `Name`, `Notes` `string?` — in a `RecipeIngredients` child table via `OwnsMany`. `Recipe` stays the
+  only aggregate root and each write stays one repository call (ADR-006 holds).
+- `Unit` is a **closed C# enum** (metric, imperial, countable), stored as a string. `Unit?` null means "no
+  unit"; there is no `None` member.
+- **Conversion is a presentation concern** — no canonical stored unit and no domain converter. The database
+  stores what was entered; `R-16`'s metric/imperial preference is satisfied client-side in `R-18`.
+- ~~Whether an ingredient **catalogue** exists~~ — **settled 2026-09-19: no catalogue.** The cost is that
+  "tomato" and "tomatoes" are different ingredients, with no shared identity to join on.
+- Existing `text[]` rows migrate **losslessly** as name-only ingredients, because `Quantity` and `Unit` are
+  optional (needed anyway for "salt to taste"). Best-effort parsing was rejected.
+- An explicit `int Position` carries order — a child table has none, where `text[]` gave it for free.
 
-**Knock-on effects to plan in the same ADR:** the recipe form is now `R-21`, and its ingredient input parses
-one line ("2 tbsp butter, cold") into quantity, unit, and name on the client, so the parser's rules belong
-in the ADR too. Serving scaling is `R-18`. The metric/imperial preference in `R-16`'s Settings needs the
-conversion policy. `RecipeDto` changes, so `R-09` (shipped) will flag every client site the change touches.
-
-The same ADR settles the `Instructions` shape. It is no longer optional: cooking mode (`R-23`) needs per-step
-durations and to know which ingredients each step uses. Decided here, implemented as `R-17`.
+`R-21`'s ingredient line parser ("2 tbsp butter, cold") has its rules recorded in spec 010 §9; it runs on the
+client and is built with the form. Serving scaling is `R-18`. `RecipeDto` changes, so `R-09` (shipped) will
+flag every client site the change touches.
 
 ### R-17
-**Structured instructions** · `01-architect` (shape decided in `R-10`'s ADR) → `02-senior-csharp` → full stack ·
-~1–2 days
+**Structured instructions** · `02-senior-csharp` → full stack · ~1–2 days · **shape decided in ADR-022**
 
-`Instructions` becomes an ordered list of steps: text, an optional duration, and references to the ingredients
-the step uses. Those references are what cooking mode's "For this step" and "Already used" lists are built
-from. Referencing an ingredient needs something stable to point at. A value object has no identity, so the ADR
-must choose between an index into the ingredient list (breaks when the list is reordered), a step-local id,
-or making `Ingredient` a child entity. Fix `TEST-03` (step order never asserted) before or with this: reshaping
-the steps is exactly the change an order-insensitive assertion would let through.
+`Instructions` becomes an ordered list of steps. ADR-022 fixes the shape: `InstructionStep` with `Position`,
+`Text`, `DurationMinutes int?`, and `IngredientIds Guid[]`. Those references are what cooking mode's "For this
+step" and "Already used" lists are built from, and they point at ingredient ids — which is why ADR-022 made
+`Ingredient` an entity rather than a pure value object. Referential integrity is a domain invariant, not a
+foreign key. Fix `TEST-03` (step order never asserted) before or with this: reshaping the steps is exactly the
+change an order-insensitive assertion would let through. `BUG-11` and `SEC-09` each close their instruction
+half here; `R-10` closes the ingredient half.
 
 ### R-18
 **Recipe detail screen** · `07-ux-ui` → `03-senior-react` · ~1 day

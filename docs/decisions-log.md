@@ -39,7 +39,8 @@ Jump to every entry touching a topic.
 | Layering / dependency direction | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain) |
 | Error handling | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
 | Caching | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
-| Domain modelling | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
+| Domain modelling | [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
+| Persistence / EF Core | [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Testing | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
 | Tooling / infrastructure | [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
@@ -52,6 +53,49 @@ Jump to every entry touching a topic.
 ---
 
 ## Entries
+
+### 2026-09-24 — The child table takes the ordering away, and nothing tells you
+
+**Context.** `R-10` replaced free-text ingredients with structured ones. Four forks were settled at once
+(ADR-022, [spec 010](specs/010-structured-ingredients.md)): `Unit` as a closed enum, conversion as a
+presentation concern, `Ingredient` as an owned **entity** with a `Guid Id`, and a `RecipeIngredients` child
+table rather than a `jsonb` column.
+
+**Decision.** The one worth remembering is not any of those four — it is the `int Position` column that none of
+them asked for. `IReadOnlyList<string>` mapped to `text[]`, and a PostgreSQL array *is* ordered, so ingredient
+order had been a free property of the storage choice for the whole life of the project. A relational child
+table has no row order. Moving from `text[]` to `RecipeIngredients` silently deletes a guarantee that three
+future screens depend on — `R-21`'s keyboard reorder, `R-18`'s ingredient rail, `R-23`'s per-step lists — and
+the compiler, EF, and PostgreSQL all stay quiet about it. In practice rows usually come back in insertion
+order, which is worse than if they never did: the bug appears only after an update rewrites them.
+
+**Rejected.** *(a)* Relying on observed insertion order. It works until it doesn't, and the failure is a
+shuffled recipe, not an exception. *(b)* Sorting in `MapToRecipeDto` instead of the domain. Order is a fact
+about the recipe, not about its JSON representation — putting it in the mapper means the domain's own
+collection is meaningless and every future consumer re-learns that. *(c)* `jsonb` via `OwnsMany(...).ToJson()`,
+which would have kept array ordering for free — but EF's translation into JSON is limited enough that `R-11`'s
+ingredient search would fall back to the client, which is the exact problem `R-10` exists to remove.
+
+**Cost.** Every write assigns `Position` from list order, and nothing enforces that it was assigned correctly;
+the getter sorts and allocates a copy on each access; and `Position` is deliberately kept out of `RecipeDto`,
+so the API's contract is "the array is in order" — a promise the wire format cannot express and only tests can
+check. Asserting it needs `Should().Equal(...)`, never `BeEquivalentTo`, which is `TEST-03`'s lesson arriving
+one item early.
+
+Two smaller things fell out of doing this properly rather than minimally. The private backing field the new
+collection needs is also the fix for `BUG-11`'s ingredient half, and `ValidateIngredients` had to be rewritten
+anyway, which is where `SEC-09`'s ingredient half closes. Neither was in scope; both would have been *actively
+avoided* work — shipping a rewritten validator without a length cap is a decision to re-introduce a known gap,
+not a neutral omission.
+
+**Takeaway.** *When you change how something is stored, list what the old storage was giving you for free.*
+Ordering, uniqueness, atomicity, and cascade behaviour are properties of a representation, not of a model, and
+a migration hands none of them over. `text[]` to a child table reads like a pure upgrade — richer, queryable,
+indexable — and quietly costs one guarantee that nothing in the type system was ever holding. The general
+question to ask at a storage change is not "what can I now do?" but "what was true before that I have not
+re-stated?".
+
+---
 
 ### 2026-09-20 — A convention that spans two files cannot be reviewed in one
 

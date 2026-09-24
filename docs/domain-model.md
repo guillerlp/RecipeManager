@@ -179,17 +179,29 @@ Any feature touching items 1–4 is an **architecture decision first** — route
 
 The current shape is not the intended end state. These directions are **decided**; the design detail is not.
 
-### Structured ingredients (`R-10`, decided)
+### Structured ingredients (`R-10`, designed — ADR-022, not yet built)
 
-`Ingredients` as `IReadOnlyList<string>` was an acknowledged temporary shortcut, not a design choice. The
-project intends to replace it with structured data:
+`Ingredients` as `IReadOnlyList<string>` was an acknowledged temporary shortcut, not a design choice. The shape
+that replaces it is **settled** as of 2026-09-24 in
+[specs/010-structured-ingredients.md](specs/010-structured-ingredients.md) and **ADR-022**, which supersedes
+ADR-004. The tables above still describe the code; this describes where it is going:
 
-- An `Ingredient` value object or entity carrying at minimum `Quantity`, `Unit`, and `Name`.
-- A `Unit` value object or enum covering metric and imperial, with an explicit conversion policy and a
-  canonical stored unit.
-- **No ingredient catalogue** (settled 2026-09-19). Ingredients are value objects owned by their recipe, so
-  `Recipe` remains the only aggregate.
-- A migration strategy for existing `text[]` rows, which cannot be parsed into structured data reliably.
+- `Ingredient` is an **owned entity** deriving from `Entity`, with its own `Guid Id`: `Position` (`int`),
+  `Quantity` (`decimal?`), `Unit` (`Unit?`), `Name` (`string`), `Notes` (`string?`). It is persisted to a
+  `RecipeIngredients` child table via `OwnsMany` and is never addressable outside its recipe.
+- `Unit` is a **closed C# enum** — `Gram, Kilogram, Ounce, Pound, Millilitre, Litre, Teaspoon, Tablespoon, Cup,
+  FluidOunce, Piece, Clove, Pinch, Slice, Can, Bunch, Sprig` — stored as a string. `Unit?` null means "no unit";
+  there is deliberately no `None` member.
+- **Conversion is a presentation concern.** There is no canonical stored unit and no domain converter; the
+  database keeps what was entered. `R-16`'s metric/imperial preference is satisfied on the client in `R-18`.
+- **No ingredient catalogue** (settled 2026-09-19). Ingredients are owned by their recipe, so `Recipe` remains
+  the only aggregate root and ADR-006 is untouched.
+- **Order needs an explicit `Position`.** `text[]` preserved order for free; a relational child table does not.
+- Existing `text[]` rows migrate **losslessly** as name-only ingredients — possible only because `Quantity` and
+  `Unit` are optional, which "salt to taste" required independently. They are **not** parsed.
+- New invariants: name non-blank (`IngredientNameRequired`), `Quantity > 0` when present
+  (`IngredientQuantityNotPositive`), and a `Unit` requires a `Quantity` (`IngredientUnitWithoutQuantity`).
+  `IngredientEmpty()` is removed.
 
 **Consequences for anyone working today:**
 
@@ -197,10 +209,13 @@ project intends to replace it with structured data:
   parsing of `"200g flour"`, or UI that assumes one string per row all become rework.
 - Anything needing quantities — serving scaling, shopping lists, nutrition — is **blocked** on this, not
   merely awkward. Say so rather than implementing a string-parsing workaround.
-- `RecipeDto` will change, and `R-09` (shipped, ADR-019) will flag every client site the change touches.
+- `RecipeDto` will change: `List<string>` becomes `List<IngredientDto>`, and `IngredientDto` carries the id the
+  client must round-trip on update or step references break. `R-09` (shipped, ADR-019) will flag every client
+  site the change touches.
 
-`Instructions` get the same treatment: an ordered list of steps with an optional duration and references to
-the ingredients each step uses. The shape is decided in `R-10`'s ADR and implemented as `R-17`.
+`Instructions` get the same treatment, and ADR-022 fixes their shape too: `InstructionStep` with `Position`,
+`Text`, `DurationMinutes` (`int?`), and `IngredientIds` (`Guid[]`, mapped to `uuid[]`). Step-to-ingredient
+integrity is a domain invariant, not a foreign key. Implemented as `R-17`.
 
 ### Also decided, not yet designed (2026-09-19)
 

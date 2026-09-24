@@ -196,11 +196,15 @@ before the list screen does, not only when the list screen is opened.
 caps exist **only** in FluentValidation, so anything writing outside the API — a future bulk import, a direct
 psql session, a second service — can store unbounded values.
 
-**Fix.** Add `HasMaxLength` in an `IEntityTypeConfiguration` and a migration. Note that adding
-`OnModelCreating`/entity configuration is itself a small architecture change ([architecture.md](architecture.md)
-records that none exists today).
+**Fix.** Add `HasMaxLength` in an `IEntityTypeConfiguration` and a migration.
 
-**Owner:** `01-architect` → `02-senior-csharp`
+**Update 2026-09-24.** The architecture half is settled: ADR-022 approves `IEntityTypeConfiguration<T>` plus
+`OnModelCreating`, and `R-10`'s implementation introduces both, bounding the new ingredient columns at 200
+characters. This entry stays open for `Title` and `Description`, which are **existing** columns — altering them
+is its own migration and was deliberately kept out of [spec 010](specs/010-structured-ingredients.md). It is now
+a small task with no architecture work left.
+
+**Owner:** `02-senior-csharp`
 
 ### SEC-09
 **No per-item length cap on array elements — Medium**
@@ -210,7 +214,13 @@ each string. A single 10 MB ingredient string passes validation.
 
 **Fix.** Add `.ForEach(item => item.MaximumLength(<n>))` to `ValidateIngredients` / `ValidateInstructions`.
 
-**Owner:** `02-senior-csharp` · **Effort:** ~15 min
+**Update 2026-09-24.** The **ingredient half closes with `R-10`**: `ValidateIngredients` is rewritten anyway for
+the new `IngredientInputDto`, so `Name` and `Notes` get `MaximumLength(200)` there — and, uniquely in this
+codebase so far, the same cap in the database ([spec 010](specs/010-structured-ingredients.md), ADR-022).
+Shipping the new validator *without* the cap would have been knowingly re-introducing this gap. The
+**instruction half stays open** until `R-17`; delete this entry then.
+
+**Owner:** `02-senior-csharp` · **Effort:** ~15 min (instruction half)
 
 ### SEC-10
 **No security headers — Medium**
@@ -333,6 +343,14 @@ reasoning and were not re-verified for this entry:
 regression test for this can finally be written there. Also check that a schema diff produces no migration,
 since the column should not change.
 
+**Update 2026-09-24.** The **ingredient half closes with `R-10`**. ADR-022 retypes `Ingredients` to
+`IReadOnlyList<Ingredient>` over exactly the private backing field proposed above — which is independently the
+idiomatic EF pattern for an owned collection, so the fix costs nothing on top of a rewrite that was happening
+anyway. `OnModelCreating` arrives in the same change, giving EF somewhere to be pointed at the field. Note the
+"no migration should result" check does **not** apply to that half: `R-10` changes the column deliberately. The
+**instruction half stays open** until `R-17`; delete this entry and close
+[#8](https://github.com/guillerlp/RecipeManager/issues/8) then.
+
 **Owner:** `02-senior-csharp` (fix) · `01-architect` if the property-access-mode choice needs an ADR
 
 ### BUG-12
@@ -380,6 +398,12 @@ removes `recipe_{id}`: the cached object already holds the new values, so the de
 repository, or cache an immutable read model (for example `RecipeDto`) instead of the entity. Then tighten the
 detail assertion in `RecipeCacheTests.UpdateRecipe_AfterListAndDetailWereCached_ShouldReturnNewValuesFromBoth`
 so it detects a missing `recipe_{id}` invalidation.
+
+**Update 2026-09-24.** `R-10` does **not** fix this, and [spec 010](specs/010-structured-ingredients.md) says so
+explicitly rather than letting it look handled. It does make the failure mode wider: after ADR-022 a failed save
+leaves a cached recipe whose whole ingredient collection — objects, not strings — was already replaced in place,
+so what is served for up to ten minutes differs structurally, not just by a value. Worth fixing before `R-21`
+gives users a form that produces failed saves regularly.
 
 ---
 
