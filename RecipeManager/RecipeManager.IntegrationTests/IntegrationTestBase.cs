@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -15,6 +17,15 @@ namespace RecipeManager.IntegrationTests;
 /// </summary>
 public class IntegrationTestBase : IDisposable
 {
+    // Mirrors RecipeManager.Api's own AddJsonOptions (ServiceInitializer.cs): the API serialises Unit as a
+    // string via JsonStringEnumConverter, so a test reading its responses needs the same converter --
+    // default JsonSerializerOptions has none and cannot deserialize an IngredientDto.
+    protected static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     protected readonly HttpClient Client;
     protected readonly WebApplicationFactory<Program> Factory;
     protected readonly IServiceScope Scope;

@@ -19,7 +19,7 @@ public class UpdateRecipeHandler : ICommandHandler<UpdateRecipeCommand, Result>
 
     public async Task<Result> Handle(UpdateRecipeCommand request, CancellationToken cancellationToken)
     {
-        Recipe? recipeToUpdate = await _recipeRepository.GetByIdAsync(request.Id, cancellationToken);
+        Recipe? recipeToUpdate = await _recipeRepository.GetByIdForUpdateAsync(request.Id, cancellationToken);
 
         if (recipeToUpdate is null)
             return Result.Fail(RecipeErrors.RecipeNotFound(request.Id));

@@ -61,11 +61,11 @@ public class RecipeCacheTests : IntegrationTestBase
             Instructions: ["Step 1"]);
 
         // ==================== ACT ====================
-        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command);
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
         // ==================== ASSERT ====================
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        RecipeDto? created = await response.Content.ReadFromJsonAsync<RecipeDto>();
+        RecipeDto? created = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
         created.Should().NotBeNull();
 
         List<RecipeDto> recipes = await GetAllRecipes();
@@ -93,7 +93,7 @@ public class RecipeCacheTests : IntegrationTestBase
             ["Step 1B"]);
 
         // ==================== ACT ====================
-        HttpResponseMessage response = await Client.PutAsJsonAsync($"/api/recipes/{recipe.Id}", update);
+        HttpResponseMessage response = await Client.PutAsJsonAsync($"/api/recipes/{recipe.Id}", update, JsonOptions);
 
         // ==================== ASSERT ====================
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -103,7 +103,7 @@ public class RecipeCacheTests : IntegrationTestBase
 
         // The user-visible contract, but not on its own a test of recipe_{id} invalidation: the handler mutates
         // the instance the cache holds, so that entry already carries the new values (BUG-14).
-        RecipeDto? detail = await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{recipe.Id}");
+        RecipeDto? detail = await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{recipe.Id}", JsonOptions);
         detail.Should().NotBeNull();
         detail.Title.Should().Be("Updated title");
         detail.Description.Should().Be("Updated description");
@@ -141,7 +141,7 @@ public class RecipeCacheTests : IntegrationTestBase
         HttpResponseMessage response = await Client.GetAsync("/api/recipes");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        List<RecipeDto>? recipes = await response.Content.ReadFromJsonAsync<List<RecipeDto>>();
+        List<RecipeDto>? recipes = await response.Content.ReadFromJsonAsync<List<RecipeDto>>(JsonOptions);
         recipes.Should().NotBeNull();
         return recipes;
     }

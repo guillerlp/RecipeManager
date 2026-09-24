@@ -41,7 +41,7 @@ public class UpdateRecipeHandlerTest
 
         Recipe? existingRecipe = existingRecipeResult.Value;
 
-        _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
+        _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
             .Returns(existingRecipe);
 
         UpdateRecipeCommand command = new(
@@ -75,7 +75,7 @@ public class UpdateRecipeHandlerTest
             ),
             Arg.Any<CancellationToken>());
 
-        await _recipeRepository.Received(1).GetByIdAsync(recipeId, Arg.Any<CancellationToken>());
+        await _recipeRepository.Received(1).GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>());
     }
 
     #endregion
@@ -88,7 +88,7 @@ public class UpdateRecipeHandlerTest
         // Arrange
         Guid recipeId = Guid.NewGuid();
 
-        _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
+        _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
             .Returns((Recipe?)null);
 
         UpdateRecipeCommand command = new(
@@ -133,7 +133,7 @@ public class UpdateRecipeHandlerTest
             new List<string> { "Mix" }
         );
 
-        _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
+        _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
             .Returns(existingRecipeResult.Value);
 
         UpdateRecipeCommand command = new(
@@ -178,7 +178,7 @@ public class UpdateRecipeHandlerTest
             new List<string> { "Mix" }
         );
 
-        _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
+        _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
             .Returns(existingRecipeResult.Value);
 
         UpdateRecipeCommand command = new(
@@ -215,7 +215,7 @@ public class UpdateRecipeHandlerTest
             new List<string> { "Mix" }
         );
 
-        _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
+        _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
             .Returns(existingRecipeResult.Value);
 
         UpdateRecipeCommand command = new(
@@ -261,7 +261,7 @@ public class UpdateRecipeHandlerTest
 
         Recipe? existingRecipe = existingRecipeResult.Value;
 
-        _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
+        _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
             .Returns(existingRecipe);
 
         UpdateRecipeCommand command = new(
@@ -307,7 +307,7 @@ public class UpdateRecipeHandlerTest
             new List<string> { "Mix" }
         );
 
-        _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
+        _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
             .Returns(existingRecipeResult.Value);
 
         UpdateRecipeCommand command = new(

@@ -38,12 +38,12 @@ public class RecipesControllerTests : IntegrationTestBase
         );
 
         // ==================== ACT ====================
-        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command);
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
         // ==================== ASSERT ====================
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        RecipeDto? createdRecipe = await response.Content.ReadFromJsonAsync<RecipeDto>();
+        RecipeDto? createdRecipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
 
         createdRecipe.Should().NotBeNull();
         createdRecipe.Id.Should().NotBeEmpty();
@@ -75,7 +75,7 @@ public class RecipesControllerTests : IntegrationTestBase
         );
 
         // ==================== ACT ====================
-        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", invalidCommand);
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", invalidCommand, JsonOptions);
 
         // ==================== ASSERT ====================
         response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
@@ -107,7 +107,7 @@ public class RecipesControllerTests : IntegrationTestBase
         // ==================== ASSERT ====================
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        RecipeDto? retrievedRecipe = await response.Content.ReadFromJsonAsync<RecipeDto>();
+        RecipeDto? retrievedRecipe = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
         retrievedRecipe.Should().NotBeNull();
         retrievedRecipe.Id.Should().Be(existingRecipe.Id);
         retrievedRecipe.Title.Should().Be(existingRecipe.Title);
@@ -166,7 +166,7 @@ public class RecipesControllerTests : IntegrationTestBase
         // ==================== ASSERT ====================
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        List<RecipeDto>? retrievedRecipes = await response.Content.ReadFromJsonAsync<List<RecipeDto>>();
+        List<RecipeDto>? retrievedRecipes = await response.Content.ReadFromJsonAsync<List<RecipeDto>>(JsonOptions);
         retrievedRecipes.Should().NotBeNull();
         retrievedRecipes.Should().HaveCount(3);
         retrievedRecipes.Should().Contain(r => r.Title == "title1");
@@ -204,7 +204,7 @@ public class RecipesControllerTests : IntegrationTestBase
         var currentId = currentRecipeResult.Value.Id;
 
         // ==================== ACT ====================
-        HttpResponseMessage response = await Client.PutAsJsonAsync($"/api/recipes/{currentId}", updateRecipeDto);
+        HttpResponseMessage response = await Client.PutAsJsonAsync($"/api/recipes/{currentId}", updateRecipeDto, JsonOptions);
 
         // ==================== ASSERT ====================
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -283,11 +283,11 @@ public class RecipesControllerTests : IntegrationTestBase
             Instructions: ["Melt", "Whisk"]
         );
 
-        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command);
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        RecipeDto? created = await response.Content.ReadFromJsonAsync<RecipeDto>();
+        RecipeDto? created = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
         created.Should().NotBeNull();
 
         created.Ingredients.Select(i => i.Name).Should().Equal("Butter", "Eggs", "Salt to taste");
@@ -314,8 +314,8 @@ public class RecipesControllerTests : IntegrationTestBase
             ],
             ["Step"]);
 
-        HttpResponseMessage createResponse = await Client.PostAsJsonAsync("/api/recipes", create);
-        RecipeDto created = (await createResponse.Content.ReadFromJsonAsync<RecipeDto>())!;
+        HttpResponseMessage createResponse = await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions);
+        RecipeDto created = (await createResponse.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
 
         IngredientDto a = created.Ingredients.Single(i => i.Name == "A");
         IngredientDto b = created.Ingredients.Single(i => i.Name == "B");
@@ -329,10 +329,10 @@ public class RecipesControllerTests : IntegrationTestBase
             ],
             ["Step"]);
 
-        HttpResponseMessage updateResponse = await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update);
+        HttpResponseMessage updateResponse = await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions);
         updateResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        RecipeDto? reread = await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}");
+        RecipeDto? reread = await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions);
 
         reread.Should().NotBeNull();
         reread.Ingredients.Select(i => i.Name).Should().Equal("C", "A", "B");
@@ -345,8 +345,8 @@ public class RecipesControllerTests : IntegrationTestBase
         var create = new CreateRecipeCommand("Add one", "Description", 5, 5, 2,
             [new IngredientInputDto(null, 1m, Unit.Cup, "Existing", null)], ["Step"]);
 
-        RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create))
-            .Content.ReadFromJsonAsync<RecipeDto>())!;
+        RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions))
+            .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
         Guid existingId = created.Ingredients.Single().Id;
 
         var update = new UpdateRecipeDto("Add one", "Description", 5, 5, 2,
@@ -356,9 +356,9 @@ public class RecipesControllerTests : IntegrationTestBase
             ],
             ["Step"]);
 
-        await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update);
+        await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions);
 
-        RecipeDto reread = (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}"))!;
+        RecipeDto reread = (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions))!;
 
         reread.Ingredients.Should().HaveCount(2);
         reread.Ingredients[0].Id.Should().Be(existingId);
@@ -371,8 +371,8 @@ public class RecipesControllerTests : IntegrationTestBase
         var create = new CreateRecipeCommand("Delete me", "Description", 5, 5, 2,
             [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], ["Step"]);
 
-        RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create))
-            .Content.ReadFromJsonAsync<RecipeDto>())!;
+        RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions))
+            .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
 
         HttpResponseMessage response = await Client.DeleteAsync($"/api/recipes/{created.Id}");
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -393,13 +393,13 @@ public class RecipesControllerTests : IntegrationTestBase
     [InlineData(null, "Gram", "Flour")]      // unit without quantity
     [InlineData(0, "Gram", "Flour")]         // non-positive quantity
     [InlineData(1, "Gram", "   ")]           // blank name
-    public async Task CreateRecipe_WithAnInvalidIngredient_ShouldReturn422(decimal? quantity, string unit,
+    public async Task CreateRecipe_WithAnInvalidIngredient_ShouldReturn422(double? quantity, string unit,
         string name)
     {
         var command = new CreateRecipeCommand("Bad ingredient", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, quantity, Enum.Parse<Unit>(unit), name, null)], ["Step"]);
+            [new IngredientInputDto(null, (decimal?)quantity, Enum.Parse<Unit>(unit), name, null)], ["Step"]);
 
-        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command);
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
         response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
         (await response.Content.ReadAsStringAsync()).Should().Contain("ingredients");
@@ -412,7 +412,7 @@ public class RecipesControllerTests : IntegrationTestBase
         var command = new CreateRecipeCommand("Long name", "Description", 5, 5, 2,
             [new IngredientInputDto(null, 1m, Unit.Gram, new string('x', 201), null)], ["Step"]);
 
-        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command);
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
