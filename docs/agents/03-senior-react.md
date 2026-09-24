@@ -74,12 +74,20 @@ build config.
 
 There is **no form in the codebase today** and no form library installed. When building the recipe form:
 
-- [ ] `Ingredients` and `Instructions` are dynamic ordered lists of strings (`text[]` server-side). The UI needs
-      add / remove / reorder per row, and each row must have a stable `key` that is **not** the array index if
-      reordering is supported.
+- [ ] `Ingredients` is a dynamic ordered list of **objects** since ADR-022 — `IngredientInput`
+      (`{ id, quantity, unit, name, notes }`) on the way in, `Ingredient` on the way out. `Instructions` is
+      still a list of strings (`text[]` server-side) until `R-17`. Both need add / remove / reorder per row, and
+      each row must have a stable `key` that is **not** the array index if reordering is supported — for
+      ingredients that key is the server's `id`.
+- [ ] **Echo each ingredient's `id` back on update.** A form that rebuilds the list from scratch mints new ids
+      for unchanged rows and breaks `R-17`'s step references, and nothing in the type system prevents it. A
+      `null` id means "this one is new". Never invent an id: nothing server-side checks that it belongs to this
+      recipe, and a collision with another recipe's row is a 500 (`BUG-15`).
 - [ ] Mirror the server rules so the user sees them before the round-trip, but treat the server as the source of
       truth: title ≤ 200 chars, description ≤ 1000, prep/cook each 0–1439 minutes, servings 1–999, at most 50
-      ingredients and 50 instructions, no blank rows, and **not both times zero**.
+      ingredients and 50 instructions, no blank rows, and **not both times zero**. Per ingredient: `name` ≤ 200
+      and required, `notes` ≤ 200, `quantity` 0–100000 and **greater than zero** when given, and a `unit` is
+      only allowed alongside a `quantity`. `unit` is a closed enum — offer a picker, never a free-text box.
 - [ ] Map the server's error payload back onto fields: 422 responses carry `ProblemDetails.field` (camelCase,
       e.g. `title`, `preparationTime,cookingTime`) and an `errors[]` extension when there is more than one.
       400 responses carry the framework's `ValidationProblemDetails` with a different shape — handle both.

@@ -7,6 +7,9 @@ namespace RecipeManager.UnitTests.Domain.Entities;
 
 public class RecipeTests
 {
+    private static Ingredient Ing(string name, decimal? quantity = null, Unit? unit = null) =>
+        Ingredient.Create(null, quantity, unit, name, null).Value;
+
     #region Create Method Tests - Success Scenarios
 
     [Fact]
@@ -18,14 +21,14 @@ public class RecipeTests
         var preparationTime = 20;
         var cookingTime = 30;
         var servings = 8;
-        var ingredients = new List<string> { "Flour", "Sugar", "Cocoa" };
+        var ingredients = new List<Ingredient> { Ing("Flour"), Ing("Sugar"), Ing("Cocoa") };
         var instructions = new List<string> { "Mix ingredients", "Bake for 30 minutes" };
 
-        // Act 
+        // Act
         Result<Recipe> result = Recipe.Create(title, description, preparationTime,
             cookingTime, servings, ingredients, instructions);
 
-        // Assert 
+        // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().NotBeNull();
         result.Value.Title.Should().Be(title);
@@ -33,7 +36,7 @@ public class RecipeTests
         result.Value.PreparationTime.Should().Be(preparationTime);
         result.Value.CookingTime.Should().Be(cookingTime);
         result.Value.Servings.Should().Be(servings);
-        result.Value.Ingredients.Should().BeEquivalentTo(ingredients);
+        result.Value.Ingredients.Select(i => i.Name).Should().Equal("Flour", "Sugar", "Cocoa");
         result.Value.Instructions.Should().BeEquivalentTo(instructions);
         result.Value.Id.Should().NotBeEmpty();
     }
@@ -42,7 +45,7 @@ public class RecipeTests
     public void Create_WithOnlyPreparationTime_ShouldReturnSuccess()
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -56,8 +59,8 @@ public class RecipeTests
     [Fact]
     public void Create_WithOnlyCookingTime_ShouldReturnSuccess()
     {
-        // Arrange 
-        var ingredients = new List<string> { "Flour" };
+        // Arrange
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Bake" };
 
         // Act
@@ -79,7 +82,7 @@ public class RecipeTests
     public void Create_WithInvalidTitle_ShouldReturnFailureResult(string? invalidTitle)
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -99,7 +102,7 @@ public class RecipeTests
     public void Create_WithInvalidDescription_ShouldReturnFailureResult(string? invalidDescription)
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -116,7 +119,7 @@ public class RecipeTests
     public void Create_WithNegativePreparationTime_ShouldReturnFailureResult()
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -132,7 +135,7 @@ public class RecipeTests
     public void Create_WithNegativeCookingTime_ShouldReturnFailureResult()
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Bake" };
 
         // Act
@@ -147,8 +150,8 @@ public class RecipeTests
     [Fact]
     public void Create_WithBothTimesZero_ShouldReturnFailureResult()
     {
-        // Arrange 
-        var ingredients = new List<string> { "Flour" };
+        // Arrange
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -167,7 +170,7 @@ public class RecipeTests
     public void Create_WithInvalidServings_ShouldReturnFailureResult(int invalidServings)
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -183,7 +186,7 @@ public class RecipeTests
     public void Create_WithEmptyIngredientsList_ShouldReturnFailureResult()
     {
         // Arrange
-        var emptyIngredients = new List<string>();
+        var emptyIngredients = new List<Ingredient>();
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -196,26 +199,10 @@ public class RecipeTests
     }
 
     [Fact]
-    public void Create_WithEmptyIngredientString_ShouldReturnFailureResult()
-    {
-        // Arrange
-        var ingredientsWithEmpty = new List<string> { "Flour", "  ", "Sugar" };
-        var instructions = new List<string> { "Mix" };
-
-        // Act
-        Result<Recipe> result = Recipe.Create("Title", "Description",
-            10, 20, 2, ingredientsWithEmpty, instructions);
-
-        // Assert
-        result.IsFailed.Should().BeTrue();
-        result.Errors.Should().Contain(e => e.Message.Contains("Ingredients cannot be empty"));
-    }
-
-    [Fact]
     public void Create_WithEmptyInstructionsList_ShouldReturnFailureResult()
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var emptyInstructions = new List<string>();
 
         // Act
@@ -231,7 +218,7 @@ public class RecipeTests
     public void Create_WithEmptyInstructionString_ShouldReturnFailureResult()
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructionsWithEmpty = new List<string> { "Mix", "", "Bake" };
 
         // Act
@@ -246,8 +233,8 @@ public class RecipeTests
     [Fact]
     public void Create_WithMultipleValidationErrors_ShouldReturnAllErrors()
     {
-        // Arrange 
-        var emptyIngredients = new List<string>();
+        // Arrange
+        var emptyIngredients = new List<Ingredient>();
         var emptyInstructions = new List<string>();
 
         // Act
@@ -275,8 +262,8 @@ public class RecipeTests
     [Fact]
     public void Update_WithValidData_ShouldUpdatePropertiesAndReturnSuccess()
     {
-        // Arrange 
-        var ingredients = new List<string> { "Flour" };
+        // Arrange
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Mix" };
         Result<Recipe> createResult = Recipe.Create("Original Title", "Original Description",
             10, 20, 2, ingredients, instructions);
@@ -284,10 +271,10 @@ public class RecipeTests
 
         var newTitle = "Updated Title";
         var newDescription = "Updated Description";
-        var newIngredients = new List<string> { "Sugar", "Butter" };
+        var newIngredients = new List<Ingredient> { Ing("Sugar"), Ing("Butter") };
         var newInstructions = new List<string> { "Cream butter", "Add sugar" };
 
-        // Act 
+        // Act
         Result updateResult = recipe.Update(newTitle, newDescription,
             15, 25, 4, newIngredients, newInstructions);
 
@@ -298,7 +285,7 @@ public class RecipeTests
         recipe.PreparationTime.Should().Be(15);
         recipe.CookingTime.Should().Be(25);
         recipe.Servings.Should().Be(4);
-        recipe.Ingredients.Should().BeEquivalentTo(newIngredients);
+        recipe.Ingredients.Select(i => i.Name).Should().Equal("Sugar", "Butter");
         recipe.Instructions.Should().BeEquivalentTo(newInstructions);
     }
 
@@ -306,7 +293,7 @@ public class RecipeTests
     public void Update_WithInvalidData_ShouldNotUpdatePropertiesAndReturnFailure()
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Mix" };
         Result<Recipe> createResult = Recipe.Create("Original Title", "Original Description",
             10, 20, 2, ingredients, instructions);
@@ -333,7 +320,7 @@ public class RecipeTests
     public void Create_WithInvalidTitle_ShouldReturnValidationKindWithoutHttpCode()
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -352,7 +339,7 @@ public class RecipeTests
     public void Create_WithInvalidData_ShouldIncludeFieldNameInMetadata()
     {
         // Arrange
-        var ingredients = new List<string> { "Flour" };
+        var ingredients = new List<Ingredient> { Ing("Flour") };
         var instructions = new List<string> { "Mix" };
 
         // Act
@@ -364,6 +351,78 @@ public class RecipeTests
         var error = result.Errors.First();
         error.Metadata.Should().ContainKey("field");
         error.Metadata["field"].Should().Be("title");
+    }
+
+    #endregion
+
+    #region Structured Ingredients
+
+    [Fact]
+    public void Create_ShouldAssignPositionsFromListOrder()
+    {
+        Result<Recipe> result = Recipe.Create("Title", "Description", 10, 0, 1,
+            [Ing("Flour"), Ing("Sugar"), Ing("Cocoa")], ["Mix"]);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Ingredients.Select(i => i.Position).Should().Equal(0, 1, 2);
+    }
+
+    [Fact]
+    public void Ingredients_ShouldBeReturnedInPositionOrder()
+    {
+        // Should().Equal is order-SENSITIVE. BeEquivalentTo is not, and would pass on a shuffled list —
+        // that is exactly the hole TEST-03 records for instructions.
+        Result<Recipe> result = Recipe.Create("Title", "Description", 10, 0, 1,
+            [Ing("Flour"), Ing("Sugar"), Ing("Cocoa")], ["Mix"]);
+
+        result.Value.Ingredients.Select(i => i.Name).Should().Equal("Flour", "Sugar", "Cocoa");
+    }
+
+    [Fact]
+    public void Update_ShouldReassignPositionsFromTheNewOrder()
+    {
+        Recipe recipe = Recipe.Create("Title", "Description", 10, 0, 1,
+            [Ing("Flour"), Ing("Sugar")], ["Mix"]).Value;
+
+        Result result = recipe.Update("Title", "Description", 10, 0, 1,
+            [Ing("Sugar"), Ing("Flour")], ["Mix"]);
+
+        result.IsSuccess.Should().BeTrue();
+        recipe.Ingredients.Select(i => i.Name).Should().Equal("Sugar", "Flour");
+        recipe.Ingredients.Select(i => i.Position).Should().Equal(0, 1);
+    }
+
+    [Fact]
+    public void Update_ShouldPreserveSuppliedIngredientIds()
+    {
+        // This is what keeps R-17's step references valid across an edit.
+        var keptId = Guid.NewGuid();
+        Recipe recipe = Recipe.Create("Title", "Description", 10, 0, 1, [Ing("Flour")], ["Mix"]).Value;
+
+        recipe.Update("Title", "Description", 10, 0, 1,
+            [Ingredient.Create(keptId, 1m, Unit.Cup, "Flour", null).Value], ["Mix"]);
+
+        recipe.Ingredients.Should().ContainSingle().Which.Id.Should().Be(keptId);
+    }
+
+    [Fact]
+    public void Create_WithNoIngredients_ShouldFailWithIngredientsRequired()
+    {
+        Result<Recipe> result = Recipe.Create("Title", "Description", 10, 0, 1, [], ["Mix"]);
+
+        result.IsFailed.Should().BeTrue();
+        result.Errors.Should().Contain(e => e.Message == RecipeErrors.IngredientsRequired().Message);
+    }
+
+    [Fact]
+    public void Ingredients_ShouldNotBeCastableToAMutableList()
+    {
+        // BUG-11, ingredient half. Ingredients wraps its projection in AsReadOnly(), so callers get a
+        // ReadOnlyCollection rather than a real List<Ingredient> — a bare ToList() would still be
+        // castable back to List<Ingredient> and this assertion would fail.
+        Recipe recipe = Recipe.Create("Title", "Description", 10, 0, 1, [Ing("Flour")], ["Mix"]).Value;
+
+        recipe.Ingredients.Should().NotBeAssignableTo<List<Ingredient>>();
     }
 
     #endregion

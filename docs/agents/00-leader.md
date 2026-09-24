@@ -43,9 +43,11 @@ forgotten in this codebase.
 
 - **Ownership is implied.** Anything phrased as "my recipes", "private", "share", "user" — there is **no `User`
   entity and no auth at all**. Ask who owns a recipe before anyone writes code. (`R-14`, deploy gate.)
-- **Ingredients need structure.** Quantities, units, scaling, shopping lists, or "find recipes with X" all break
-  against `IReadOnlyList<string>`. Structuring them is already **decided** (`R-10`) but not designed — ask
-  whether this request should pull that work forward, or wait. Never approve a string-parsing workaround.
+- **Instructions need structure.** Per-step timing, per-step ingredient references, or cooking mode all break
+  against `IReadOnlyList<string>`. The shape is **decided** (ADR-022) and unbuilt (`R-17`) — ask whether this
+  request should pull that work forward, or wait. Never approve a string-parsing workaround. Ingredients went
+  through exactly this and shipped on 2026-09-24, so quantities, units, scaling, shopping lists, and
+  "find recipes with X" are no longer blocked by the model.
 - **Images are involved.** There is no image field on `RecipeDto` and no upload endpoint, but
   `recipe-manager-frontend/src/types/recipe.ts` has an unused `image?: string`. Ask what the source of truth should be.
 - **Scale or listing behaviour.** `GET /api/recipes` returns the entire table, unpaginated, cached in one
@@ -67,7 +69,7 @@ assumption in the spec.
 | File/image upload | `01-architect` + `05-security-reviewer` | any code |
 | User-supplied content rendered in the SPA | `05-security-reviewer` | merge |
 | `RecipeDto` or a route signature changed | `08-api-contract` | frontend work |
-| Any of the 11 items in [domain-model.md#known-limitations](../domain-model.md#known-limitations) | `01-architect` | any code |
+| Any of the 10 items in [domain-model.md#known-limitations](../domain-model.md#known-limitations) | `01-architect` | any code |
 
 ### Conflict arbitration
 
@@ -90,7 +92,7 @@ Do not hand off to the user until:
 - [ ] The spec in `docs/specs/` matches what was actually built.
 - [ ] Every decomposed item above was assigned and completed, or explicitly dropped with a reason.
 - [ ] `dotnet build` and `dotnet test` were run and the numbers reported (0 warnings — enforced by
-      `TreatWarningsAsErrors`, ADR-010 — and 107 passing).
+      `TreatWarningsAsErrors`, ADR-010 — and 137 passing).
 - [ ] [../known-issues.md](../known-issues.md) updated: fixed entries deleted, new findings added.
 - [ ] [../decisions-log.md](../decisions-log.md) has an entry if the work contained a decision worth
       remembering, a lesson from a bug, or a reversal of an earlier call.

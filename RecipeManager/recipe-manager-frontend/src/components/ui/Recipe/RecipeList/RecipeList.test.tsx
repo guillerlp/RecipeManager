@@ -3,7 +3,7 @@ import { act, render, screen } from '@testing-library/react';
 import type { AxiosResponse } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { recipeService } from '@/services';
-import type { Recipe } from '@/types';
+import type { Ingredient, Recipe } from '@/types';
 import { RecipeList } from './RecipeList';
 
 vi.mock('@/services', () => ({
@@ -24,10 +24,22 @@ const makeRecipe = (overrides: Partial<Recipe>): Recipe => ({
   ...overrides,
 });
 
+// A stable, distinct id per ingredient without depending on crypto.randomUUID's jsdom availability;
+// the id is never asserted on, only the name matters for these fixtures. `unit` is genuinely nullable
+// (e.g. "salt to taste" has no unit), so the fixture reflects that rather than standing in a fake value.
+let ingredientId = 0;
+const ing = (name: string): Ingredient => ({
+  id: `00000000-0000-0000-0000-${String(++ingredientId).padStart(12, '0')}`,
+  quantity: null,
+  unit: null,
+  name,
+  notes: null,
+});
+
 const recipes: Recipe[] = [
-  makeRecipe({ id: '11111111-1111-1111-1111-111111111111', title: 'Tomato Soup', description: 'Warm and simple', ingredients: ['tomato', 'basil'], preparationTime: 90 }),
-  makeRecipe({ id: '22222222-2222-2222-2222-222222222222', title: 'Pancakes', description: 'Fluffy breakfast', ingredients: ['flour', 'milk'] }),
-  makeRecipe({ id: '33333333-3333-3333-3333-333333333333', title: 'Green Salad', description: 'Crunchy side', ingredients: ['lettuce', 'cucumber'] }),
+  makeRecipe({ id: '11111111-1111-1111-1111-111111111111', title: 'Tomato Soup', description: 'Warm and simple', ingredients: [ing('tomato'), ing('basil')], preparationTime: 90 }),
+  makeRecipe({ id: '22222222-2222-2222-2222-222222222222', title: 'Pancakes', description: 'Fluffy breakfast', ingredients: [ing('flour'), ing('milk')] }),
+  makeRecipe({ id: '33333333-3333-3333-3333-333333333333', title: 'Green Salad', description: 'Crunchy side', ingredients: [ing('lettuce'), ing('cucumber')] }),
 ];
 
 // useRecipes reads only `data`; the rest of the AxiosResponse is irrelevant to the component.

@@ -9,6 +9,8 @@ namespace RecipeManager.UnitTests.Domain.Shared;
 /// </summary>
 public class EntityTests
 {
+    private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
+
     #region Equals Tests
 
     [Fact]
@@ -19,14 +21,14 @@ public class EntityTests
 
         var recipe1Result = Recipe.Create(
             "Recipe 1", "Description 1", 10, 20, 2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
         var recipe1 = recipe1Result.Value;
 
         var recipe2Result = Recipe.Create(
             "Recipe 2", "Description 2", 15, 25, 4,
-            new List<string> { "Sugar" },
+            new List<Ingredient> { Ing("Sugar") },
             new List<string> { "Bake" }
         );
         var recipe2 = recipe2Result.Value;
@@ -49,13 +51,13 @@ public class EntityTests
         // Arrange 
         var recipe1Result = Recipe.Create(
             "Recipe 1", "Description", 10, 20, 2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 
         var recipe2Result = Recipe.Create(
             "Recipe 2", "Description", 10, 20, 2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 
@@ -72,7 +74,7 @@ public class EntityTests
         // Arrange
         var recipeResult = Recipe.Create(
             "Recipe", "Description", 10, 20, 2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 
@@ -89,7 +91,7 @@ public class EntityTests
         // Arrange
         var recipeResult = Recipe.Create(
             "Recipe", "Description", 10, 20, 2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 
@@ -108,7 +110,7 @@ public class EntityTests
         // Arrange
         var recipeResult = Recipe.Create(
             "Recipe", "Description", 10, 20, 2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
         var recipe = recipeResult.Value;
@@ -130,7 +132,7 @@ public class EntityTests
         // Arrange
         var recipeResult = Recipe.Create(
             "Recipe", "Description", 10, 20, 2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
         var recipe = recipeResult.Value;
@@ -151,13 +153,13 @@ public class EntityTests
 
         var recipe1Result = Recipe.Create(
             "Recipe 1", "Description", 10, 20, 2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 
         var recipe2Result = Recipe.Create(
             "Recipe 2", "Different Description", 15, 25, 4,
-            new List<string> { "Sugar" },
+            new List<Ingredient> { Ing("Sugar") },
             new List<string> { "Bake" }
         );
 
@@ -180,13 +182,13 @@ public class EntityTests
         // Arrange
         var recipe1Result = Recipe.Create(
             "Recipe 1", "Description", 10, 20, 2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 
         var recipe2Result = Recipe.Create(
             "Recipe 2", "Description", 10, 20, 2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 

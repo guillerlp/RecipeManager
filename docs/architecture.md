@@ -43,9 +43,15 @@ Verified project references:
   equal objects always produce equal hashes — but it means two entities of *different* types sharing an id
   collide in a hash bucket while comparing unequal. Harmless with `Guid` keys; keep it in mind before adding an
   entity type whose ids are drawn from the same sequence as another's.
-- `RecipeManager.Domain/Entities/Recipe.cs` — the only aggregate. Private setters, private constructors, static factory
-  `Create(...)` returning `Result<Recipe>`, instance `Update(...)` returning `Result`. All invariants live in
+- `RecipeManager.Domain/Entities/Recipe.cs` — the only aggregate root. Private setters, private constructors, static factory
+  `Create(...)` returning `Result<Recipe>`, instance `Update(...)` returning `Result`. Its invariants live in
   the private `ValidateProperties`.
+- `RecipeManager.Domain/Entities/Ingredient.cs` — an **owned entity** of `Recipe` (ADR-022), never addressable
+  on its own: `Position`, `Quantity` (`decimal?`), `Unit` (`Unit?`), `Name`, `Notes` (`string?`), with the same
+  `Create(...)` → `Result<Ingredient>` factory shape and its own `ValidateProperties`. Only `Recipe` may set
+  `Position`, through an `internal` method — order belongs to the collection, not to the item.
+- `RecipeManager.Domain/Entities/Unit.cs` — the closed `Unit` enum (ADR-022), filed beside the concept it
+  serves rather than in an `Enums/` folder, following `ErrorKind` next to `DomainError`.
 - `RecipeManager.Domain/Errors/RecipeErrors.cs` — every domain error as a static factory returning a `DomainError`
   (`RecipeManager.Domain/Errors/DomainError.cs`) — a `FluentResults.Error` carrying an `ErrorKind` (`Validation`,
   `NotFound`) plus `field` metadata. The Domain knows *what* failed, never which HTTP status reports it.
@@ -62,22 +68,37 @@ Verified project references:
 - `RecipeManager.Application/Commands/`, `.../Queries/` — positional `record` types implementing the marker interfaces.
 - `RecipeManager.Application/Handlers/Recipes/` — one class per command/query; constructor-injected `IRecipeRepository` (+ `ILogger`
   where used).
-- `RecipeManager.Application/DTO/Recipes/` — `RecipeDto`, `UpdateRecipeDto` (records).
+- `RecipeManager.Application/DTO/Recipes/` — `RecipeDto`, `UpdateRecipeDto`, `IngredientDto` (response) and
+  `IngredientInputDto` (request), all positional records, one file per type.
 - `RecipeManager.Application/Mappings/RecipeMappingExtensions.cs` — hand-written `MapToRecipeDto()` extension. **No AutoMapper.**
+  `RecipeManager.Application/Mappings/IngredientMappingExtensions.cs` — `ToIngredients()` builds every
+  `Ingredient` from its input DTO and collects the failures rather than stopping at the first, matching
+  `Recipe.ValidateProperties`.
 - `RecipeManager.Application/Validators/Recipes/` — FluentValidation validators over the *bound request type*, plus shared rule
   extensions in `RecipeValidationRules`.
 - `RecipeManager.Application/Common/Interfaces/Caching/ICacheService.cs` — the caching port (implementation lives in Infrastructure).
 
 ### Infrastructure (`RecipeManager.Infrastructure`)
 
-- `RecipeManager.Infrastructure/Context/AppDbContext.cs` — a single `DbSet<Recipe>`; **no `OnModelCreating`, no `IEntityTypeConfiguration`**.
-  EF Core 10 + Npgsql map `IReadOnlyList<string>` to a native PostgreSQL `text[]` column.
-- `RecipeManager.Infrastructure/Repositories/Recipes/RecipeRepository.cs` — EF implementation. Reads use `AsNoTracking()`; every write calls
-  `SaveChangesAsync` immediately (no unit-of-work abstraction).
+- `RecipeManager.Infrastructure/Context/AppDbContext.cs` — a single `DbSet<Recipe>`, with an `OnModelCreating`
+  that applies every `IEntityTypeConfiguration<T>` in the Infrastructure assembly by scan (ADR-022).
+  EF Core 10 + Npgsql still map `IReadOnlyList<string>` to a native PostgreSQL `text[]` column with no
+  configuration — that is how `Instructions` is persisted.
+- `RecipeManager.Infrastructure/Context/Configurations/RecipeConfiguration.cs` — the first and so far only
+  entity configuration: `OwnsMany` for the `RecipeIngredients` child table, `HasMaxLength`/`HasPrecision` on
+  its columns, the `Unit` enum converted to its member **name**, `ValueGeneratedNever()` on both `Guid` keys,
+  and `PropertyAccessMode.Field` on the `Ingredients` navigation because the getter sorts.
+- `RecipeManager.Infrastructure/Repositories/Recipes/RecipeRepository.cs` — EF implementation. Read paths use `AsNoTracking()`;
+  `GetByIdForUpdateAsync` deliberately does **not**, because the write path needs EF's change tracker to work
+  out which owned rows are inserts, updates, and deletes. Every write calls `SaveChangesAsync` immediately (no
+  unit-of-work abstraction), and `UpdateAsync` throws rather than silently persisting nothing if it is handed
+  a detached recipe.
 - `RecipeManager.Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs` — decorator implementing the same interface.
 - `RecipeManager.Infrastructure/Services/MemoryCacheService.cs` — `IMemoryCache` adapter, plus a `ConcurrentDictionary` key registry.
 - `RecipeManager.Infrastructure/Constants/CacheKeys.cs`, `RecipeManager.Infrastructure/Constants/CacheDuration.cs`.
-- `RecipeManager.Infrastructure/Migrations/` — one migration, `20260725173218_InitialCreate`.
+- `RecipeManager.Infrastructure/Migrations/` — three migrations: `20260725173218_InitialCreate`,
+  `20260924130146_StructureIngredients` (ADR-022), and `20260924153243_SyncIdValueGeneration`, which carries no
+  DDL and exists only to bring `AppDbContextModelSnapshot.cs` back in step with the corrected key metadata.
 
 ### Api (`RecipeManager.Api`)
 
@@ -121,8 +142,11 @@ Handlers do not need to order their errors. An error that is not a `DomainError`
 ### Persistence
 
 - PostgreSQL via `options.UseNpgsql(...)` in `ServiceInitializer.RegisterDbContext`.
-- Column types: `Id uuid` (PK), `Title`/`Description` `text`, times and `Servings` `integer`,
-  `Ingredients`/`Instructions` **`text[]`** (native PostgreSQL arrays, not JSON).
+- Column types on `"Recipes"`: `Id uuid` (PK), `Title`/`Description` `text`, times and `Servings` `integer`,
+  `Instructions` **`text[]`** (a native PostgreSQL array, not JSON).
+- Ingredients live in the `"RecipeIngredients"` child table (ADR-022): `Id uuid` PK, `RecipeId uuid` FK with
+  cascade delete and an index, `Position integer`, `Quantity numeric(9,3)` nullable, `Unit varchar(20)` nullable
+  holding the enum member name, `Name varchar(200)` `NOT NULL`, `Notes varchar(200)` nullable.
 - Ids are generated in the entity constructor with `Guid.NewGuid()`, not by the database.
 - Migrations run at startup via `app.MigrateDatabase()`.
 
@@ -134,10 +158,15 @@ Handlers do not need to order their errors. An error that is not a `DomainError`
 - Writes invalidate both `recipes_all` and the per-id key. `AddAsync` invalidates the list and warms the item.
 - Cache set/remove failures are swallowed and logged as warnings — caching is best-effort and must never fail a
   request.
+- `GetByIdForUpdateAsync` deliberately neither reads nor writes the cache: a cached instance is detached and
+  shared between requests, so handing it out for mutation would let one request's edits leak into another's
+  copy. Writes load straight from the database.
 - Cached values are **entity instances**. The intended safety argument is that reads are `AsNoTracking()` and
-  `Recipe` exposes read-only collections. **Only the first half holds today:** a recipe read from the database
-  carries a mutable `List<string>` behind `IReadOnlyList<string>`, and the cache serves that same instance to
-  every later request. See [BUG-11](known-issues.md#bug-11).
+  `Recipe` exposes read-only collections. **That now holds for ingredients and not for instructions:**
+  `Ingredients` is an `IReadOnlyList<Ingredient>` over a private backing field since ADR-022, but a recipe read
+  from the database still carries a mutable `List<string>` behind `IReadOnlyList<string>` for `Instructions`,
+  and the cache serves that same instance to every later request. See [BUG-11](known-issues.md#bug-11), open
+  for the instruction half until `R-17`.
 
 ### Logging
 
@@ -212,7 +241,9 @@ endpoint is anonymous and every recipe is world-writable. See
 
 ### ADR-004 — Ingredients and instructions as `IReadOnlyList<string>`
 
-- **Status:** accepted (initial migration).
+- **Status:** **superseded by ADR-022** (2026-09-24). ADR-022 restructures ingredients and fixes the
+  `InstructionStep` shape; `Instructions` stays `text[]` in code until `R-17` implements it. Originally
+  accepted (initial migration).
 - **Decision:** no `Ingredient`, `Step`, `Unit` or `Quantity` entities; both are primitive string collections
   persisted as PostgreSQL `text[]`.
 - **Consequences:** trivially simple, and `text[]` *is* queryable in PostgreSQL — but there is no quantity,
@@ -716,6 +747,55 @@ endpoint is anonymous and every recipe is world-writable. See
     browser's default frame between document parse and that first commit. Unchanged by this branch; an inline
     script in `index.html` reading the stored preference (or `matchMedia`) before any stylesheet applies would
     close it, but none is added here — this bullet only records the limit.
+
+### ADR-022 — Ingredients become owned entities in a child table; instructions get a shape
+
+- **Status:** accepted (2026-09-24). **Supersedes ADR-004.** Full detail:
+  [specs/010-structured-ingredients.md](specs/010-structured-ingredients.md).
+- **Context:** `Recipe.Ingredients` is `IReadOnlyList<string>` — ADR-004's acknowledged temporary shortcut.
+  Five roadmap items (`R-17`, `R-18`, `R-19`, `R-21`) assume quantities, units, and per-step ingredient
+  references, so the shape can no longer be deferred. `R-10` requires this ADR to settle `Instructions` too.
+- **Decision:**
+  1. `Ingredient` is an **owned entity** (`Position`, `Quantity` `decimal?`, `Unit` `Unit?`, `Name`,
+     `Notes` `string?`) with its own `Guid Id`, persisted to a `RecipeIngredients` child table via `OwnsMany`.
+     `Recipe` stays the only aggregate root; ADR-006 is untouched.
+  2. `Unit` is a **closed C# enum** covering metric, imperial, and countable units, stored as a string.
+     `Unit?` null means "no unit"; there is no `None` member.
+  3. **Conversion is a presentation concern.** The database stores what was entered. No canonical unit, no
+     domain converter. `R-16`'s metric/imperial preference is satisfied client-side in `R-18`.
+  4. An explicit `int Position` carries order, because a child table has none — `text[]` gave it for free.
+  5. `InstructionStep` (`Position`, `Text`, `DurationMinutes int?`, `IngredientIds Guid[]`) is the shape
+     `R-17` implements. Step references point at ingredient ids; integrity is a domain invariant, not an FK.
+  6. Existing `text[]` rows migrate **losslessly** as name-only ingredients. No parsing.
+- **Alternatives:** `Unit` as an open-set value object (no compile-time safety, leaves `R-21`'s parser with no
+  vocabulary); a canonical base unit converted on write (needs per-ingredient density, which the no-catalogue
+  decision removed the place to store, and round-trips lossily); a pure value object with steps referencing by
+  array index (reordering silently corrupts every reference, and `R-21` is specified with keyboard reorder);
+  `OwnsMany(...).ToJson()` into a `jsonb` column (EF's translation into JSON is limited, so `R-11`'s ingredient
+  search falls back to raw SQL or the client — the problem this ADR exists to fix). Each is weighed in spec 010.
+- **Consequences:** quantities, serving scaling, and SQL ingredient search become possible; `BUG-11` and
+  `SEC-09` close for ingredients; `OnModelCreating` and the first `IEntityTypeConfiguration<T>` arrive, which
+  partly unblocks `SEC-08`. Harder: `RecipeDto` carries an id the client must round-trip or step references
+  break, and nothing in the type system enforces it; adding a unit is a code-and-deploy change; the
+  `Ingredients` getter allocates a sorted copy per access; `Down()` is **lossy** and `app.MigrateDatabase()`
+  applies migrations at startup with no rollback procedure (`INFRA-03`). `SEC-07` worsens in degree — each
+  recipe's payload grows while `GET /api/recipes` stays unpaginated.
+- **Consequences appended 2026-09-24, learned while implementing.** Both follow from the accepted decision
+  rather than changing it, and each cost a full debugging cycle:
+  - **`Entity.Id` is client-generated, so every `Guid` key must be mapped `ValueGeneratedNever()`** — both
+    `Recipe.Id` and the owned `Ingredient.Id`, in `RecipeConfiguration`. EF's convention for a `Guid` primary
+    key is `ValueGeneratedOnAdd`, under which `PaintAction` treats any already-set key as evidence the row
+    exists: a brand-new ingredient was painted `Modified` rather than `Added`, so `SaveChanges` issued an
+    `UPDATE` matching zero rows and threw `DbUpdateConcurrencyException`. Domain-minted ids and EF's default
+    key convention are incompatible, and nothing surfaced that until an owned collection made it reachable.
+  - **Swashbuckle drops nullability from a `$ref`, so a nullable enum needs a schema filter.** OpenAPI 3.0
+    forbids sibling keywords beside `$ref`, so `IngredientDto.Unit` (`Unit?`) was emitted as a bare reference
+    with its nullability silently lost — and `RequireNonNullablePropertiesSchemaFilter` then listed it in
+    `required`. The generated TypeScript consequently claimed `unit` was always present, while the API
+    returns `null` for "salt to taste". `RecipeManager.Api/Startup/Swagger/NullableEnumSchemaFilter.cs` wraps
+    exactly those properties' references in `allOf` so `nullable: true` can sit beside them. Scoped to the
+    affected properties instead of enabling `UseAllOfToExtendReferenceSchemas()` document-wide, which would
+    also rewrap every request-body `$ref` that needs no such override.
 
 ---
 

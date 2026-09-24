@@ -22,6 +22,8 @@ public class GetAllRecipesHandlerTests
         _handler = new GetAllRecipesHandler(_recipeRepository);
     }
 
+    private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
+
     #region Success Scenarios
 
     [Fact]
@@ -34,7 +36,7 @@ public class GetAllRecipesHandlerTests
             20,
             30,
             8,
-            new List<string> { "Flour", "Sugar" },
+            new List<Ingredient> { Ing("Flour"), Ing("Sugar") },
             new List<string> { "Mix", "Bake" }
         );
 
@@ -44,7 +46,7 @@ public class GetAllRecipesHandlerTests
             10,
             15,
             4,
-            new List<string> { "Pasta", "Tomatoes" },
+            new List<Ingredient> { Ing("Pasta"), Ing("Tomatoes") },
             new List<string> { "Boil", "Mix" }
         );
 
@@ -54,7 +56,7 @@ public class GetAllRecipesHandlerTests
             10,
             0,
             2,
-            new List<string> { "Lettuce", "Tomatoes" },
+            new List<Ingredient> { Ing("Lettuce"), Ing("Tomatoes") },
             new List<string> { "Chop", "Mix" }
         );
 
@@ -94,7 +96,7 @@ public class GetAllRecipesHandlerTests
             10,
             20,
             2,
-            new List<string> { "Flour" },
+            new List<Ingredient> { Ing("Flour") },
             new List<string> { "Mix" }
         );
 
@@ -140,7 +142,7 @@ public class GetAllRecipesHandlerTests
     public async Task Handle_ShouldMapAllRecipePropertiesCorrectly()
     {
         // Arrange
-        var ingredients = new List<string> { "Ingredient1", "Ingredient2", "Ingredient3" };
+        var ingredients = new List<Ingredient> { Ing("Ingredient1"), Ing("Ingredient2"), Ing("Ingredient3") };
         var instructions = new List<string> { "Step1", "Step2", "Step3" };
 
         var recipeResult = Recipe.Create(
@@ -171,7 +173,7 @@ public class GetAllRecipesHandlerTests
         dto.PreparationTime.Should().Be(25);
         dto.CookingTime.Should().Be(35);
         dto.Servings.Should().Be(6);
-        dto.Ingredients.Should().BeEquivalentTo(ingredients);
+        dto.Ingredients.Select(i => i.Name).Should().Equal("Ingredient1", "Ingredient2", "Ingredient3");
         dto.Instructions.Should().BeEquivalentTo(instructions);
     }
 
@@ -226,7 +228,7 @@ public class GetAllRecipesHandlerTests
                 10,
                 20,
                 2,
-                new List<string> { $"Ingredient{i}" },
+                new List<Ingredient> { Ing($"Ingredient{i}") },
                 new List<string> { $"Step{i}" }
             );
             recipes.Add(recipeResult.Value);
@@ -249,13 +251,13 @@ public class GetAllRecipesHandlerTests
     {
         // Arrange
         var recipe1 = Recipe.Create("Salad", "No cooking", 10, 0, 2,
-            new List<string> { "Lettuce" }, new List<string> { "Chop" }).Value;
+            new List<Ingredient> { Ing("Lettuce") }, new List<string> { "Chop" }).Value;
 
         var recipe2 = Recipe.Create("Frozen Pizza", "No prep", 0, 15, 2,
-            new List<string> { "Pizza" }, new List<string> { "Bake" }).Value;
+            new List<Ingredient> { Ing("Pizza") }, new List<string> { "Bake" }).Value;
 
         var recipe3 = Recipe.Create("Cake", "Both times", 20, 30, 8,
-            new List<string> { "Flour" }, new List<string> { "Mix", "Bake" }).Value;
+            new List<Ingredient> { Ing("Flour") }, new List<string> { "Mix", "Bake" }).Value;
 
         var recipes = new List<Recipe> { recipe1, recipe2, recipe3 };
 

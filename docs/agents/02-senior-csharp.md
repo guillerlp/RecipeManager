@@ -67,8 +67,15 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - [ ] Generated Npgsql column types reviewed: `string` → `text` (**unbounded**), `Guid` → `uuid`,
       `IReadOnlyList<string>` → `text[]`. Bounded fields need an explicit `HasMaxLength` in an
       `IEntityTypeConfiguration<T>` — the FluentValidation caps do **not** reach the database (`SEC-08`).
-      Introducing the first configuration class needs `01-architect` sign-off, since `AppDbContext` has no
-      `OnModelCreating` today.
+      `AppDbContext.OnModelCreating` and `RecipeConfiguration` now exist (ADR-022) and are applied by assembly
+      scan, so adding mapping there needs no sign-off; adding a **new** entity or a second aggregate still does.
+- [ ] A `Guid` key minted by the domain must be mapped `ValueGeneratedNever()`. EF's convention is
+      `ValueGeneratedOnAdd`, under which an already-set key makes a new row look like an existing one and the
+      insert silently becomes an `UPDATE` affecting 0 rows. See ADR-022's appended consequences.
+- [ ] A migration whose backfill could violate a **new** constraint gets a pre-flight `DO $$ … RAISE EXCEPTION`
+      guard with an actionable message. `app.MigrateDatabase()` runs migrations at startup and there is no
+      rollback procedure (`INFRA-03`), so a raw PostgreSQL error code is a crash loop nobody can diagnose.
+      `20260924130146_StructureIngredients` is the worked example.
 - [ ] Never edit an applied migration; add a new one.
 
 ### Api
@@ -110,7 +117,7 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - [ ] New endpoint ⇒ integration test in `RecipeManager.IntegrationTests/RecipesControllerTests.cs` asserting status code
       **and** database state, with `DbContext.ChangeTracker.Clear()` before post-write assertions.
 - [ ] FluentAssertions only, never `Assert.*`. AAA markers required.
-- [ ] `dotnet test RecipeManager.sln` — currently 107 passing. **Zero build warnings, enforced** by
+- [ ] `dotnet test RecipeManager.sln` — currently 137 passing. **Zero build warnings, enforced** by
       `TreatWarningsAsErrors` (ADR-010): a warning fails the build. Fix the cause; do not suppress it.
 
 ### Performance notes for this codebase

@@ -2,12 +2,13 @@
 
 **Mandatory reading for every agent before touching code.**
 
-The domain today contains **exactly one aggregate: `Recipe`**. There is no `Ingredient`, `Step`, `Unit`,
-`Category`, `Tag`, or `User` entity. Do not assume otherwise.
+The domain today contains **exactly one aggregate root: `Recipe`**, with one **owned entity** inside it —
+`Ingredient` — and one enum, `Unit` (ADR-022). There is no `Step`, `Category`, `Tag`, or `User` entity. Do not
+assume otherwise.
 
 Some of that is deliberate; some is a shortcut with a decided replacement. The
 [Target model](#target-model--where-the-domain-is-going) section at the end says which is which — read it
-before designing anything that touches ingredients, ownership, or listing behaviour.
+before designing anything that touches instructions, ownership, or listing behaviour.
 
 ```
 Entity (abstract, RecipeManager.Domain/Shared/Entity.cs)
@@ -15,8 +16,10 @@ Entity (abstract, RecipeManager.Domain/Shared/Entity.cs)
   Equals             concrete type + Id
   GetHashCode        Id only
     ▲
-    │
-  Recipe (sealed, RecipeManager.Domain/Entities/Recipe.cs)   ← the only aggregate root
+    ├── Recipe (sealed, RecipeManager.Domain/Entities/Recipe.cs)       ← the only aggregate root
+    │     └── owns many
+    └── Ingredient (sealed, RecipeManager.Domain/Entities/Ingredient.cs)
+          owned by Recipe, never addressable on its own
 ```
 
 `Equals` and `GetHashCode` deliberately use different inputs. This satisfies the equality contract — objects
@@ -33,12 +36,38 @@ comparing unequal.
 | `PreparationTime` | `int` | `integer` | **Minutes** |
 | `CookingTime` | `int` | `integer` | **Minutes** |
 | `Servings` | `int` | `integer` | Count of portions |
-| `Ingredients` | `IReadOnlyList<string>` | `text[]`, `NOT NULL` | Native PostgreSQL array. Free text, e.g. `"Flour"`. Read-only only when built via `Create`/`Update`, not when loaded ([BUG-11](known-issues.md#bug-11)) |
-| `Instructions` | `IReadOnlyList<string>` | `text[]`, `NOT NULL` | Ordered steps as free text; order = array order. Same read-only gap ([BUG-11](known-issues.md#bug-11)) |
+| `Ingredients` | `IReadOnlyList<Ingredient>` | child table `"RecipeIngredients"` | Owned collection over a private `List<Ingredient>` backing field, exposed sorted by `Position`. Genuinely read-only however it was obtained — the getter returns a fresh sorted copy |
+| `Instructions` | `IReadOnlyList<string>` | `text[]`, `NOT NULL` | Ordered steps as free text; order = array order. Read-only only when built via `Create`/`Update`, not when loaded ([BUG-11](known-issues.md#bug-11)) |
 
-Table: `"Recipes"` (quoted — PostgreSQL folds unquoted identifiers to lowercase). Single migration
-`20260725173218_InitialCreate`. No indexes beyond the PK, no unique constraint on `Title` —
+Table: `"Recipes"` (quoted — PostgreSQL folds unquoted identifiers to lowercase). Three migrations:
+`20260725173218_InitialCreate`, `20260924130146_StructureIngredients` (ADR-022), and
+`20260924153243_SyncIdValueGeneration`, which carries no DDL and exists only to bring the model snapshot back in
+step with the corrected key metadata. No indexes on `"Recipes"` beyond the PK, no unique constraint on `Title` —
 **duplicate titles are allowed**.
+
+## `Ingredient`
+
+An **owned entity** of `Recipe` (ADR-022): it derives from `Entity` and has its own `Guid Id`, but it is not an
+aggregate root and is never addressable outside its recipe. Every write is still one repository call, so ADR-006
+(no unit of work) is untouched.
+
+| Property | C# type | PostgreSQL column | Notes |
+| --- | --- | --- | --- |
+| `Id` | `Guid` | `uuid`, PK | Minted in `Ingredient.Create` when the caller supplies none. Mapped `ValueGeneratedNever()` — see ADR-022's appended consequences |
+| `RecipeId` | — | `uuid`, FK → `"Recipes"("Id")`, cascade delete, indexed | Shadow property; owned types get it from EF |
+| `Position` | `int` | `integer`, `NOT NULL` | Assigned by `Recipe` from list order through an `internal` setter. A child table has no inherent row order |
+| `Quantity` | `decimal?` | `numeric(9,3)`, nullable | Null for "salt to taste" |
+| `Unit` | `Unit?` | `varchar(20)`, nullable | Enum member **name**, not its ordinal, so reordering the enum cannot silently remap stored rows |
+| `Name` | `string` | `varchar(200)`, `NOT NULL` | Bounded in the database *and* in FluentValidation — the first field in this codebase to be both |
+| `Notes` | `string?` | `varchar(200)`, nullable | |
+
+`Unit` (`RecipeManager.Domain/Entities/Unit.cs`) is a **closed** enum: `Gram, Kilogram, Ounce, Pound, Millilitre,
+Litre, Teaspoon, Tablespoon, Cup, FluidOunce, Piece, Clove, Pinch, Slice, Can, Bunch, Sprig`. There is
+deliberately no `None` member — `Unit?` null already means "no unit", and two ways to express nothing is a defect
+generator. Adding a unit is a code-and-deploy change, not a data change.
+
+`public static Result<Ingredient> Create(Guid? id, decimal? quantity, Unit? unit, string name, string? notes)`
+is the only way to build one, and it collects every violation in one call, like `Recipe.Create`.
 
 ### Lifecycle
 
@@ -64,13 +93,22 @@ All violations are collected — a single call can return several errors at once
 | **Not both times zero** | `BothTimesZero()` | `Validation` (422) | `preparationTime,cookingTime` |
 | `Servings >= 1` | `ServingsOutOfRange(1)` | `Validation` (422) | `servings` (+ `min` metadata) |
 | At least one ingredient | `IngredientsRequired()` | `Validation` (422) | `ingredients` |
-| No blank ingredient string | `IngredientEmpty()` | `Validation` (422) | `ingredients` |
 | At least one instruction | `InstructionsRequired()` | `Validation` (422) | `instructions` |
 | No blank instruction string | `InstructionEmpty()` | `Validation` (422) | `instructions` |
 | Recipe exists (repository-level, not in the entity) | `RecipeNotFound(id)` | `NotFound` (404) | `id` |
 
-Note: an empty-but-present ingredients list produces `IngredientsRequired`; a non-empty list containing a blank
-string produces `IngredientEmpty`. They are mutually exclusive.
+Three further invariants live in `Ingredient.ValidateProperties`, because they are properties of one ingredient
+rather than of the recipe. They are collected the same way, so several bad ingredients report together:
+
+| Rule | Error factory | Kind (→ HTTP) | `field` |
+| --- | --- | --- | --- |
+| `Name` not null/whitespace | `IngredientNameRequired()` | `Validation` (422) | `ingredients` |
+| `Quantity > 0` when present | `IngredientQuantityNotPositive()` | `Validation` (422) | `ingredients` |
+| A `Unit` without a `Quantity` is meaningless | `IngredientUnitWithoutQuantity()` | `Validation` (422) | `ingredients` |
+
+`IngredientEmpty()` **no longer exists** (ADR-022): a blank-named `Ingredient` cannot be constructed at all, so
+the rule moved into `Ingredient.Create` as `IngredientNameRequired()`. That leaves `IngredientsRequired` as the
+only ingredient invariant `Recipe` itself still enforces.
 
 The kind is the domain's; the status in brackets is applied by `ResultExtensions` in the API layer.
 
@@ -85,27 +123,43 @@ Complementary to the invariants — bounds and null-safety only, applied **befor
 | `PreparationTime` | `>= 0`, `< 1440` (24 h) |
 | `CookingTime` | `>= 0`, `< 1440` (24 h) |
 | `Servings` | `> 0`, `< 1000` |
-| `Ingredients` | `NotNull`, at most 50 items |
-| `Instructions` | `NotNull`, at most 50 items |
+| `Ingredients` | List: `NotNull`, at most 50 items. Per item (`IngredientInputDtoValidator`): `Name` `NotNull` + `MaximumLength(200)`, `Notes` `MaximumLength(200)`, `Quantity` `InclusiveBetween(0, 100000)` when present |
+| `Instructions` | `NotNull`, at most 50 items — no per-item cap ([SEC-09](known-issues.md#sec-09)) |
 
 Consequence to remember: `Title = ""` passes FluentValidation (`NotNull` is satisfied) and is rejected by the
-**domain** with 422. `Title = null` is rejected by FluentValidation with 400. The length caps (200/1000) exist
-only in FluentValidation, not in the database — the columns are unbounded `text`.
+**domain** with 422. `Title = null` is rejected by FluentValidation with 400. The `Title`/`Description` caps
+(200/1000) exist only in FluentValidation, not in the database — those columns are unbounded `text`
+([SEC-08](known-issues.md#sec-08)). The ingredient caps are the exception: they are enforced in both places.
 
 ## Application-layer types
 
 | Type | Shape | Used by |
 | --- | --- | --- |
-| `CreateRecipeCommand` | Title, Description, PreparationTime, CookingTime, Servings, `List<string>` Ingredients, Instructions → `Result<RecipeDto>` | `POST /api/recipes` request body |
+| `CreateRecipeCommand` | Title, Description, PreparationTime, CookingTime, Servings, `List<IngredientInputDto>` Ingredients, `List<string>` Instructions → `Result<RecipeDto>` | `POST /api/recipes` request body |
 | `UpdateRecipeCommand` | `Guid Id` + the same seven fields → `Result` | built in the controller from route id + `UpdateRecipeDto` |
 | `DeleteRecipeCommand` | `Guid Id` → `Result` | `DELETE /api/recipes/{id:guid}` |
 | `GetAllRecipesQuery` | *(empty)* → `IEnumerable<RecipeDto>` | `GET /api/recipes` |
 | `GetRecipeByIdQuery` | `Guid Id` → `Result<RecipeDto>` | `GET /api/recipes/{id}` |
-| `RecipeDto` | `Id` + the seven fields, collections as `List<string>` | every response body |
-| `UpdateRecipeDto` | the seven fields, no id | `PUT /api/recipes/{id:guid}` request body |
+| `RecipeDto` | `Id` + the seven fields, with `List<IngredientDto>` Ingredients and `List<string>` Instructions | every response body |
+| `UpdateRecipeDto` | the seven fields, no id; `List<IngredientInputDto>` Ingredients | `PUT /api/recipes/{id:guid}` request body |
+| `IngredientDto` | `(Guid Id, decimal? Quantity, Unit? Unit, string Name, string? Notes)` | inside every response body |
+| `IngredientInputDto` | `(Guid? Id, decimal? Quantity, Unit? Unit, string Name, string? Notes)` | inside `POST`/`PUT` request bodies |
 
-Mapping is the hand-written `RecipeMappingExtensions.MapToRecipeDto()`. Entity → DTO only; there is **no**
-DTO → entity mapper (commands are passed as loose arguments to `Recipe.Create`/`Update`).
+`Position` is deliberately **not** in either ingredient DTO: the JSON list is already ordered, and exposing an
+index the client must keep consistent with array order invites the two disagreeing.
+
+`IngredientInputDto.Id` is always null on create. On update it is the client echoing back an id the API gave it,
+so that step references (`R-17`) survive an edit; a null `Id` on update means "this ingredient is new". Nothing
+currently checks that a supplied id actually belongs to the recipe being updated — [BUG-15](known-issues.md#bug-15).
+
+`Unit` crosses the wire as a string (`"Tablespoon"`), because `JsonStringEnumConverter` is registered in
+`RecipeManager.Api/Startup/ServiceInitializer.cs`. An unrecognised value is rejected at model binding with 400.
+
+Mapping is the hand-written `RecipeMappingExtensions.MapToRecipeDto()` (plus `MapToIngredientDto()`). Entity →
+DTO only; the one exception is `IngredientMappingExtensions.ToIngredients()`, which turns a list of
+`IngredientInputDto` into domain `Ingredient`s through `Ingredient.Create` — it is a validating factory call
+rather than a mapper, and it collects every failure instead of stopping at the first. Recipe commands are still
+passed as loose arguments to `Recipe.Create`/`Update`.
 
 ## HTTP surface
 
@@ -144,7 +198,13 @@ type Schemas = components['schemas'];
 export type Recipe = Schemas['RecipeDto'];
 export type CreateRecipeRequest = Schemas['CreateRecipeCommand'];
 export type UpdateRecipeRequest = Schemas['UpdateRecipeDto'];
+export type Ingredient = Schemas['IngredientDto'];
+export type IngredientInput = Schemas['IngredientInputDto'];
 ```
+
+`Ingredient` and `IngredientInput` are genuinely new generated schemas (ADR-022), so aliasing them is legal
+under ADR-019 — neither is a hand-written field. `Ingredient['unit']` is nullable, which took a Swashbuckle
+schema filter to express: see ADR-022's appended consequences.
 
 `PUT` and `DELETE` return 204, so their service methods return `AxiosResponse<void>`. The shape is generated
 from the OpenAPI snapshot, so drift fails CI (ADR-019). Owner: [agents/08-api-contract.md](agents/08-api-contract.md).
@@ -153,25 +213,27 @@ from the OpenAPI snapshot, so drift fails CI (ADR-019). Owner: [agents/08-api-co
 
 Read these before proposing any recipe feature.
 
-1. **Ingredients are unstructured strings.** No quantity, no unit, no ingredient catalogue. `text[]` *is*
-   queryable in PostgreSQL, but nothing uses that — `RecipeList.tsx` filters in the browser over the full list.
-   **This is a temporary shortcut with a decided replacement** — see [Target model](#target-model--where-the-domain-is-going).
-2. **Instructions are unstructured strings.** No per-step duration, image, or grouping.
-3. **No units of measure, no internationalisation.** Times are bare `int` minutes; no locale, no metric/imperial
-   handling.
-4. **No ownership or multi-tenancy.** No `User`, no `OwnerId`, no auth — every recipe is public and anyone can
+1. **Instructions are unstructured strings.** No per-step duration, image, or grouping.
+2. **No ingredient catalogue and no internationalisation.** Ingredients are owned by their recipe, so "tomato"
+   and "tomatoes" are unrelated names with nothing to join on (settled 2026-09-19). Times are bare `int`
+   minutes; no locale. `Unit` exists, but there is no conversion — that is a presentation concern (ADR-022),
+   and the client-side table is `R-18`.
+3. **No ownership or multi-tenancy.** No `User`, no `OwnerId`, no auth — every recipe is public and anyone can
    edit or delete any recipe.
-5. **No versioning, no soft delete, no audit fields** (`CreatedAt`, `UpdatedAt` do not exist).
-6. **No images.** `RecipeDto` has no image field and there is no upload endpoint.
-7. **No categories, tags, ratings, or favourites.**
-8. **No concurrency control.** No `xmin`/`RowVersion` mapping; concurrent `PUT`s are last-write-wins.
-9. **No pagination** on `GET /api/recipes`; the whole table is loaded, mapped, and cached in one memory entry.
-10. **No transaction boundary beyond one repository call** — see ADR-006 in [architecture.md](architecture.md).
-11. **No length limits in the database.** `text` columns are unbounded; the 200/1000-character caps live only in
-    FluentValidation, so anything bypassing the API can store arbitrarily large values.
+4. **No versioning, no soft delete, no audit fields** (`CreatedAt`, `UpdatedAt` do not exist).
+5. **No images.** `RecipeDto` has no image field and there is no upload endpoint.
+6. **No categories, tags, ratings, or favourites.**
+7. **No concurrency control.** No `xmin`/`RowVersion` mapping; concurrent `PUT`s are last-write-wins.
+8. **No pagination** on `GET /api/recipes`; the whole table is loaded, mapped, and cached in one memory entry.
+9. **No transaction boundary beyond one repository call** — see ADR-006 in [architecture.md](architecture.md).
+10. **No length limits on `Title` and `Description` in the database.** Those `text` columns are unbounded and the
+    200/1000-character caps live only in FluentValidation, so anything bypassing the API can store arbitrarily
+    large values. The ingredient columns are the exception — ADR-022 bounded them in both places.
 
-Any feature touching items 1–4 is an **architecture decision first** — route it to
-[agents/01-architect.md](agents/01-architect.md) before writing code.
+Item 1 was joined by "Ingredients are unstructured strings" until 2026-09-24, when ADR-022 and
+[specs/010-structured-ingredients.md](specs/010-structured-ingredients.md) closed it. Any feature touching items
+1–3 is an **architecture decision first** — route it to [agents/01-architect.md](agents/01-architect.md) before
+writing code.
 
 ---
 
@@ -179,28 +241,43 @@ Any feature touching items 1–4 is an **architecture decision first** — route
 
 The current shape is not the intended end state. These directions are **decided**; the design detail is not.
 
-### Structured ingredients (`R-10`, decided)
+Structured ingredients used to head this section. They **shipped on 2026-09-24** (ADR-022,
+[specs/010-structured-ingredients.md](specs/010-structured-ingredients.md)) and are described as current state
+in the tables above; nothing about them belongs here any more.
 
-`Ingredients` as `IReadOnlyList<string>` was an acknowledged temporary shortcut, not a design choice. The
-project intends to replace it with structured data:
+### Structured instructions (`R-17`, shape decided — ADR-022, not yet built)
 
-- An `Ingredient` value object or entity carrying at minimum `Quantity`, `Unit`, and `Name`.
-- A `Unit` value object or enum covering metric and imperial, with an explicit conversion policy and a
-  canonical stored unit.
-- **No ingredient catalogue** (settled 2026-09-19). Ingredients are value objects owned by their recipe, so
-  `Recipe` remains the only aggregate.
-- A migration strategy for existing `text[]` rows, which cannot be parsed into structured data reliably.
+`Instructions` is still `IReadOnlyList<string>` persisted as `text[]` — the surviving half of ADR-004's
+acknowledged temporary shortcut. ADR-022 fixed its replacement shape at the same time as the ingredient one, so
+that it would not be decided incrementally through a later feature:
+
+```csharp
+public sealed class InstructionStep : Entity
+{
+    public int Position { get; private set; }
+    public string Text { get; private set; }
+    public int? DurationMinutes { get; private set; }
+    public IReadOnlyList<Guid> IngredientIds { get; private set; }  // maps to uuid[]
+}
+```
+
+Step-to-ingredient references are a `uuid[]` primitive collection, not a join table, and referential integrity
+is a **domain** invariant — `Recipe.ValidateProperties` rejects any id not present in `Ingredients` — rather
+than a foreign key, consistent with ingredients being owned and unaddressable from outside the aggregate. Those
+references are what cooking mode's "For this step" and "Already used" lists (`R-23`) are built from, and they
+are why ADR-022 made `Ingredient` an entity rather than a pure value object.
 
 **Consequences for anyone working today:**
 
-- **Do not build features that entrench free-text ingredients.** Client-side substring filtering, ad-hoc
-  parsing of `"200g flour"`, or UI that assumes one string per row all become rework.
-- Anything needing quantities — serving scaling, shopping lists, nutrition — is **blocked** on this, not
-  merely awkward. Say so rather than implementing a string-parsing workaround.
-- `RecipeDto` will change, and `R-09` (shipped, ADR-019) will flag every client site the change touches.
-
-`Instructions` get the same treatment: an ordered list of steps with an optional duration and references to
-the ingredients each step uses. The shape is decided in `R-10`'s ADR and implemented as `R-17`.
+- **Do not build features that entrench free-text instructions.** UI that assumes one string per step, or that
+  works out a step's ingredients by substring matching, becomes rework.
+- Per-step timing and per-step ingredient highlighting are **blocked** on this, not merely awkward. Say so
+  rather than implementing a parsing workaround.
+- `RecipeDto.Instructions` will change from `List<string>`, so `R-09` (shipped, ADR-019) will flag every client
+  site the change touches — exactly as it did for ingredients.
+- `R-17` also closes the instruction half of [BUG-11](known-issues.md#bug-11) and
+  [SEC-09](known-issues.md#sec-09), and should fix [TEST-03](known-issues.md#test-03) in the same change:
+  reshaping the steps is precisely the change an order-insensitive assertion would let through.
 
 ### Also decided, not yet designed (2026-09-19)
 

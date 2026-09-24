@@ -126,12 +126,15 @@ dotnet dev-certs https --trust
 dotnet test RecipeManager.sln
 ```
 
-107 tests: 85 unit and 22 integration. Of the 22, 18 start a real PostgreSQL container (ADR-017) and the other
-4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 107 passed;
-**without it** you get 89 passed and 18 skipped, each naming Docker as the reason. The skip is deliberate — see
+138 tests: 104 unit and 34 integration. Of the 34, **30** start a real PostgreSQL container (ADR-017) and the
+other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 138 passed;
+**without it** you get 108 passed and 30 skipped, each naming Docker as the reason. The skip is deliberate — see
 the troubleshooting entry below — but it means a green run is only as complete as its skip count says. On a
 Windows machine with Smart App Control enabled, the 4 contract tests do not skip — they **fail** with
-`FileLoadException`, the same way the 18 integration tests do; see the Smart App Control entry below.
+`FileLoadException`, the same way the 30 integration tests do; see the Smart App Control entry below.
+
+These counts come from CI (run 36051107842), not from a local run: the machine this was written on has no
+Docker and has Smart App Control enabled, so neither number can be taken there.
 
 Unit tests with an HTML coverage report (requires `dotnet tool install --global dotnet-reportgenerator-globaltool`):
 
@@ -220,7 +223,7 @@ on `ubuntu-latest`:
 
 | Job | Steps |
 | --- | --- |
-| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (107) → upload `openapi-received` snapshot on failure → vulnerable-package check |
+| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (138) → upload `openapi-received` snapshot on failure → vulnerable-package check |
 | **Frontend** | `npm ci` → contract types are current (`npm run gen:api` + diff check) → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` → `npm audit --audit-level=high --prefix ../contracts` |
 
 Two things are worth knowing before a run surprises you:
@@ -259,13 +262,14 @@ PostgreSQL is not running, or the credentials are wrong. Check the service with
 `appsettings.json` deliberately has none.
 
 **`relation "recipes" does not exist` when querying in psql**
-PostgreSQL folds unquoted identifiers to lowercase, and EF creates the table as `"Recipes"`. Quote it:
-`SELECT * FROM "Recipes";`
+PostgreSQL folds unquoted identifiers to lowercase, and EF creates the tables as `"Recipes"` and
+`"RecipeIngredients"`. Quote them: `SELECT * FROM "Recipes";`,
+`SELECT * FROM "RecipeIngredients" ORDER BY "Position";`
 
 **Frontend requests fail with a certificate error**
 Run `dotnet dev-certs https --trust`.
 
-**The 18 integration tests are reported as skipped**
+**The 29 integration tests are reported as skipped**
 Docker is not running or not installed. The integration tests start a PostgreSQL container (ADR-017), and
 without a Docker endpoint they skip rather than fail, so the unit tests still give a usable result. The skip
 message names the endpoint it tried, e.g. `npipe://./pipe/docker_engine` on Windows. Start Docker Desktop and
@@ -290,3 +294,10 @@ Docker, but they still boot the API, so they **fail** here rather than skip. The
 integration tests and the contract tests, rely on CI, which runs all of them on Linux for every PR. If you need
 to accept a contract change from a machine in this state, see "Changing the API contract" above — it has a route
 that needs no local test run.
+
+It is **not** limited to those two cases. The policy can block any freshly-built assembly, intermittently and
+without a pattern worth predicting — `dotnet ef` has been blocked mid-run while scaffolding a migration, which
+leaves no migration file rather than a broken one. There is no fix short of turning Smart App Control off, and
+Windows makes that irreversible: once off, it cannot be switched back on without reinstalling the OS. Declining
+that trade is reasonable. The consequence to plan around is that **CI is the authority** — quote its numbers,
+and treat a local `FileLoadException` as an environment fact rather than a defect.

@@ -34,7 +34,8 @@ that differs from what the code does today, the difference is stated explicitly 
 Never document a target as though it were already reality, and never lower a documented standard to match
 existing code — fix the code, or record the gap.
 
-Verified against `main` @ `edfd057` (merge of `dotnet10-postgresql`) on 2026-07-26.
+Verified against `main` @ `edfd057` (merge of `dotnet10-postgresql`) on 2026-07-26; the domain, persistence, and
+test-count statements re-verified on 2026-09-24 against `feat/structured-ingredients` (ADR-022).
 
 ---
 
@@ -67,12 +68,12 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     Directory.Build.props            TargetFramework/Nullable/ImplicitUsings + TreatWarningsAsErrors + EnforceCodeStyleInBuild, all projects
     Directory.Packages.props         every package version (central package management) — never version a .csproj
     contracts/                       OpenAPI snapshot + isolated TS generator (ADR-019)
-    RecipeManager.Domain/            Recipe entity, Entity base, RecipeErrors, IRecipeRepository
+    RecipeManager.Domain/            Recipe aggregate, Ingredient (owned) + Unit enum, Entity base, RecipeErrors, IRecipeRepository
     RecipeManager.Application/       Commands, Queries, Handlers, Dispatchers, DTOs, Validators, Mappings
-    RecipeManager.Infrastructure/    AppDbContext, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
-    RecipeManager.Api/               RecipesController, Startup/*, Middlewares/*, Extensions/*
-    RecipeManager.UnitTests/         85 tests — xUnit + NSubstitute (Domain + Application handlers + Api result mapping)
-    RecipeManager.IntegrationTests/  22 tests — xUnit + WebApplicationFactory (18 real PostgreSQL via Testcontainers, 4 OpenAPI contract, no Docker needed)
+    RecipeManager.Infrastructure/    AppDbContext + Context/Configurations, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
+    RecipeManager.Api/               RecipesController, Startup/*, Startup/Swagger/*, Middlewares/*, Extensions/*
+    RecipeManager.UnitTests/         104 tests — xUnit + NSubstitute (Domain + Application handlers + Api result mapping)
+    RecipeManager.IntegrationTests/  33 tests — xUnit + WebApplicationFactory (29 real PostgreSQL via Testcontainers, 4 OpenAPI contract needing no Docker)
     recipe-manager-frontend/         React 19 + Vite SPA — 77 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
@@ -116,10 +117,12 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **0 warnings** and **107 tests pass** (85 unit + 22 integration) — of the 22,
-18 need Docker and are reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019)
-need no Docker, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip.
-The frontend has 77 Vitest tests (`npm test`).
+Current state: build succeeds with **0 warnings** and **138 tests pass** (104 unit + 34 integration), measured on
+**CI run 36051107842** with 0 failed and 0 skipped. Of the 34 integration tests, **30 need Docker** and are
+reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need no Docker, but on a
+Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip — and that machine can have
+any freshly-built assembly blocked, `dotnet ef` included, so **CI is the authority for these numbers**.
+The frontend has 77 Vitest tests across 10 files (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note. Code style is too: the root `.editorconfig` makes `IDE0055` formatting,
 `IDE0005` unused usings, and `IDE0161` file-scoped namespaces build errors (ADR-020), so fix them with
@@ -168,8 +171,8 @@ API first; there is no mock backend.
 - **There is no seed mechanism.** The database starts empty; create recipes via `POST /api/recipes` or Swagger.
   Integration tests seed through `IntegrationTestBase.SeedDatabase<T>(...)` into their own throwaway database on
   the test container only (`INFRA-05`; a Development-only seeder is planned as `R-13`).
-- PostgreSQL folds unquoted identifiers to lowercase while EF creates `"Recipes"` — quote it in psql:
-  `SELECT * FROM "Recipes";`
+- PostgreSQL folds unquoted identifiers to lowercase while EF creates `"Recipes"` and `"RecipeIngredients"` —
+  quote them in psql: `SELECT * FROM "Recipes";`, `SELECT * FROM "RecipeIngredients" ORDER BY "Position";`
 
 ---
 

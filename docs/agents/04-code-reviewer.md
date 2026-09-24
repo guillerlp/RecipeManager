@@ -22,7 +22,7 @@ required — then security reviews after code review.
 - [ ] `dotnet build RecipeManager.sln` — must be **0 warnings**, enforced by `TreatWarningsAsErrors` (ADR-010),
       so a warning arrives as a build failure. A `#pragma warning disable` or a `NoWarn` entry added to get past
       it is a **Block** unless the PR states why the warning is wrong.
-- [ ] `dotnet test RecipeManager.sln` — **107 passing** is the current count. Fewer than before with no
+- [ ] `dotnet test RecipeManager.sln` — **137 passing** is the current count. Fewer than before with no
       explanation is a Block.
 - [ ] Frontend touched ⇒ `npm run build`, `npm run lint`, **and** `npm test`, all clean (ADR-012, ADR-018). A
       new `oxlint-disable`/`eslint-disable` comment or a rule downgraded in `.oxlintrc.json` to get past lint is
@@ -119,7 +119,7 @@ required — then security reviews after code review.
 
 ```md
 ## Verification
-build: <N> warnings (must be 0) · test: <N>/<N> (107 today) · npm build + tsc: pass | n/a
+build: <N> warnings (must be 0) · test: <N>/<N> (137 today) · npm build + tsc: pass | n/a
 known-issues: fixed <IDs> · added <IDs>
 
 ## Blocking

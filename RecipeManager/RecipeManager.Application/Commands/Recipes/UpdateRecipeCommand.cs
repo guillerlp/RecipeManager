@@ -1,5 +1,6 @@
 ﻿using FluentResults;
 using RecipeManager.Application.Common.Interfaces.Messaging;
+using RecipeManager.Application.DTO.Recipes;
 
 namespace RecipeManager.Application.Commands.Recipes;
 
@@ -10,6 +11,6 @@ public record UpdateRecipeCommand(
     int PreparationTime,
     int CookingTime,
     int Servings,
-    List<string> Ingredients,
+    List<IngredientInputDto> Ingredients,
     List<string> Instructions
 ) : ICommand<Result>;

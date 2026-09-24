@@ -22,7 +22,7 @@ End-to-end path for a new feature. All `dotnet` commands run from `RecipeManager
 **Reads:** the spec, [../architecture.md](../architecture.md), [../domain-model.md](../domain-model.md).
 
 Required whenever the feature touches any of: a new entity or aggregate, a change to `Recipe`'s shape, a new
-project reference, a new NuGet/npm dependency, authentication, multi-record transactions, or any of the eleven
+project reference, a new NuGet/npm dependency, authentication, multi-record transactions, or any of the ten
 items in [Known limitations](../domain-model.md#known-limitations).
 
 - Output: an ADR entry appended to [../architecture.md](../architecture.md) (Status / Decision / Consequences),
@@ -118,7 +118,7 @@ Only if persistence changes.
   interaction (`Received(1)`).
 - Integration test in `RecipesControllerTests` for each new endpoint: status code + database state, with
   `DbContext.ChangeTracker.Clear()` before asserting after a write.
-- Run and compare against the current numbers — 107 passing (85 unit + 22 integration, of which 4 need no
+- Run and compare against the current numbers — 137 passing (104 unit + 33 integration, of which 4 need no
   Docker), 0 build warnings (warnings are errors, ADR-010):
   ```bash
   dotnet test RecipeManager.sln

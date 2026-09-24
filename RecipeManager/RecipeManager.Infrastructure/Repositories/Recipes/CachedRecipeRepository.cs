@@ -55,6 +55,14 @@ public sealed class CachedRecipeRepository : IRecipeRepository
         return recipe;
     }
 
+    // Deliberately no cache read or write: a cached Recipe instance is detached and shared
+    // across requests, so handing it out for mutation would let one request's changes leak
+    // into another's cached copy. Writes always go straight to the database.
+    public Task<Recipe?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return _recipeRepository.GetByIdForUpdateAsync(id, cancellationToken);
+    }
+
     public async Task AddAsync(Recipe recipe, CancellationToken cancellationToken)
     {
         await _recipeRepository.AddAsync(recipe, cancellationToken);

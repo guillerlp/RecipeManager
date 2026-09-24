@@ -30,8 +30,14 @@ public static class RecipeErrors
     public static Error IngredientsRequired() =>
         Validation("At least one ingredient is required").Field("ingredients");
 
-    public static Error IngredientEmpty() =>
-        Validation("Ingredients cannot be empty").Field("ingredients");
+    public static Error IngredientNameRequired() =>
+        Validation("Ingredient name is required").Field("ingredients");
+
+    public static Error IngredientQuantityNotPositive() =>
+        Validation("Ingredient quantity must be greater than 0 when provided").Field("ingredients");
+
+    public static Error IngredientUnitWithoutQuantity() =>
+        Validation("An ingredient unit requires a quantity").Field("ingredients");
 
     public static Error InstructionsRequired() =>
         Validation("At least one instruction step is required").Field("instructions");

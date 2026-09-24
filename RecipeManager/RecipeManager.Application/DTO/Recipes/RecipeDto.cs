@@ -7,6 +7,6 @@ public record RecipeDto(
     int PreparationTime,
     int CookingTime,
     int Servings,
-    List<string> Ingredients,
+    List<IngredientDto> Ingredients,
     List<string> Instructions
 );

@@ -8,3 +8,5 @@ type Schemas = components['schemas'];
 export type Recipe = Schemas['RecipeDto'];
 export type CreateRecipeRequest = Schemas['CreateRecipeCommand'];
 export type UpdateRecipeRequest = Schemas['UpdateRecipeDto'];
+export type Ingredient = Schemas['IngredientDto'];
+export type IngredientInput = Schemas['IngredientInputDto'];

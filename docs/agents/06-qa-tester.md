@@ -22,19 +22,23 @@ though QA can block on missing coverage).
 
 | Suite | Tests | Location |
 | --- | --- | --- |
-| Unit | **85** | `RecipeManager.UnitTests` |
-| Integration | **22** | `RecipeManager.IntegrationTests` |
-| Frontend | **40** | colocated `*.test.ts(x)` in `recipe-manager-frontend/src/` |
+| Unit | **104** | `RecipeManager.UnitTests` |
+| Integration | **33** | `RecipeManager.IntegrationTests` |
+| Frontend | **77** (10 files) | colocated `*.test.ts(x)` in `recipe-manager-frontend/src/` |
 
-Unit-test breakdown: `RecipeTests` 23, `ResultExtensionsTests` 13, `CreateRecipeHandlerTests` 11,
-`GetAllRecipesHandlerTests` 8, `EntityTests` 8, `DeleteRecipeHandlerTests` 7, `GetRecipeByIdHandlerTests` 7,
-`UpdateRecipeHandlerTest` 6, `RecipeErrorsTests` 2.
+Re-measured 2026-09-24 after `R-10`/ADR-022, from **CI run 36022927670** — 0 failed, 0 skipped. CI is the
+authority here rather than a local run: the author's machine has no Docker, and Smart App Control intermittently
+blocks freshly-built assemblies on it (`INFRA-06`).
 
-Integration breakdown: `RecipesControllerTests` 8, `CqrsHandlerRegistrationTests` 6, `RecipeCacheTests` 4,
-`OpenApiContractTests` 4 (3-case required-members theory + 1 snapshot fact; `R-09`/ADR-019, needs no Docker).
+Integration breakdown: `RecipesControllerTests` 18, `CqrsHandlerRegistrationTests` 6, `RecipeCacheTests` 4,
+`OpenApiContractTests` 4 (3-case required-members theory + 1 snapshot fact; `R-09`/ADR-019, needs no Docker),
+`StructureIngredientsMigrationTests` 1 (`R-10`/ADR-022).
 
-Counts are `dotnet test --list-tests` output, not a count of `[Fact]` attributes — a `[Theory]` contributes one
-test per data case, which is why `CqrsHandlerRegistrationTests` has two methods and six tests.
+**The unit-test breakdown is not restated here.** The previous per-class list was `dotnet test --list-tests`
+output, and that command could not be run on this machine when the numbers were last refreshed, so re-deriving
+it by counting attributes would be a guess — a `[Theory]` contributes one test per data case, which is why
+`CqrsHandlerRegistrationTests` has two methods and six tests. Re-measure it on a machine that can run the
+suite, or read it off a CI run, before quoting one.
 
 Build: **0 warnings**, enforced — `TreatWarningsAsErrors` in `Directory.Build.props` (ADR-010). Test code is
 where warnings historically accumulated, so two idioms exist to keep it clean: null-guard inside an
@@ -50,7 +54,7 @@ pwsh ./run-coverage.ps1
 ```
 
 `run-coverage.ps1` covers **only `RecipeManager.UnitTests`** and requires
-`dotnet tool install --global dotnet-reportgenerator-globaltool`. The 22 integration tests contribute nothing to
+`dotnet tool install --global dotnet-reportgenerator-globaltool`. The 33 integration tests contribute nothing to
 the reported number, so it understates real coverage — `BUILD-06` in [../known-issues.md](../known-issues.md).
 
 ---
@@ -120,14 +124,27 @@ Work from this list; tick what is covered, add tests for what is not.
 ### Ingredients / instructions
 
 - Empty list → `IngredientsRequired` / `InstructionsRequired`.
-- List containing `""` or whitespace → `IngredientEmpty` / `InstructionEmpty`.
+- Instruction list containing `""` or whitespace → `InstructionEmpty`. There is **no** `IngredientEmpty`: it was
+  removed by ADR-022, because a blank-named `Ingredient` can no longer be constructed. A blank ingredient name
+  is `IngredientNameRequired`, raised by `Ingredient.Create` rather than by `Recipe.ValidateProperties`.
+- Per-ingredient invariants, each 422 with `field: "ingredients"`: blank `Name` → `IngredientNameRequired`;
+  `Quantity <= 0` when present → `IngredientQuantityNotPositive`; a `Unit` with no `Quantity` →
+  `IngredientUnitWithoutQuantity`. Several bad ingredients in one payload must report **together** — that
+  aggregation is the thing under test, not the individual rules.
+- Per-ingredient shape rules, each 400 from FluentValidation: `Name` of 201 characters, `Notes` of 201,
+  `Quantity` outside 0–100000, and an unrecognised `Unit` (rejected at model binding, before any validator).
 - Exactly 50 items → valid; 51 → 400 from FluentValidation.
 - **Instruction order must round-trip.** Stored as `text[]`; a reordering bug is invisible unless asserted with
   an order-sensitive comparison. Note `BeEquivalentTo` is order-**insensitive** — use `Should().Equal(...)`
-  when order is the thing under test. No existing test does this (`TEST-03`).
-- Duplicate ingredient strings → currently allowed; no test asserts the intent either way.
+  when order is the thing under test. No existing test does this for instructions (`TEST-03`); every ingredient
+  ordering assertion already uses `Should().Equal(...)`.
+- **Ingredient ids must survive a reorder.** A `PUT` that returns the same ids in a new order must read back in
+  that order with those ids, and a null id must mint a new one while the others keep theirs. This is what
+  `R-17`'s step references depend on.
+- Duplicate ingredient names → currently allowed; no test asserts the intent either way.
 - Unicode and non-Latin text (`"Ají"`, `"350°F"`, CJK) — `350°F` already appears in one integration test.
-  `text`/`text[]` handles it; worth an explicit test if internationalisation matters.
+  `text`, `text[]` and `varchar(200)` all handle it; worth an explicit test if internationalisation matters.
+  Note the 200-character cap counts characters, not bytes.
 
 ### Title / description
 
@@ -153,8 +170,11 @@ All covered in `RecipeManager.IntegrationTests/RecipeCacheTests.cs` (`R-08`, spe
 - [x] `GET` twice, with the row changed in the database between the two: the second response is stale, which
       proves it came from the cache. Without this test, every test below would pass with caching disabled.
 - [x] Create → `GET /api/recipes`: the new recipe appears (`recipes_all` was invalidated).
-- [x] Update → `GET /api/recipes`: new values. `GET /api/recipes/{id}` is asserted too, but **cannot** detect a
-      missing `recipe_{id}` invalidation, because the handler mutates the cached instance in place (`BUG-14`).
+- [x] Update → `GET /api/recipes`: new values. `GET /api/recipes/{id}` is asserted too, but does **not yet**
+      detect a missing `recipe_{id}` invalidation. That used to be impossible — the handler mutated the cached
+      instance in place, so the detail read passed either way. Since ADR-022 the write path loads through
+      `GetByIdForUpdateAsync` and never touches the cache, so the assertion can now be tightened; it has not
+      been (`BUG-14`).
 - [x] Delete → `GET /api/recipes/{id}`: 404 rather than a stale cached hit, and the list excludes it.
 
 **The rule that makes these tests work: prime before you write.** A cold cache cannot go stale. If nothing read
@@ -171,11 +191,12 @@ the check whenever `CachedRecipeRepository` gains a write method.
   (ADR-017), so `text[]` semantics, identifier folding, collation, real constraint violations and the
   migrations themselves are all exercised. `TEST-06` is closed, and the standing "verify this by hand" caveat
   on persistence PRs is gone with it.
-- **Anything at all, on a machine without Docker.** There the 18 Docker-backed integration tests are
+- **Anything at all, on a machine without Docker.** There the 29 Docker-backed integration tests are
   **skipped**, not run — the other 4 (`OpenApiContractTests`, ADR-019) need no Docker and still run — so a green
-  local `dotnet test` can mean "89 of 107 tests ran". Read the skip count, and trust CI — which always has
+  local `dotnet test` can mean "108 of 137 tests ran". Read the skip count, and trust CI — which always has
   Docker — before claiming an endpoint works. On a Windows machine under Smart App Control (`INFRA-06`), those 4
-  contract tests fail instead of skipping, same as the rest of the suite.
+  contract tests fail instead of skipping, and freshly-built assemblies can be blocked outright, so a local red
+  run there is not evidence of a defect.
 - **Concurrency.** No optimistic concurrency exists; concurrent `PUT`s are last-write-wins and untested.
 - **Startup migration behaviour** (`app.MigrateDatabase()`) is skipped in the `IntegrationTest` environment.
 - **Performance / volume.** No load test; `GET /api/recipes` is unpaginated.
@@ -213,7 +234,7 @@ not tested, because the test would pin the wrong heading.
 2. A coverage statement: what is covered, what is explicitly not, and why.
 3. Updates to this catalogue when a new edge case is discovered, and to
    [../known-issues.md](../known-issues.md) when a gap is found or closed.
-4. `dotnet test` output — pass count against the current 107, **plus the skip count**, since the 18
+4. `dotnet test` output — pass count against the current 137, **plus the skip count**, since the 29
    Docker-backed integration tests skip without Docker and the run is still green whether they skip or pass.
    Warnings are 0 and a new one fails the build
    (ADR-010), so there is no count to report there any more. For frontend changes, the `npm test` pass count.

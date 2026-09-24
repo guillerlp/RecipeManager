@@ -57,15 +57,15 @@ public class RecipeCacheTests : IntegrationTestBase
             PreparationTime: 10,
             CookingTime: 20,
             Servings: 2,
-            Ingredients: ["Ingredient A"],
+            Ingredients: [new IngredientInputDto(null, null, null, "Ingredient A", null)],
             Instructions: ["Step 1"]);
 
         // ==================== ACT ====================
-        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command);
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
         // ==================== ASSERT ====================
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        RecipeDto? created = await response.Content.ReadFromJsonAsync<RecipeDto>();
+        RecipeDto? created = await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions);
         created.Should().NotBeNull();
 
         List<RecipeDto> recipes = await GetAllRecipes();
@@ -89,11 +89,11 @@ public class RecipeCacheTests : IntegrationTestBase
             5,
             25,
             3,
-            ["Ingredient B"],
+            [new IngredientInputDto(null, null, null, "Ingredient B", null)],
             ["Step 1B"]);
 
         // ==================== ACT ====================
-        HttpResponseMessage response = await Client.PutAsJsonAsync($"/api/recipes/{recipe.Id}", update);
+        HttpResponseMessage response = await Client.PutAsJsonAsync($"/api/recipes/{recipe.Id}", update, JsonOptions);
 
         // ==================== ASSERT ====================
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -101,9 +101,11 @@ public class RecipeCacheTests : IntegrationTestBase
         List<RecipeDto> recipes = await GetAllRecipes();
         recipes.Should().ContainSingle().Which.Title.Should().Be("Updated title");
 
-        // The user-visible contract, but not on its own a test of recipe_{id} invalidation: the handler mutates
-        // the instance the cache holds, so that entry already carries the new values (BUG-14).
-        RecipeDto? detail = await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{recipe.Id}");
+        // The user-visible contract, but not on its own a test of recipe_{id} invalidation: the write path
+        // (GetByIdForUpdateAsync) bypasses the cache entirely, and CachedRecipeRepository.UpdateAsync
+        // explicitly invalidates the recipe_{id} entry afterwards, so this GET is a guaranteed cache miss
+        // that re-reads the fresh row from the database.
+        RecipeDto? detail = await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{recipe.Id}", JsonOptions);
         detail.Should().NotBeNull();
         detail.Title.Should().Be("Updated title");
         detail.Description.Should().Be("Updated description");
@@ -132,14 +134,16 @@ public class RecipeCacheTests : IntegrationTestBase
     }
 
     private static Recipe CreateRecipe(string title) =>
-        Recipe.Create(title, "Description", 10, 15, 4, ["Ingredient A"], ["Step 1"]).Value;
+        Recipe.Create(title, "Description", 10, 15, 4, [Ing("Ingredient A")], ["Step 1"]).Value;
+
+    private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
 
     private async Task<List<RecipeDto>> GetAllRecipes()
     {
         HttpResponseMessage response = await Client.GetAsync("/api/recipes");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        List<RecipeDto>? recipes = await response.Content.ReadFromJsonAsync<List<RecipeDto>>();
+        List<RecipeDto>? recipes = await response.Content.ReadFromJsonAsync<List<RecipeDto>>(JsonOptions);
         recipes.Should().NotBeNull();
         return recipes;
     }

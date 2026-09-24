@@ -38,9 +38,25 @@ public sealed class RecipeRepository : IRecipeRepository
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
 
+    public async Task<Recipe?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await _context.Recipes
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+    }
+
     public async Task UpdateAsync(Recipe recipe, CancellationToken cancellationToken)
     {
-        _context.Recipes.Update(recipe);
+        // The recipe must already be tracked (loaded via GetByIdForUpdateAsync): no explicit
+        // Update()/Attach() call here, because that would re-mark the whole graph Modified instead
+        // of letting EF's change tracker detect the real inserts/updates/deletes. A detached recipe
+        // would silently persist nothing -- SaveChangesAsync has no tracked changes to write.
+        if (_context.Entry(recipe).State == EntityState.Detached)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(Recipe)} passed to {nameof(UpdateAsync)} is not tracked by this context. " +
+                $"Load it via {nameof(GetByIdForUpdateAsync)} before mutating and saving it.");
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

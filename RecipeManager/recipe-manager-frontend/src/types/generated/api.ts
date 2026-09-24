@@ -160,8 +160,26 @@ export interface components {
             cookingTime: number;
             /** Format: int32 */
             servings: number;
-            ingredients: string[];
+            ingredients: components["schemas"]["IngredientInputDto"][];
             instructions: string[];
+        };
+        IngredientDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            quantity?: number | null;
+            unit?: components["schemas"]["Unit"] | null;
+            name: string;
+            notes?: string | null;
+        };
+        IngredientInputDto: {
+            /** Format: uuid */
+            id?: string | null;
+            /** Format: double */
+            quantity?: number | null;
+            unit?: components["schemas"]["Unit"] | null;
+            name: string;
+            notes?: string | null;
         };
         RecipeDto: {
             /** Format: uuid */
@@ -174,9 +192,11 @@ export interface components {
             cookingTime: number;
             /** Format: int32 */
             servings: number;
-            ingredients: string[];
+            ingredients: components["schemas"]["IngredientDto"][];
             instructions: string[];
         };
+        /** @enum {string} */
+        Unit: "Gram" | "Kilogram" | "Ounce" | "Pound" | "Millilitre" | "Litre" | "Teaspoon" | "Tablespoon" | "Cup" | "FluidOunce" | "Piece" | "Clove" | "Pinch" | "Slice" | "Can" | "Bunch" | "Sprig";
         UpdateRecipeDto: {
             title: string;
             description: string;
@@ -186,7 +206,7 @@ export interface components {
             cookingTime: number;
             /** Format: int32 */
             servings: number;
-            ingredients: string[];
+            ingredients: components["schemas"]["IngredientInputDto"][];
             instructions: string[];
         };
     };

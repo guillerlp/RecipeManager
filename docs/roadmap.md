@@ -58,24 +58,32 @@ namespaces now fail the build, and it opened `QUAL-05` for the frontend.
 Re-sequenced on 2026-09-19 around the **editorial design**: the canonical visual reference for every screen,
 kept in Claude Design (see [agents/07-ux-ui.md](agents/07-ux-ui.md#canonical-design-reference)). It covers six
 screens (Home, Recipes, Detail, Add/Edit, Profile & settings, Cooking mode) in light and dark, plus mobile for
-three of them. It assumes structured ingredients throughout, so most of its screens **depend on** `R-10` rather
-than preceding it. The reasoning is in [decisions-log.md](decisions-log.md#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise).
+three of them. It assumes structured ingredients throughout, so most of its screens **depended on** `R-10` (now
+shipped) rather than preceding it. The reasoning is in [decisions-log.md](decisions-log.md#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise).
 
 `R-16` (editorial design system and shell) shipped 2026-09-20 as ADR-021
 ([spec 009](specs/009-editorial-design-system-and-shell.md)), closing `UX-01`, `UX-02`, `UX-03`, `BUG-06`,
 `BUILD-05`, `DEC-06`, `QUAL-03`, and `BUG-09`. It opened `UX-06` and `UX-07`, and left `BUG-10` open by
 design: recipe rows stay `<article>` rather than `<button>` until `R-18` gives them a detail route to link to.
 
+`R-10` (structured ingredients) shipped 2026-09-24 as **ADR-022**
+([spec 010](specs/010-structured-ingredients.md)), which supersedes ADR-004. It closed the ingredient half of
+`BUG-11` and of `SEC-09`, and known limitation #1 in [domain-model.md](domain-model.md#known-limitations); it
+removed `SEC-08`'s architecture blocker by introducing `OnModelCreating` and the first
+`IEntityTypeConfiguration<T>`; and it opened `BUG-15` and `TEST-07`. Its entry is gone from this file, and what
+the domain looks like now is described as current state in [domain-model.md](domain-model.md). **Every item that
+waited on it is now unblocked** — the whole of Phase 3 was gated on this one.
+
 Build order. Each item names what it waits on, so a later item can move up if its dependencies are met:
 
 | Order | Item | Waits on |
 | --- | --- | --- |
-| 1 | `R-10` Structured ingredients (ADR also settles the instructions shape) | — |
-| 2 | `R-17` Structured instructions | `R-10` ADR |
-| 3 | `R-18` Recipe detail screen | `R-10` |
-| 4 | `R-19` Draft recipes | `R-10` |
+| ~~1~~ | ~~`R-10` Structured ingredients~~ — **shipped 2026-09-24**, ADR-022 | — |
+| 2 | `R-17` Structured instructions — shape decided in ADR-022, so **unblocked** | ~~`R-10` ADR~~ |
+| 3 | `R-18` Recipe detail screen | ~~`R-10`~~ — none |
+| 4 | `R-19` Draft recipes | ~~`R-10`~~ — none |
 | 5 | `R-20` Tags | — |
-| 6 | `R-21` Add/edit form | `R-10`, `R-17`, `R-19`, `R-20` |
+| 6 | `R-21` Add/edit form | ~~`R-10`~~, `R-17`, `R-19`, `R-20` |
 | 7 | `R-22` Cook log | — |
 | 8 | `R-23` Cooking mode | `R-17`, `R-22` |
 | 9 | `R-24` Export and import | `SEC-08`, `SEC-09` |
@@ -84,53 +92,36 @@ Build order. Each item names what it waits on, so a later item can move up if it
 the design asks of it. `R-13` is worth doing early, since every screen above is easier to check against realistic
 data.
 
-### R-10
-**Structured ingredients** · `01-architect` (ADR required) → `02-senior-csharp` → full stack · ~2–3 days · **decided**
-
-The largest latent change in the model, and an acknowledged temporary shortcut. `Ingredients` is
-`IReadOnlyList<string>` of free text, which makes all of these impossible: quantities, unit conversion, serving
-scaling, shopping lists, and querying "recipes containing tomato" in SQL (the frontend filters the whole list
-client-side instead).
-
-**Target shape** — settle these in the ADR before any code:
-
-- An `Ingredient` value object or entity: `Quantity` (decimal), `Unit`, `Name`, optional `Notes`.
-- A `Unit` value object or enum covering metric and imperial, with an explicit conversion policy — decide
-  whether conversion is a domain service or a presentation concern, and what the canonical stored unit is.
-- ~~Whether an ingredient **catalogue** exists~~ — **settled 2026-09-19: no catalogue.** Ingredients are value
-  objects owned by their recipe. `Recipe` stays the only aggregate and each write stays one repository call
-  (ADR-006 holds). "Recipes containing tomato" becomes a name match in SQL. The cost is that "tomato" and
-  "tomatoes" are different ingredients, with no shared identity to join on.
-- Migration for existing rows: `text[]` free text cannot be parsed reliably into structured data. Decide
-  between a best-effort parse, a nullable structured column alongside the text one, or accepting data loss.
-  If `Quantity` and `Unit` are optional (needed anyway for "salt to taste"), every old string migrates
-  losslessly as a name-only ingredient.
-
-**Knock-on effects to plan in the same ADR:** the recipe form is now `R-21`, and its ingredient input parses
-one line ("2 tbsp butter, cold") into quantity, unit, and name on the client, so the parser's rules belong
-in the ADR too. Serving scaling is `R-18`. The metric/imperial preference in `R-16`'s Settings needs the
-conversion policy. `RecipeDto` changes, so `R-09` (shipped) will flag every client site the change touches.
-
-The same ADR settles the `Instructions` shape. It is no longer optional: cooking mode (`R-23`) needs per-step
-durations and to know which ingredients each step uses. Decided here, implemented as `R-17`.
-
 ### R-17
-**Structured instructions** · `01-architect` (shape decided in `R-10`'s ADR) → `02-senior-csharp` → full stack ·
-~1–2 days
+**Structured instructions** · `02-senior-csharp` → full stack · ~1–2 days · **shape decided in ADR-022**
 
-`Instructions` becomes an ordered list of steps: text, an optional duration, and references to the ingredients
-the step uses. Those references are what cooking mode's "For this step" and "Already used" lists are built
-from. Referencing an ingredient needs something stable to point at. A value object has no identity, so the ADR
-must choose between an index into the ingredient list (breaks when the list is reordered), a step-local id,
-or making `Ingredient` a child entity. Fix `TEST-03` (step order never asserted) before or with this: reshaping
-the steps is exactly the change an order-insensitive assertion would let through.
+`Instructions` becomes an ordered list of steps. ADR-022 fixes the shape: `InstructionStep` with `Position`,
+`Text`, `DurationMinutes int?`, and `IngredientIds Guid[]`. Those references are what cooking mode's "For this
+step" and "Already used" lists are built from, and they point at ingredient ids — which is why ADR-022 made
+`Ingredient` an entity rather than a pure value object. Referential integrity is a domain invariant, not a
+foreign key. Fix `TEST-03` (step order never asserted) before or with this: reshaping the steps is exactly the
+change an order-insensitive assertion would let through. `BUG-11` and `SEC-09` each close their instruction
+half here; the ingredient half closed with ADR-022 on 2026-09-24. Closing `BUG-11` also means closing GitHub
+[#8](https://github.com/guillerlp/RecipeManager/issues/8), deliberately left open for this half.
+
+The shape is **still** what ADR-022 accepted — re-checked 2026-09-24 against the shipped code, which changed
+nothing about it. What it inherits from the ingredient work, and should copy rather than re-derive: an
+`Entity`-derived owned type needs `ValueGeneratedNever()` on its `Guid` key, `OwnsMany` into a child table with
+an explicit `Position`, a private backing field plus `PropertyAccessMode.Field`, per-item `HasMaxLength` in
+`RecipeConfiguration` as well as in the validator (which is what finally closes `SEC-09`), and a write path that
+loads through `GetByIdForUpdateAsync` so EF's change tracker computes the inserts and deletes. Both consequences
+appended to ADR-022 on 2026-09-24 apply again. `RecipeConfiguration` already exists, so there is no architecture
+sign-off to obtain this time.
 
 ### R-18
 **Recipe detail screen** · `07-ux-ui` → `03-senior-react` · ~1 day
 
 Design screen 3c: method in the wide column, ingredients in a sticky rail, and a servings stepper that
 rescales every quantity on the client. Closes `BUG-10` (no detail route). Rescaling is presentation only and
-never writes back. Quantities without a number ("to taste") stay unscaled.
+never writes back. It rescales `IngredientDto.Quantity`, a `decimal?`; a null quantity ("salt to taste") stays
+unscaled, and so does an ingredient with a quantity but no `unit`. This is also where `R-16`'s metric/imperial
+preference finally acts on something: ADR-022 made conversion a presentation concern with no canonical stored
+unit, so the conversion table is written here, on the client, over the `Unit` enum.
 
 ### R-19
 **Draft recipes** · `01-architect` (ADR required) → `02-senior-csharp` → full stack · ~1 day
@@ -149,19 +140,26 @@ only, and relaxing the aggregate to require only a title.
 **Tags** · `01-architect` → full stack · ~1 day
 
 Freeform labels ("roast", "breakfast", "feeds a table") on a recipe, shown in the list and on the detail
-screen, and edited in the form. Removes known limitation #7. Decide the storage (`text[]` like today's
-ingredients, or a child table) and normalisation (case, whitespace, duplicates) in the ADR. Comes before
-`R-21` so the form is built once.
+screen, and edited in the form. Removes known limitation #6. Decide the storage (`text[]`, as `Instructions`
+still is, or an owned child table as `Ingredients` now is) and normalisation (case, whitespace, duplicates) in
+the ADR. ADR-022's reasoning transfers: a `text[]` is cheaper and keeps order for free, a child table is what
+makes "every recipe tagged *roast*" an indexable SQL query rather than a client-side scan. Comes before `R-21`
+so the form is built once.
 
 ### R-21
 **Add/edit form** · `07-ux-ui` → `03-senior-react` · ~2 days
 
 Design screen 3d. The title field is typeset as the page title, there is a live preview of the list row, and
-ingredients are entered one per line and parsed into quantity, unit, and name. Adds the SPA's first mutation
-hooks (the `['recipes']` invalidation pattern in the feature workflow) and gives `/recipes/new` a real screen
-in place of the `R-16` 404 fallback. The existing checklist in [agents/07-ux-ui.md](agents/07-ux-ui.md) still applies: keyboard
-reorder, visible limits, cross-field errors, and 400/422 mapping. "Draft saved" in the design depends on
-`R-19`. The photo field depends on `R-12`.
+ingredients are entered one per line and parsed into quantity, unit, and name. The parser runs **on the client**
+and produces an `IngredientInputDto`; the server never parses free text. Its rules are already fixed — spec 010
+§9 and ADR-022 — against the `Unit` enum that now exists. Adds the SPA's first mutation hooks (the `['recipes']`
+invalidation pattern in the feature workflow) and gives `/recipes/new` a real screen in place of the `R-16` 404
+fallback. The existing checklist in [agents/07-ux-ui.md](agents/07-ux-ui.md) still applies: keyboard reorder,
+visible limits, cross-field errors, and 400/422 mapping. Two things the form must not get wrong: it has to echo
+back each ingredient's `id` rather than rebuilding the list from scratch, or `R-17`'s step references break with
+nothing in the type system to stop it; and it must not invent ids, because nothing server-side validates that
+one belongs to the recipe (`BUG-15`). "Draft saved" in the design depends on `R-19`. The photo field depends on
+`R-12`.
 
 ### R-22
 **Cook log** · `01-architect` (ADR required) → full stack · ~1–2 days
@@ -197,8 +195,10 @@ and belongs with `R-18`, not here.
 key (`SEC-07`), and the SPA filters it in the browser. This is fine at 20 recipes and untenable at 2,000.
 
 Design the pagination contract and the cache-key strategy **together** — paginating invalidates the current
-single-key `recipes_all` approach. PostgreSQL `text[]` is queryable, so ingredient search can move server-side
-here even before `R-10`.
+single-key `recipes_all` approach. Ingredient search is now a join against the `"RecipeIngredients"` child table
+(ADR-022) rather than an array scan, so it is an ordinary indexable SQL query — which is precisely why ADR-022
+rejected `jsonb`. Note that `R-10` **worsened `SEC-07` in degree**: each recipe's payload grew, and this
+endpoint is still unpaginated.
 
 The editorial design asks for "Load the rest" on the Recipes screen, and three saved views on Home ("under 30
 minutes", "feeds a table", "never cooked yet"). Design the query contract so those are filters on the same
