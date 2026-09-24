@@ -117,8 +117,8 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **0 warnings** and **137 tests pass** (104 unit + 33 integration), measured on
-**CI run 36022927670** with 0 failed and 0 skipped. Of the 33 integration tests, **29 need Docker** and are
+Current state: build succeeds with **0 warnings** and **138 tests pass** (104 unit + 34 integration), measured on
+**CI run 36051107842** with 0 failed and 0 skipped. Of the 34 integration tests, **30 need Docker** and are
 reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need no Docker, but on a
 Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip — and that machine can have
 any freshly-built assembly blocked, `dotnet ef` included, so **CI is the authority for these numbers**.

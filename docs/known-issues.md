@@ -8,7 +8,7 @@ test numbers re-measured on 2026-08-04 after `R-02`, and the frontend rows re-me
 and again after the `SEC-03` dependency remediation. The npm audit row re-measured 2026-09-12. The frontend
 tests row was added 2026-09-18 after `R-07` and re-measured 2026-09-20 after `R-16` PR 3 shipped in full, by
 running `npm test` directly (10 files, 77 passed). Backend test numbers re-measured 2026-09-24 after `R-10`
-(ADR-022), from **CI run 36022927670**, which shows 104 unit + 33 integration passed, 0 failed, 0 skipped, and
+(ADR-022), from **CI run 36051107842**, which shows 104 unit + 34 integration passed, 0 failed, 0 skipped, and
 77 frontend tests across 10 files. They were measured on CI rather than locally on purpose: Docker is not
 installed on the author's machine, and Smart App Control intermittently blocks freshly-built assemblies there
 (`INFRA-06`), so CI is the only place these numbers can be taken honestly.
@@ -28,7 +28,7 @@ installed on the author's machine, and Smart App Control intermittently blocks f
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **0 warnings** — enforced by `TreatWarningsAsErrors` (ADR-010) |
-| Backend tests | `dotnet test RecipeManager.sln` | **137 passing** (104 unit + 33 integration), 0 failing, 0 skipped on CI. Of the 33 integration tests, **29 need Docker** and report as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need none, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** with `FileLoadException` rather than skip |
+| Backend tests | `dotnet test RecipeManager.sln` | **138 passing** (104 unit + 34 integration), 0 failing, 0 skipped on CI. Of the 34 integration tests, **30 need Docker** and report as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need none, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** with `FileLoadException` rather than skip |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
@@ -106,7 +106,7 @@ Resolved decisions and items promoted to planned work are recorded in [Settled](
 ### BUILD-06
 **`run-coverage.ps1` measures only the unit-test project — Low**
 
-The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 33 integration tests
+The script runs `dotnet test RecipeManager.UnitTests` and reports on that alone, so the 34 integration tests
 contribute nothing and the reported percentage understates real coverage — particularly for `Api` and
 `Infrastructure`, which unit tests never touch.
 
