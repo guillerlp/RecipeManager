@@ -209,7 +209,7 @@
           "ingredients": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/IngredientInputDto"
             }
           },
           "instructions": {
@@ -217,6 +217,66 @@
             "items": {
               "type": "string"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "IngredientDto": {
+        "required": [
+          "id",
+          "name",
+          "unit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "unit": {
+            "$ref": "#/components/schemas/Unit"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IngredientInputDto": {
+        "required": [
+          "name",
+          "unit"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "unit": {
+            "$ref": "#/components/schemas/Unit"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -259,7 +319,7 @@
           "ingredients": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/IngredientDto"
             }
           },
           "instructions": {
@@ -270,6 +330,28 @@
           }
         },
         "additionalProperties": false
+      },
+      "Unit": {
+        "enum": [
+          "Gram",
+          "Kilogram",
+          "Ounce",
+          "Pound",
+          "Millilitre",
+          "Litre",
+          "Teaspoon",
+          "Tablespoon",
+          "Cup",
+          "FluidOunce",
+          "Piece",
+          "Clove",
+          "Pinch",
+          "Slice",
+          "Can",
+          "Bunch",
+          "Sprig"
+        ],
+        "type": "string"
       },
       "UpdateRecipeDto": {
         "required": [
@@ -304,7 +386,7 @@
           "ingredients": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/IngredientInputDto"
             }
           },
           "instructions": {
