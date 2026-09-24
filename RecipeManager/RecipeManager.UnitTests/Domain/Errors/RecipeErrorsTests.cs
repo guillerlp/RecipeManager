@@ -42,4 +42,25 @@ public class RecipeErrorsTests
             error.Should().BeOfType<DomainError>()
                 .Which.Kind.Should().Be(ErrorKind.Validation));
     }
+
+    [Fact]
+    public void IngredientErrors_ShouldBeValidationDomainErrorsWithIngredientsField()
+    {
+        // Act
+        Error[] errors =
+        [
+            RecipeErrors.IngredientNameRequired(),
+            RecipeErrors.IngredientQuantityNotPositive(),
+            RecipeErrors.IngredientUnitWithoutQuantity()
+        ];
+
+        // Assert
+        errors.Should().HaveCount(3).And.AllSatisfy(error =>
+        {
+            error.Should().BeOfType<DomainError>()
+                .Which.Kind.Should().Be(ErrorKind.Validation);
+            error.Metadata.Should().ContainKey("field");
+            error.Metadata["field"].Should().Be("ingredients");
+        });
+    }
 }

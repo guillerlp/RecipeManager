@@ -417,8 +417,9 @@ public class RecipeTests
     [Fact]
     public void Ingredients_ShouldNotBeCastableToAMutableList()
     {
-        // BUG-11, ingredient half. The backing field is what makes this true; a `private set`
-        // auto-property was not enough, because EF assigns straight through it.
+        // BUG-11, ingredient half. Ingredients wraps its projection in AsReadOnly(), so callers get a
+        // ReadOnlyCollection rather than a real List<Ingredient> — a bare ToList() would still be
+        // castable back to List<Ingredient> and this assertion would fail.
         Recipe recipe = Recipe.Create("Title", "Description", 10, 0, 1, [Ing("Flour")], ["Mix"]).Value;
 
         recipe.Ingredients.Should().NotBeAssignableTo<List<Ingredient>>();

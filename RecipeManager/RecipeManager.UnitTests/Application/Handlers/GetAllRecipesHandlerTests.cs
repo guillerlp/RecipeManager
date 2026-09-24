@@ -173,7 +173,7 @@ public class GetAllRecipesHandlerTests
         dto.PreparationTime.Should().Be(25);
         dto.CookingTime.Should().Be(35);
         dto.Servings.Should().Be(6);
-        dto.Ingredients.Select(i => i.Name).Should().BeEquivalentTo(ingredients.Select(i => i.Name));
+        dto.Ingredients.Select(i => i.Name).Should().Equal("Ingredient1", "Ingredient2", "Ingredient3");
         dto.Instructions.Should().BeEquivalentTo(instructions);
     }
 

@@ -61,8 +61,7 @@ public class GetRecipeByIdHandlerTests
         result.Value.PreparationTime.Should().Be(existingRecipe.PreparationTime);
         result.Value.CookingTime.Should().Be(existingRecipe.CookingTime);
         result.Value.Servings.Should().Be(existingRecipe.Servings);
-        result.Value.Ingredients.Select(i => i.Name).Should()
-            .BeEquivalentTo(existingRecipe.Ingredients.Select(i => i.Name));
+        result.Value.Ingredients.Select(i => i.Name).Should().Equal("Flour", "Sugar", "Cocoa");
         result.Value.Instructions.Should().BeEquivalentTo(existingRecipe.Instructions);
 
         await _recipeRepository.Received(1).GetByIdAsync(recipeId, Arg.Any<CancellationToken>());
@@ -125,7 +124,7 @@ public class GetRecipeByIdHandlerTests
         result.IsSuccess.Should().BeTrue();
         result.Value.Ingredients.Should().HaveCount(4);
         result.Value.Instructions.Should().HaveCount(3);
-        result.Value.Ingredients.Select(i => i.Name).Should().BeEquivalentTo(ingredients.Select(i => i.Name));
+        result.Value.Ingredients.Select(i => i.Name).Should().Equal("Flour", "Sugar", "Eggs", "Butter");
         result.Value.Instructions.Should().BeEquivalentTo(instructions);
     }
 
