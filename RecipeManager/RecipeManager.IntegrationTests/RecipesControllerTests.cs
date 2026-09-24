@@ -300,6 +300,22 @@ public class RecipesControllerTests : IntegrationTestBase
 
         created.Ingredients[2].Quantity.Should().BeNull();
         created.Ingredients[2].Unit.Should().BeNull();
+
+        // The assertions above only prove the POST response was serialized correctly; re-read from the
+        // database to prove the same values were actually persisted, not just echoed back.
+        RecipeDto? reread = await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions);
+        reread.Should().NotBeNull();
+
+        reread.Ingredients.Select(i => i.Name).Should().Equal("Butter", "Eggs", "Salt to taste");
+
+        IngredientDto rereadButter = reread.Ingredients[0];
+        rereadButter.Id.Should().Be(butter.Id);
+        rereadButter.Quantity.Should().Be(2m);
+        rereadButter.Unit.Should().Be(Unit.Tablespoon);
+        rereadButter.Notes.Should().Be("cold");
+
+        reread.Ingredients[2].Quantity.Should().BeNull();
+        reread.Ingredients[2].Unit.Should().BeNull();
     }
 
     [SkippableFact]
@@ -366,8 +382,11 @@ public class RecipesControllerTests : IntegrationTestBase
     }
 
     [SkippableFact]
-    public async Task DeleteRecipe_ShouldLeaveNoOrphanIngredientRows()
+    public async Task DeleteRecipe_ThroughTheApi_ShouldLeaveNoOrphanIngredientRowsForThatRecipe()
     {
+        // This proves EF's in-memory cascade (owned collections are always loaded, so EF deletes their
+        // rows itself), not the database's: it would still pass even with no ON DELETE CASCADE at all.
+        // The database-level guarantee is exercised separately below, bypassing EF entirely.
         var create = new CreateRecipeCommand("Delete me", "Description", 5, 5, 2,
             [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], ["Step"]);
 
@@ -380,7 +399,34 @@ public class RecipesControllerTests : IntegrationTestBase
         DbContext.ChangeTracker.Clear();
 
         int orphans = await DbContext.Database
-            .SqlQuery<int>($"SELECT COUNT(*)::int AS \"Value\" FROM \"RecipeIngredients\"")
+            .SqlQuery<int>(
+                $"SELECT COUNT(*)::int AS \"Value\" FROM \"RecipeIngredients\" WHERE \"RecipeId\" = {created.Id}")
+            .SingleAsync();
+
+        orphans.Should().Be(0);
+    }
+
+    [SkippableFact]
+    public async Task DeleteRecipe_ViaRawSql_ShouldCascadeAtTheDatabaseLevel()
+    {
+        // Deletes the Recipes row directly, bypassing EF (and its in-memory owned-collection cascade)
+        // entirely, so this is the test that actually exercises "RecipeIngredients"."RecipeId" ON DELETE
+        // CASCADE rather than relying on application code to clean up.
+        var create = new CreateRecipeCommand("Delete me via SQL", "Description", 5, 5, 2,
+            [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], ["Step"]);
+
+        RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions))
+            .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
+
+        await DbContext.Database.ExecuteSqlInterpolatedAsync($"""
+            DELETE FROM "Recipes" WHERE "Id" = {created.Id}
+            """);
+
+        DbContext.ChangeTracker.Clear();
+
+        int orphans = await DbContext.Database
+            .SqlQuery<int>(
+                $"SELECT COUNT(*)::int AS \"Value\" FROM \"RecipeIngredients\" WHERE \"RecipeId\" = {created.Id}")
             .SingleAsync();
 
         orphans.Should().Be(0);
@@ -391,8 +437,8 @@ public class RecipesControllerTests : IntegrationTestBase
     // InclusiveBetween(0, 100000) guards the *bound*, and "must be positive" is a business rule the
     // domain owns. Same split as Title = "" (422) vs. Title = null (400).
     [InlineData(null, "Gram", "Flour")]      // unit without quantity
-    [InlineData(0, "Gram", "Flour")]         // non-positive quantity
-    [InlineData(1, "Gram", "   ")]           // blank name
+    [InlineData(0d, "Gram", "Flour")]        // non-positive quantity
+    [InlineData(1d, "Gram", "   ")]          // blank name
     public async Task CreateRecipe_WithAnInvalidIngredient_ShouldReturn422(double? quantity, string unit,
         string name)
     {
@@ -434,5 +480,8 @@ public class RecipesControllerTests : IntegrationTestBase
         HttpResponseMessage response = await Client.PostAsync("/api/recipes", json);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        // Without this, an unrelated binding failure earlier in the payload would also produce a bare
+        // 400 and pass here for the wrong reason.
+        (await response.Content.ReadAsStringAsync()).Should().ContainEquivalentOf("unit");
     }
 }

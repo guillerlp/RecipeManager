@@ -15,6 +15,12 @@ public interface IRecipeRepository
     Task<Recipe?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken);
 
     Task AddAsync(Recipe recipe, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Persists changes to a recipe previously loaded via <see cref="GetByIdForUpdateAsync"/>.
+    /// The recipe must already be tracked by the underlying context; passing a detached instance
+    /// persists nothing.
+    /// </summary>
     Task UpdateAsync(Recipe recipe, CancellationToken cancellationToken);
     Task DeleteAsync(Recipe recipe, CancellationToken cancellationToken);
 }

@@ -12,10 +12,19 @@ public sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
 {
     public void Configure(EntityTypeBuilder<Recipe> builder)
     {
+        // Entity.Id is minted by the domain (Guid.NewGuid() in the entity's private constructor), never by
+        // the database, so EF must not treat a set key as evidence the row already exists. Without this,
+        // EF's convention for a Guid key is ValueGeneratedOnAdd, which makes a set-but-unsaved key look
+        // exactly like an existing row: SaveChanges paints the entity Modified instead of Added, and the
+        // resulting UPDATE affects 0 rows.
+        builder.Property(r => r.Id).ValueGeneratedNever();
+
         builder.OwnsMany(r => r.Ingredients, ingredient =>
         {
             ingredient.ToTable("RecipeIngredients");
             ingredient.HasKey(i => i.Id);
+            // Same reasoning as Recipe.Id above: Ingredient.Create also mints its own Guid client-side.
+            ingredient.Property(i => i.Id).ValueGeneratedNever();
             ingredient.Property(i => i.Position).IsRequired();
             ingredient.Property(i => i.Quantity).HasPrecision(9, 3);
             // Stored as the member name, not its ordinal: reordering the enum then cannot silently remap

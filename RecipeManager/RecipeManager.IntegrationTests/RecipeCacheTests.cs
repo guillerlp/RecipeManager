@@ -101,8 +101,10 @@ public class RecipeCacheTests : IntegrationTestBase
         List<RecipeDto> recipes = await GetAllRecipes();
         recipes.Should().ContainSingle().Which.Title.Should().Be("Updated title");
 
-        // The user-visible contract, but not on its own a test of recipe_{id} invalidation: the handler mutates
-        // the instance the cache holds, so that entry already carries the new values (BUG-14).
+        // The user-visible contract, but not on its own a test of recipe_{id} invalidation: the write path
+        // (GetByIdForUpdateAsync) bypasses the cache entirely, and CachedRecipeRepository.UpdateAsync
+        // explicitly invalidates the recipe_{id} entry afterwards, so this GET is a guaranteed cache miss
+        // that re-reads the fresh row from the database.
         RecipeDto? detail = await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{recipe.Id}", JsonOptions);
         detail.Should().NotBeNull();
         detail.Title.Should().Be("Updated title");
