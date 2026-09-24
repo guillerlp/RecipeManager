@@ -39,6 +39,23 @@ namespace RecipeManager.Infrastructure.Migrations
                 table: "RecipeIngredients",
                 column: "RecipeId");
 
+            // Pre-flight guard. Before this migration, no per-item length cap existed anywhere in the
+            // system: RecipeValidationRules only capped the ingredient LIST at 50 entries, and the old
+            // column was plain, unbounded text (SEC-09). A string over 200 characters would otherwise hit
+            // the new Name limit below and abort the INSERT with a raw 22001. Since Program.cs applies
+            // migrations automatically at startup and there is no rollback procedure (INFRA-03), that
+            // failure has to surface as an actionable message instead of a crash loop with an opaque code.
+            migrationBuilder.Sql("""
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM "Recipes" r, unnest(r."Ingredients") AS e WHERE length(e) > 200
+                    ) THEN
+                        RAISE EXCEPTION 'StructureIngredients: at least one existing ingredient exceeds the new 200-character limit on "RecipeIngredients"."Name". Shorten those entries before applying this migration; the backfill is deliberately lossless and will not truncate them.';
+                    END IF;
+                END $$;
+                """);
+
             // Backfill. Lossless only because Quantity and Unit are nullable: every old free-text string
             // becomes a name-only ingredient at its original index. Deliberately NOT parsed — a wrong parse
             // is indistinguishable from real data afterwards (spec 010 §6).
