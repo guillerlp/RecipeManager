@@ -271,6 +271,33 @@ public class RecipesControllerTests : IntegrationTestBase
     }
 
     [SkippableFact]
+    public async Task RecipeReadFromPostgres_ShouldRoundTripStepReferencesAndExposeNoMutableList()
+    {
+        // Two things at once, both only provable against a real database:
+        //  - spec 011 §6.1's risk — a uuid[] primitive collection inside an owned type, mapped through a
+        //    backing field of a different type, round-trips with its order intact;
+        //  - BUG-11 — EF materialises every collection without leaving a castable List<> behind. This also
+        //    pins the ingredient-half criterion spec 010 §11 left unpinned.
+        Ingredient flour = Ing("Flour");
+        Ingredient butter = Ing("Butter");
+        Recipe recipe = Recipe.Create("Cast me", "Description", 5, 5, 2, [flour, butter],
+            [InstructionStep.Create("Rub in", 5, [butter.Id, flour.Id]).Value, Step("Chill")]).Value;
+        await SeedDatabase(recipe);
+        DbContext.ChangeTracker.Clear();
+
+        Recipe reread = await DbContext.Recipes.SingleAsync(r => r.Id == recipe.Id);
+
+        reread.Instructions.Select(s => s.Text).Should().Equal("Rub in", "Chill");
+        reread.Instructions[0].IngredientIds.Should().Equal(butter.Id, flour.Id);
+        reread.Instructions[0].DurationMinutes.Should().Be(5);
+        reread.Instructions[1].IngredientIds.Should().BeEmpty();
+
+        reread.Ingredients.Should().NotBeAssignableTo<List<Ingredient>>();
+        reread.Instructions.Should().NotBeAssignableTo<List<InstructionStep>>();
+        reread.Instructions[0].IngredientIds.Should().NotBeAssignableTo<List<Guid>>();
+    }
+
+    [SkippableFact]
     public async Task CreateRecipe_WithStructuredIngredients_ShouldRoundTripEveryField()
     {
         var command = new CreateRecipeCommand(
@@ -387,7 +414,7 @@ public class RecipesControllerTests : IntegrationTestBase
     }
 
     [SkippableFact]
-    public async Task DeleteRecipe_ThroughTheApi_ShouldLeaveNoOrphanIngredientRowsForThatRecipe()
+    public async Task DeleteRecipe_ThroughTheApi_ShouldLeaveNoOrphanChildRowsForThatRecipe()
     {
         // This proves EF's in-memory cascade (owned collections are always loaded, so EF deletes their
         // rows itself), not the database's: it would still pass even with no ON DELETE CASCADE at all.
@@ -409,6 +436,13 @@ public class RecipesControllerTests : IntegrationTestBase
             .SingleAsync();
 
         orphans.Should().Be(0);
+
+        int orphanSteps = await DbContext.Database
+            .SqlQuery<int>(
+                $"SELECT COUNT(*)::int AS \"Value\" FROM \"RecipeInstructionSteps\" WHERE \"RecipeId\" = {created.Id}")
+            .SingleAsync();
+
+        orphanSteps.Should().Be(0);
     }
 
     [SkippableFact]
@@ -435,6 +469,13 @@ public class RecipesControllerTests : IntegrationTestBase
             .SingleAsync();
 
         orphans.Should().Be(0);
+
+        int orphanSteps = await DbContext.Database
+            .SqlQuery<int>(
+                $"SELECT COUNT(*)::int AS \"Value\" FROM \"RecipeInstructionSteps\" WHERE \"RecipeId\" = {created.Id}")
+            .SingleAsync();
+
+        orphanSteps.Should().Be(0);
     }
 
     [SkippableTheory]

@@ -5,8 +5,9 @@ using RecipeManager.Domain.Entities;
 namespace RecipeManager.Infrastructure.Context.Configurations;
 
 /// <summary>
-/// The first entity configuration in this codebase (ADR-022). Until now mapping was entirely
-/// convention-based, which is why every string column is unbounded text (SEC-08).
+/// The first entity configuration in this codebase (ADR-022). Mapping before it was entirely
+/// convention-based, which is why Title and Description are still unbounded text (SEC-08); the owned
+/// ingredient and instruction-step columns are bounded here.
 /// </summary>
 public sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
 {
@@ -36,5 +37,23 @@ public sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
 
         // Ingredients is a computed getter (it sorts), so EF must read and write the backing field instead.
         builder.Navigation(r => r.Ingredients).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.OwnsMany(r => r.Instructions, step =>
+        {
+            step.ToTable("RecipeInstructionSteps");
+            step.HasKey(s => s.Id);
+            // Same reasoning as Recipe.Id above: InstructionStep.Create mints its own Guid client-side.
+            step.Property(s => s.Id).ValueGeneratedNever();
+            step.Property(s => s.Position).IsRequired();
+            step.Property(s => s.Text).IsRequired().HasMaxLength(2000);
+            // A uuid[] primitive collection, not a join table (ADR-022): step-to-ingredient integrity is a
+            // domain invariant in Recipe.ValidateProperties. Field access because the getter returns a copy.
+            step.PrimitiveCollection(s => s.IngredientIds)
+                .IsRequired()
+                .UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        // Instructions is a computed getter (it sorts), so EF must read and write the backing field instead.
+        builder.Navigation(r => r.Instructions).UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
