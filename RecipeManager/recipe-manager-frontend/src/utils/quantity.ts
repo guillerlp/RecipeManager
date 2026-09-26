@@ -49,7 +49,8 @@ export const toKitchenFraction = (value: number): string => {
   const rest = value - whole;
   const eighths = Math.round(rest * 8);
   const thirds = Math.round(rest * 3);
-  // Prefer eighths on a tie: ⅜ and ⅝ are real spoon measures, and a tie is exact only at 0 and 1.
+  // Prefer eighths on a tie: ⅜ and ⅝ are real spoon measures. Ties fall halfway between a third and its
+  // nearest eighth (0.0625, 0.2917, 0.3542, 0.6458, 0.7083 — ¼ beats ⅓ at 0.2917).
   const useThirds = Math.abs(rest - thirds / 3) < Math.abs(rest - eighths / 8);
   const [steps, parts, glyphs] = useThirds ? [thirds, 3, THIRDS] : [eighths, 8, EIGHTHS];
 
