@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { IngredientRail, MethodSteps, RecipeDetailTabs } from '@/components';
 import { PrintIcon } from '@/components/ui/Icon';
-import { isRecipeId, useMediaQuery, useRecipe } from '@/hooks';
+import { isRecipeId, useMediaQuery, useRecipe, useUnits } from '@/hooks';
 import { isNotFoundError } from '@/services';
 import type { Recipe } from '@/types';
 import { formatDuration, getISODuration } from '@/utils/duration';
@@ -26,6 +26,7 @@ const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
   // Local state: servings describes this visit, not the recipe. Never persisted, never sent.
   const [servings, setServings] = useState(recipe.servings);
   const isMobile = useMediaQuery(MOBILE);
+  const { unitSystem } = useUnits();
 
   const rail = (
     <IngredientRail
@@ -33,6 +34,7 @@ const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
       writtenServings={recipe.servings}
       servings={servings}
       onServingsChange={setServings}
+      unitSystem={unitSystem}
     />
   );
   const method = <MethodSteps steps={recipe.instructions} />;
