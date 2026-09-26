@@ -2,3 +2,4 @@
 
 export * from './useTheme';
 export * from './useRecipes';
+export * from './useRecipe';

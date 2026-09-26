@@ -32,3 +32,7 @@ export const recipeService = {
   deleteRecipe: (id: string): Promise<AxiosResponse<void>> =>
     api.delete<void>(`/Recipes/${id}`),
 };
+
+// Kept here so hooks and components can tell a missing recipe from a failure without importing axios.
+export const isNotFoundError = (error: unknown): boolean =>
+  axios.isAxiosError(error) && error.response?.status === 404;
