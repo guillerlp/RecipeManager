@@ -11,8 +11,9 @@ running `npm test` directly (10 files, 77 passed). Backend test numbers re-measu
 (ADR-022), from **CI run 36051107842**, which shows 104 unit + 34 integration passed, 0 failed, 0 skipped, and
 77 frontend tests across 10 files. They were measured on CI rather than locally on purpose: Docker is not
 installed on the author's machine, and Smart App Control intermittently blocks freshly-built assemblies there
-(`INFRA-06`), so CI is the only place these numbers can be taken honestly. The frontend row re-measured locally on
-2026-09-26 after `R-18` PR 1 (17 files, 139 passed).
+(`INFRA-06`), so CI is the only place these numbers can be taken honestly. Backend and frontend test rows
+re-measured on 2026-09-26 after `R-18` PR 1 from **CI run 36244824092**: 142 unit + 50 integration passed, 0 failed,
+0 skipped, and 139 frontend tests across 17 files.
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -29,7 +30,7 @@ installed on the author's machine, and Smart App Control intermittently blocks f
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **0 warnings** — enforced by `TreatWarningsAsErrors` (ADR-010) |
-| Backend tests | `dotnet test RecipeManager.sln` | **138 passing** (104 unit + 34 integration), 0 failing, 0 skipped on CI. Of the 34 integration tests, **30 need Docker** and report as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need none, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** with `FileLoadException` rather than skip |
+| Backend tests | `dotnet test RecipeManager.sln` | **192 passing** (142 unit + 50 integration), 0 failing, 0 skipped on CI. Of the 50 integration tests, **46 need Docker** and report as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need none, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** with `FileLoadException` rather than skip |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
@@ -74,8 +75,10 @@ kind of negative test.
 | [BUG-14](#bug-14) | Low | Caching | The cache still hands out shared entity instances; the write path no longer takes one |
 | [BUG-15](#bug-15) | Medium | API | A client-supplied ingredient id can trigger a duplicate-key 500 on create, on update, or within one payload |
 | [BUG-16](#bug-16) | Low | API | `"ingredients": [null]` reaches the handler and fails as a 500 instead of a 400 |
+| [BUG-17](#bug-17) | Low | Frontend | Unit plural follows the unrounded amount: "1 cups" |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
+| [TEST-08](#test-08) | Low | Tests | Servings reset between recipes is not pinned by a test |
 | [INFRA-07](#infra-07) | Medium | CI/CD | CI runs on every PR but is not yet *required* to merge |
 | [INFRA-02](#infra-02) | Medium | CI/CD | No versioning or tags |
 | [INFRA-03](#infra-03) | Medium | CI/CD | No rollback procedure |
@@ -89,6 +92,11 @@ kind of negative test.
 | [UX-05](#ux-05) | Medium | UX | The canonical design says only the title is required; the domain requires more |
 | [UX-06](#ux-06) | Medium | UX | `--rule` is a decorative hairline, not a control boundary |
 | [UX-07](#ux-07) | Low | UX | No visual-regression tooling |
+| [UX-10](#ux-10) | Low | UX | Recipe detail Retry gives no in-progress feedback |
+| [UX-11](#ux-11) | Low | UX | A recipe row's accessible description omits its total time |
+| [UX-12](#ux-12) | Low | UX | Recipe detail print output needs polish |
+| [UX-13](#ux-13) | Low | UX | The recipe list `<ul>` lacks `role="list"` |
+| [UX-14](#ux-14) | Low | UX | The ingredient rail note sets a font size outside the type scale |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-07](#dec-07) | — | Decision | 24 h cap excludes slow-cooked and fermented recipes |
@@ -395,6 +403,18 @@ the matching validator test.
 
 **Owner:** `02-senior-csharp` · **Effort:** ~10 min
 
+### BUG-17
+**Unit plural follows the unrounded amount — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-18` PR 1 ([#65](https://github.com/guillerlp/RecipeManager/pull/65)). `formatAmount` in `recipe-manager-frontend/src/utils/quantity.ts` picks
+the singular or plural unit name from the raw `value` (`value <= 1`), but the number it prints has already been
+rounded. 1.05 cups renders as `1 cups` (cups have no abbreviation, so the word is visible, not only spoken).
+
+**Fix.** Choose the word from the displayed number rather than the raw value, and pin `1.05 Cup → "1 cup"` in
+`quantity.test.ts`.
+
+**Owner:** `03-senior-react` · **Effort:** ~15 min
+
 ---
 
 ## Testing gaps
@@ -411,6 +431,18 @@ status code and body but never the `Location` header, so a wrong action name or 
 `run-coverage.ps1` produces a report but no number has ever been agreed or enforced. A sensible starting point
 is line coverage on `Domain` + `Application` handlers, since `Api` and `Infrastructure` are thin. Needs a
 decision from the user.
+
+### TEST-08
+**Servings reset between recipes is not pinned — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-18` PR 1 ([#65](https://github.com/guillerlp/RecipeManager/pull/65)). `RecipeDetailPage` renders `<RecipeDetail key={query.data.id}>` so
+that opening another recipe starts from that recipe's own servings instead of carrying the previous count over.
+No test covers it: deleting the `key` keeps the suite green.
+
+**Fix.** A `RecipeDetailPage` test that steps servings on one recipe, navigates to a second, and asserts the
+second recipe's written servings.
+
+**Owner:** `06-qa-tester` · **Effort:** ~20 min
 
 ---
 
@@ -641,6 +673,64 @@ both themes, and that is the entire verification story for the editorial token m
 **Fix.** Adopt a snapshot/visual-diff tool (e.g. Playwright's screenshot assertions, Chromatic) once there are
 enough screens for the cost to pay for itself. Not proposed for `R-16` — it is its own dependency decision and
 needs `01-architect`.
+
+### UX-10
+**Recipe detail Retry gives no in-progress feedback — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-18` PR 1 ([#65](https://github.com/guillerlp/RecipeManager/pull/65)). After a failed load, `RecipeDetailPage` shows "Couldn't load this
+recipe." with a Retry button that calls `refetch()`. TanStack Query keeps `status: 'error'` while the retry is in
+flight, so the screen does not change until it resolves: a slow retry looks like a dead button.
+
+**Fix.** Use `query.isFetching` in the error branch to disable the button (`aria-disabled`) and change its label
+to "Retrying…".
+
+**Owner:** `03-senior-react` · **Effort:** ~15 min
+
+### UX-11
+**A recipe row's accessible description omits its total time — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-18` PR 1 ([#65](https://github.com/guillerlp/RecipeManager/pull/65)). `RecipeCard` names the row link by its title (`aria-labelledby`)
+and describes it by its description (`aria-describedby`). The total time is painted in the row but is in neither,
+so a screen-reader user tabbing through the list never hears it.
+
+**Fix.** Add the `<time>` element's id to `aria-describedby` (it accepts a space-separated id list).
+
+**Owner:** `03-senior-react` · **Effort:** ~10 min
+
+### UX-12
+**Recipe detail print output needs polish — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-18` PR 1 ([#65](https://github.com/guillerlp/RecipeManager/pull/65)). Found by reading the print CSS; not yet checked in a print preview.
+Three issues: printing from a mobile width has no "Method" heading, because that label lives only in the tab list
+that print hides; the rail note "Change the number and every quantity follows." still prints, although paper has no
+stepper; and the ingredient rail may not span the full page width.
+
+**Fix.** Give the method panel a heading that print shows, hide `.note` in print, and check both widths in a
+print preview in both themes.
+
+**Owner:** `07-ux-ui` → `03-senior-react` · **Effort:** ~30 min
+
+### UX-13
+**The recipe list `<ul>` lacks `role="list"` — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-18` PR 1 ([#65](https://github.com/guillerlp/RecipeManager/pull/65)). Pre-existing. Safari/VoiceOver drops list semantics from a `<ul>`
+styled with `list-style: none`, so the user no longer hears "list, N items". `RecipeList` renders an unstyled
+`<ul>`; the lists added by `R-18` (`IngredientRail`, `MethodSteps`) already carry `role="list"`.
+
+**Fix.** Add `role="list"` to the `<ul>` in `RecipeList.tsx`.
+
+**Owner:** `03-senior-react` · **Effort:** ~5 min
+
+### UX-14
+**The ingredient rail note sets a font size outside the type scale — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-18` PR 1 ([#65](https://github.com/guillerlp/RecipeManager/pull/65)). `.note` in `IngredientRail.module.css` composes the `body` role
+and then overrides it with `font-size: 0.8125rem`, a size that is not a type-scale token.
+
+**Fix.** Use an existing smaller role, or add one to the type scale if the design needs this size (`07-ux-ui`
+decides).
+
+**Owner:** `07-ux-ui` · **Effort:** ~10 min
 
 ---
 

@@ -133,9 +133,8 @@ the troubleshooting entry below — but it means a green run is only as complete
 Windows machine with Smart App Control enabled, the 4 contract tests do not skip — they **fail** with
 `FileLoadException`, the same way the 46 integration tests do; see the Smart App Control entry below.
 
-These counts were taken **locally** on 2026-09-26, on a machine with no Docker: 146 passed and 45 skipped. The
-"with Docker" figure is the expected total, **not yet confirmed by CI**; the last CI-confirmed run
-(36051107842) predates `R-17` and counted 138. Treat CI as the authority once it has run.
+The "with Docker" figure is confirmed by CI run 36244824092 (2026-09-26, `R-18` PR 1): 142 unit + 50 integration
+passed, 0 skipped. Treat CI as the authority for these numbers.
 
 Unit tests with an HTML coverage report (requires `dotnet tool install --global dotnet-reportgenerator-globaltool`):
 
@@ -224,7 +223,7 @@ on `ubuntu-latest`:
 
 | Job | Steps |
 | --- | --- |
-| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (191) → upload `openapi-received` snapshot on failure → vulnerable-package check |
+| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (192) → upload `openapi-received` snapshot on failure → vulnerable-package check |
 | **Frontend** | `npm ci` → contract types are current (`npm run gen:api` + diff check) → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` → `npm audit --audit-level=high --prefix ../contracts` |
 
 Two things are worth knowing before a run surprises you:

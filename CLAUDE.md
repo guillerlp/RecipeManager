@@ -119,8 +119,7 @@ dotnet test RecipeManager.sln
 ```
 
 Current state: build succeeds with **0 warnings** and the suite has **192 tests** (142 unit + 50 integration) after
-`R-18` PR 1 — 191 were counted **locally** on 2026-09-26 without Docker (146 passed, 45 skipped); PR 1 added one
-Docker-only test and was not re-run locally (Smart App Control, `INFRA-06`); the last CI-confirmed run was **36051107842** at 138 (104 + 34), so re-confirm on CI. Of the 50 integration tests, **46 need Docker** and are
+`R-18` PR 1, confirmed by **CI run 36244824092** on 2026-09-26: 192 passed, 0 failed, 0 skipped. Of the 50 integration tests, **46 need Docker** and are
 reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need no Docker, but on a
 Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip — and that machine can have
 any freshly-built assembly blocked, `dotnet ef` included, so **CI is the authority for these numbers**.
