@@ -530,4 +530,155 @@ public class RecipesControllerTests : IntegrationTestBase
         // 400 and pass here for the wrong reason.
         (await response.Content.ReadAsStringAsync()).Should().ContainEquivalentOf("unit");
     }
+
+    private async Task<RecipeDto> PostRecipe(CreateRecipeCommand command)
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        return (await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
+    }
+
+    private static CreateRecipeCommand FlourAndButter(params InstructionStepInputDto[] steps) =>
+        new("Shortcrust", "Description", 10, 20, 4,
+            [
+                new IngredientInputDto(null, 200m, Unit.Gram, "Flour", null),
+                new IngredientInputDto(null, 100m, Unit.Gram, "Butter", "cold"),
+            ],
+            [.. steps]);
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithStepReferences_ShouldResolveIndexesToIngredientIdsInOrder()
+    {
+        RecipeDto created = await PostRecipe(FlourAndButter(new InstructionStepInputDto("Rub in", 5, [1, 0])));
+
+        Guid flour = created.Ingredients[0].Id;
+        Guid butter = created.Ingredients[1].Id;
+        InstructionStepDto step = created.Instructions.Single();
+        step.Id.Should().NotBeEmpty();
+        step.Text.Should().Be("Rub in");
+        step.DurationMinutes.Should().Be(5);
+        step.IngredientIds.Should().Equal(butter, flour);
+
+        RecipeDto reread = (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions))!;
+        reread.Instructions.Single().IngredientIds.Should().Equal(butter, flour);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_ShouldReturnStepsInExactlyTheOrderGiven()
+    {
+        // TEST-03: Should().Equal is order-sensitive; BeEquivalentTo would pass on a shuffle.
+        RecipeDto created = await PostRecipe(FlourAndButter(StepInput("A"), StepInput("B"), StepInput("C")));
+
+        RecipeDto reread = (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions))!;
+        reread.Instructions.Select(s => s.Text).Should().Equal("A", "B", "C");
+    }
+
+    [SkippableFact]
+    public async Task UpdateRecipe_WhenIngredientsAreReordered_ShouldKeepTheStepPointingAtTheSameIngredient()
+    {
+        RecipeDto created = await PostRecipe(FlourAndButter(StepInput("Rub in", 1)));
+        IngredientDto flour = created.Ingredients[0];
+        IngredientDto butter = created.Ingredients[1];
+
+        // Butter moves to index 0, and the client updates the step's index to follow it.
+        var update = new UpdateRecipeDto("Shortcrust", "Description", 10, 20, 4,
+            [
+                new IngredientInputDto(butter.Id, butter.Quantity, butter.Unit, butter.Name, butter.Notes),
+                new IngredientInputDto(flour.Id, flour.Quantity, flour.Unit, flour.Name, flour.Notes),
+            ],
+            [StepInput("Rub in", 0)]);
+
+        (await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        RecipeDto reread = (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions))!;
+        reread.Instructions.Single().IngredientIds.Should().Equal(butter.Id);
+    }
+
+    [SkippableFact]
+    public async Task UpdateRecipe_WithoutEchoingIngredientIds_ShouldPointTheStepAtTheNewId()
+    {
+        // The form hazard spec 010 feared — rebuilding the ingredient list from scratch — cannot break a step
+        // reference any more: references are re-resolved from indexes on every write.
+        RecipeDto created = await PostRecipe(FlourAndButter(StepInput("Rub in", 1)));
+        Guid oldButter = created.Ingredients[1].Id;
+
+        var update = new UpdateRecipeDto("Shortcrust", "Description", 10, 20, 4,
+            [
+                new IngredientInputDto(null, 200m, Unit.Gram, "Flour", null),
+                new IngredientInputDto(null, 100m, Unit.Gram, "Butter", "cold"),
+            ],
+            [StepInput("Rub in", 1)]);
+
+        (await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        RecipeDto reread = (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions))!;
+        Guid newButter = reread.Ingredients[1].Id;
+        newButter.Should().NotBe(oldButter);
+        reread.Instructions.Single().IngredientIds.Should().Equal(newButter);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithAnOutOfRangeIngredientIndex_ShouldReturn422OnInstructions()
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(StepInput("Sift", 2)), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("instructions");
+        DbContext.Recipes.Should().BeEmpty();
+    }
+
+    [SkippableTheory]
+    [InlineData(new[] { -1 })]
+    [InlineData(new[] { 0, 0 })]
+    public async Task CreateRecipe_WithMalformedIngredientIndexes_ShouldReturn400(int[] indexes)
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(new InstructionStepInputDto("Sift", null, [.. indexes])), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithBlankStepText_ShouldReturn422OnInstructions()
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(StepInput("   ")), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("instructions");
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithAnOverlongStep_ShouldReturn400()
+    {
+        // SEC-09, instruction half: the cap is in FluentValidation and in varchar(2000).
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(StepInput(new string('x', 2001))), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithAZeroMinuteStep_ShouldReturn422_BecausePositiveIsADomainRule()
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(new InstructionStepInputDto("Rest", 0, [])), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("instructions");
+    }
+
+    [SkippableTheory]
+    [InlineData(-1)]
+    [InlineData(1440)]
+    public async Task CreateRecipe_WithAStepDurationOutOfBounds_ShouldReturn400(int duration)
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(new InstructionStepInputDto("Rest", duration, [])), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }
