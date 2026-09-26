@@ -81,13 +81,18 @@ It closed `BUG-11` (with GitHub [#8](https://github.com/guillerlp/RecipeManager/
 create request has no ingredient ids to reference, so requests address ingredients **by index into the same
 payload** and responses carry ids. `R-23` is now waiting only on `R-22`.
 
+`R-18` (recipe detail screen) shipped 2026-09-26 as **ADR-024** in two PRs
+([spec 012](specs/012-recipe-detail-screen.md)): the screen, with servings scaling and rows as links, closing
+`BUG-07` and `BUG-10`; then the As written / Metric / Imperial preference and client-side conversion, closing
+`BUG-17`. Its entry is gone from this file.
+
 Build order. Each item names what it waits on, so a later item can move up if its dependencies are met:
 
 | Order | Item | Waits on |
 | --- | --- | --- |
 | ~~1~~ | ~~`R-10` Structured ingredients~~ — **shipped 2026-09-24**, ADR-022 | — |
 | ~~2~~ | ~~`R-17` Structured instructions~~ — **shipped 2026-09-26**, ADR-023 | — |
-| 3 | `R-18` Recipe detail screen — **PR 1 shipped 2026-09-26** (ADR-024); PR 2 (units) open | ~~`R-10`~~ — none |
+| ~~3~~ | ~~`R-18` Recipe detail screen~~ — **shipped 2026-09-26**, ADR-024 | — |
 | 4 | `R-19` Draft recipes | ~~`R-10`~~ — none |
 | 5 | `R-20` Tags | — |
 | 6 | `R-21` Add/edit form | ~~`R-10`~~, ~~`R-17`~~, `R-19`, `R-20` |
@@ -98,21 +103,6 @@ Build order. Each item names what it waits on, so a later item can move up if it
 `R-11`, `R-12`, `R-13`, and `R-14` keep their IDs and are unordered relative to the list above; each notes what
 the design asks of it. `R-13` is worth doing early, since every screen above is easier to check against realistic
 data.
-
-### R-18
-**Recipe detail screen** · `07-ux-ui` → `03-senior-react` · ~1 day
-
-Design screen 3c: method in the wide column, ingredients in a sticky rail, and a servings stepper that
-rescales every quantity on the client. Closes `BUG-10` (no detail route). Rescaling is presentation only and
-never writes back. It rescales `IngredientDto.Quantity`, a `decimal?`; only a null quantity ("salt to taste")
-stays unscaled. A quantity with no `unit` ("2 lemons") **scales** — decided 2026-09-26 in
-[spec 012](specs/012-recipe-detail-screen.md), correcting an earlier sentence here that gave no reason and
-contradicted design 3c. The editorial design's metric/imperial preference also lands here: ADR-022 made
-conversion a presentation concern with no canonical stored unit, so the conversion table is written here, on the
-client, over the `Unit` enum. (`R-16` did not ship that preference — spec 009 §4 left it out.)
-
-**PR 1 (the screen) shipped 2026-09-26 as ADR-024**, closing `BUG-07` and `BUG-10`. **PR 2 (the As written /
-Metric / Imperial preference and the conversion table) remains**, after which this entry is deleted.
 
 ### R-19
 **Draft recipes** · `01-architect` (ADR required) → `02-senior-csharp` → full stack · ~1 day

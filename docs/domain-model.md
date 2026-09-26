@@ -263,8 +263,8 @@ Read these before proposing any recipe feature.
    references (ADR-022, `R-17`); "For the sauce:" sections and per-step photos are not modelled.
 2. **No ingredient catalogue and no internationalisation.** Ingredients are owned by their recipe, so "tomato"
    and "tomatoes" are unrelated names with nothing to join on (settled 2026-09-19). Times are bare `int`
-   minutes; no locale. `Unit` exists, but there is no conversion — that is a presentation concern (ADR-022),
-   and the client-side table is `R-18`.
+   minutes; no locale. `Unit` has no server-side conversion: the SPA converts for display only (ADR-022,
+   ADR-024 item 6), and nothing converted is stored.
 3. **No ownership or multi-tenancy.** No `User`, no `OwnerId`, no auth — every recipe is public and anyone can
    edit or delete any recipe.
 4. **No versioning, no soft delete, no audit fields** (`CreatedAt`, `UpdatedAt` do not exist).

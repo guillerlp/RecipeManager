@@ -139,8 +139,8 @@ throwing. This settles `DEC-06` in [../known-issues.md](../known-issues.md) and 
       natively and the selected one is announced as selected. `role="switch"` no longer fits — a switch is
       binary and this has three states.
 - [ ] **The control lives in Settings (`ProfilePage`), not the `Footer`.** `R-16` PR 3 shipped
-      `components/ui/ThemeControl`: three native radios in a `fieldset role="radiogroup"`, reading `preference`
-      and calling `setPreference` directly — there is no separate binary toggle and no `toggleTheme` to reach
+      it as `ThemeControl`; since `R-18` PR 2 it is the generic `components/ui/SegmentedControl` (three native
+      radios in a `fieldset role="radiogroup"`), fed `preference` and `setPreference` by `ProfilePage` — there is no separate binary toggle and no `toggleTheme` to reach
       for. `Footer` now only links to `/profile`; the switch it used to render is gone.
 
 ### Styling approach
@@ -199,7 +199,7 @@ The codebase does all of this today; treat it as the minimum, not the goal.
 - [ ] Icon-only and ambiguous controls have `aria-label` (e.g. `"Search recipes"`,
       `"View {title} recipe"`).
 - [ ] A control with more than two states that are mutually exclusive is a native radio group
-      (`fieldset role="radiogroup"` with a `<legend>`), not a custom widget — `ThemeControl` is the reference.
+      (`fieldset role="radiogroup"` with a `<legend>`), not a custom widget — `SegmentedControl` is the reference (Theme and Units both use it).
       `role="switch"` is for a genuinely binary toggle only; none exists in the app today.
 - [ ] Active navigation sets `aria-current="page"` (`NavLink`).
 - [ ] Decorative icons inside a labelled control are `aria-hidden="true"`.
