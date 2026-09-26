@@ -3,3 +3,4 @@
 export * from './useTheme';
 export * from './useRecipes';
 export * from './useRecipe';
+export * from './useMediaQuery';
