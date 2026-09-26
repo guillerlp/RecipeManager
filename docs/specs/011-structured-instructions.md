@@ -3,10 +3,10 @@
 | | |
 | --- | --- |
 | **ID** | `011` |
-| **Status** | draft |
+| **Status** | approved (2026-09-26) |
 | **Author** | `00-leader` + `01-architect` |
 | **Created** | `2026-09-26` |
-| **Branch** | `docs/structured-instructions-spec` (this spec), then `feat/structured-instructions` (implementation) |
+| **Branch** | `feat/structured-instructions` — spec and implementation ship in one PR |
 
 ---
 
