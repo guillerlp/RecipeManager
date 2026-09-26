@@ -1,0 +1,87 @@
+/* IngredientRail.module.css */
+
+/* .main (AppLayout) is the scroll container, so sticky is relative to it. --paper-2 is the tinted
+   panel of frame 3c; --accent on it is 5.80:1 light / 6.58:1 dark (light.css, dark.css), above 4.5. */
+.rail {
+  position: sticky;
+  top: var(--spacing-md);
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--paper-2);
+  border-radius: var(--radius-lg);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.heading {
+  composes: label from '@/styles/typography.module.css';
+  color: var(--ink-2);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--rule); /* decorative separator, not a control boundary */
+}
+
+.amount {
+  composes: numeric from '@/styles/typography.module.css';
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.spoken {
+  composes: visuallyHidden from '@/styles/a11y.module.css';
+}
+
+/* A row with no amount keeps its name in the second column. */
+.name {
+  composes: body from '@/styles/typography.module.css';
+  grid-column: 2;
+  color: var(--ink);
+}
+
+.note {
+  composes: body from '@/styles/typography.module.css';
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+@media (max-width: 768px) {
+  .rail {
+    position: static;
+    padding: 0;
+    background: none;
+  }
+}
+
+@media print {
+  .rail {
+    position: static;
+    padding: 0;
+    background: none;
+  }
+
+  .amount {
+    color: inherit;
+  }
+}

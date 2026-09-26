@@ -32,3 +32,18 @@
         padding: var(--spacing-md) var(--spacing-md);
     }
 }
+
+/* The shell is a fixed-height viewport whose .main scrolls. Paper has no viewport: without this,
+   only the first screenful of a long recipe would print. */
+@media print {
+    .appShell {
+        height: auto;
+        overflow: visible;
+    }
+
+    .main {
+        overflow: visible;
+        padding: 0;
+        max-width: none;
+    }
+}

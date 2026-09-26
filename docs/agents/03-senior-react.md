@@ -114,7 +114,8 @@ There is **no form in the codebase today** and no form library installed. When b
 - [ ] Durations use `<time dateTime="PT30M">` (`RecipeCard.getISODuration`).
 - [ ] Images have descriptive `alt`, `loading="lazy"`, `decoding="async"`.
 - [ ] Semantic landmarks: `header` / `nav` / `main` (`AppLayout` sets `role="main"`) / `footer`.
-- [ ] Clickable cards render as `<button type="button">`, not a `div` with `onClick`.
+- [ ] A row that navigates is a `<Link>` (`RecipeCard`); a `<button type="button">` is for an action on the
+      current page; never a `div` with `onClick` (ADR-024).
 
 ### Before opening a PR
 
@@ -133,7 +134,9 @@ npm test
 - [ ] `npm run lint` must report **0 problems**. Read the output — a linter that cannot start also exits
       non-zero, and for eleven months nobody noticed the difference (`BUILD-03`, now closed).
       `npx oxlint --format=default` prints how many files and rules ran — a quick check that it checked anything.
-- [ ] `npm test` (Vitest + RTL under jsdom, ADR-018) must pass — currently **40**.
+- [ ] `npm test` (Vitest + RTL under jsdom, ADR-018) must pass — currently **139**. It does not
+      process CSS, so run `npm run build` after any stylesheet change: an invalid CSS Module (e.g. `composes:`
+      on a non-single-class selector) passes every test and blanks the app.
 - [ ] No `console.log` added — `no-console` is an **error** in `.oxlintrc.json` (`warn`/`error` are allowed).
 - [ ] The type-aware lint rules only cover `src/**` (ADR-016); every other file gets only Oxlint's
       `correctness` category. A new root-level tooling file (Vitest is configured inside the existing

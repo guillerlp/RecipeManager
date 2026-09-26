@@ -126,12 +126,12 @@ dotnet dev-certs https --trust
 dotnet test RecipeManager.sln
 ```
 
-191 tests: 142 unit and 49 integration. Of the 49, **45** start a real PostgreSQL container (ADR-017) and the
-other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 191 passed;
-**without it** you get 146 passed and 45 skipped, each naming Docker as the reason. The skip is deliberate — see
+192 tests: 142 unit and 50 integration. Of the 50, **46** start a real PostgreSQL container (ADR-017) and the
+other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 192 passed;
+**without it** you get 146 passed and 46 skipped, each naming Docker as the reason. The skip is deliberate — see
 the troubleshooting entry below — but it means a green run is only as complete as its skip count says. On a
 Windows machine with Smart App Control enabled, the 4 contract tests do not skip — they **fail** with
-`FileLoadException`, the same way the 45 integration tests do; see the Smart App Control entry below.
+`FileLoadException`, the same way the 46 integration tests do; see the Smart App Control entry below.
 
 These counts were taken **locally** on 2026-09-26, on a machine with no Docker: 146 passed and 45 skipped. The
 "with Docker" figure is the expected total, **not yet confirmed by CI**; the last CI-confirmed run

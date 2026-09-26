@@ -133,6 +133,17 @@ public class RecipesControllerTests : IntegrationTestBase
     }
 
     [SkippableFact]
+    public async Task GetRecipeById_WithAMalformedId_ShouldReturnNotFoundFromRouting()
+    {
+        // ==================== ACT ====================
+        // BUG-07: without the :guid constraint this reached model binding and came back 400.
+        HttpResponseMessage response = await Client.GetAsync("/api/recipes/not-a-guid");
+
+        // ==================== ASSERT ====================
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [SkippableFact]
     public async Task GetAllRecipes_WhenRecipesExist_ShouldReturnOkWithAllRecipes()
     {
         // ==================== ARRANGE ====================

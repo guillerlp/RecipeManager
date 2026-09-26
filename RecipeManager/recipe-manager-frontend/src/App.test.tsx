@@ -1,10 +1,19 @@
 // src/App.test.tsx
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import type { AxiosResponse } from 'axios';
+import { describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import { NotFoundPage } from '@/pages/NotFound';
+import { recipeService } from '@/services';
+import type { Recipe } from '@/types';
+
+vi.mock('@/services', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/services')>()),
+  recipeService: { getAllRecipes: vi.fn(), getRecipeById: vi.fn() },
+}));
 
 describe('NotFoundPage', () => {
   it('explains what happened and offers a way back', () => {
@@ -34,6 +43,29 @@ describe('App routing', () => {
     expect(screen.getByRole('link', { name: 'Back to home' })).toBeTruthy();
     // The shell is still present around the 404 content.
     expect(screen.getByRole('banner')).toBeTruthy();
+    expect(screen.getByRole('contentinfo')).toBeTruthy();
+  });
+});
+
+describe('App routing to a recipe', () => {
+  it('renders the detail screen inside the app shell for /recipes/:id', async () => {
+    const id = '22222222-2222-2222-2222-222222222222';
+    const recipe: Recipe = {
+      id, title: 'Cacio e Pepe', description: 'Three ingredients.', preparationTime: 5, cookingTime: 12,
+      servings: 2, ingredients: [], instructions: [],
+    };
+    vi.mocked(recipeService.getRecipeById).mockResolvedValue({ data: recipe } as AxiosResponse<Recipe>);
+    window.history.pushState({}, '', `/recipes/${id}`);
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <App />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Cacio e Pepe' })).toBeTruthy();
+    // The footer, not the banner: dom-testing-library also counts the recipe's own <header> as a banner,
+    // although browsers do not give that role to a <header> inside <article>.
     expect(screen.getByRole('contentinfo')).toBeTruthy();
   });
 });

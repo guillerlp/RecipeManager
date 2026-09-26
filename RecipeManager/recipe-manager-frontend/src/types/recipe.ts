@@ -12,3 +12,4 @@ export type Ingredient = Schemas['IngredientDto'];
 export type IngredientInput = Schemas['IngredientInputDto'];
 export type InstructionStep = Schemas['InstructionStepDto'];
 export type InstructionStepInput = Schemas['InstructionStepInputDto'];
+export type Unit = Schemas['Unit'];

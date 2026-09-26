@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen } from '@testing-library/react';
 import type { AxiosResponse } from 'axios';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { recipeService } from '@/services';
 import type { Ingredient, Recipe } from '@/types';
@@ -50,7 +51,9 @@ const respondWith = (data: Recipe[]) =>
 const renderList = (searchQuery?: string) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <RecipeList searchQuery={searchQuery} />
+      <MemoryRouter>
+        <RecipeList searchQuery={searchQuery} />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 
@@ -148,6 +151,15 @@ describe('RecipeList states', () => {
 
     expect(await cardTitles()).toEqual(['Tomato Soup', 'Pancakes', 'Green Salad']);
     expect(getAllRecipes).toHaveBeenCalledTimes(4);
+  });
+
+  it('renders each row as a link to its detail screen, named by the title', async () => {
+    respondWith(recipes);
+    renderList();
+
+    const link = await screen.findByRole('link', { name: 'Tomato Soup' });
+    expect(link.getAttribute('href')).toBe('/recipes/11111111-1111-1111-1111-111111111111');
+    expect(link.getAttribute('aria-describedby')).toBeTruthy();
   });
 
   it('renders one card per recipe, with a formatted total duration', async () => {

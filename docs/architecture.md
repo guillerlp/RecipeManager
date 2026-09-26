@@ -832,6 +832,33 @@ endpoint is anonymous and every recipe is world-writable. See
   references, so the ingredient-id echo matters only for ingredient identity. Step ids are re-minted on every
   `PUT`; anything that tracks "the current step" across an edit must key on position.
 
+### ADR-024 — The recipe detail screen: rows are links, scaling is derived, tabs are mobile-only
+
+- **Status:** accepted (2026-09-26). Full detail: [specs/012-recipe-detail-screen.md](specs/012-recipe-detail-screen.md).
+  PR 2 of `R-18` amends this ADR with the unit-conversion policy.
+- **Context:** `R-18` adds `/recipes/:id`, the first screen that reads one recipe, closing `BUG-10`. Three choices
+  had real alternatives: what element a list row is, where servings and scaled amounts live, and how the mobile
+  Ingredients/Method switch is built.
+- **Decision:**
+  1. A list row is a React Router `<Link>`, not a `<button>` calling `navigate()`. This reverses the fix `BUG-10`
+     and the `07-ux-ui` checklist prescribed. Its resting cue is a chevron in `--ink-2` (≥ 6.6:1), with a title
+     underline on hover and focus.
+  2. `servings` is local state in the page; scaled amounts are **derived during render** from the stored
+     quantities (`utils/quantity.ts`), never stored. Only a null quantity is left unscaled — a unitless count
+     scales, correcting the roadmap sentence that said otherwise.
+  3. Spoon and cup units display kitchen fractions (nearest ⅛ or ⅓); every other unit a trimmed decimal, with two
+     significant digits below 1 so a small positive amount never shows as 0.
+  4. At or below 768px the two columns become WAI-ARIA tabs, rendered only there (`useMediaQuery` over
+     `useSyncExternalStore`), so desktop has no inert `tabpanel`s.
+  5. `GET /api/recipes/{id}` gains `:guid` (`BUG-07`), and the SPA sends only a GUID id, URL-encoded: React
+     Router decodes `%2F` in a param, so an unchecked `..%2FRecipes` would reach `/api/Recipes` instead.
+- **Alternatives:** a `<button>` row (loses native link behaviour, announced as an action); servings in the URL or
+  in context (not asked for / nothing else reads it); tabs hidden by CSS on desktop; a radio group for the switch;
+  decimals everywhere. Each is weighed in spec 012 §9.
+- **Consequences:** the row is always a link, so a future multi-select mode needs another element; the tabs are
+  the first hand-written ARIA widget, guarded only by keyboard tests; print depends on overriding the shell's
+  fixed-height scroll container and forcing light tokens in `@media print`.
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001

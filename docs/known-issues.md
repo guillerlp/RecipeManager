@@ -11,7 +11,8 @@ running `npm test` directly (10 files, 77 passed). Backend test numbers re-measu
 (ADR-022), from **CI run 36051107842**, which shows 104 unit + 34 integration passed, 0 failed, 0 skipped, and
 77 frontend tests across 10 files. They were measured on CI rather than locally on purpose: Docker is not
 installed on the author's machine, and Smart App Control intermittently blocks freshly-built assemblies there
-(`INFRA-06`), so CI is the only place these numbers can be taken honestly.
+(`INFRA-06`), so CI is the only place these numbers can be taken honestly. The frontend row re-measured locally on
+2026-09-26 after `R-18` PR 1 (17 files, 139 passed).
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -34,7 +35,7 @@ installed on the author's machine, and Smart App Control intermittently blocks f
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
 | Frontend lint | `npm run lint` | **0 problems** — Oxlint, 159 rules: the 71 type-aware ones on `src/**` plus the `correctness` category everywhere (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
-| Frontend tests | `npm test` | 77 pass — Vitest + RTL under jsdom (ADR-018) |
+| Frontend tests | `npm test` | 139 pass — Vitest + RTL under jsdom (ADR-018). Vitest does not process CSS, so an invalid CSS Module passes here and fails only `npm run build` |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
@@ -68,8 +69,6 @@ kind of negative test.
 | [SEC-10](#sec-10) | Medium | Security | No security headers, no HSTS |
 | [SEC-11](#sec-11) | Low | Ops | No health/readiness endpoint |
 | [SEC-12](#sec-12) | Low | Config | `.env.production` points at a placeholder host |
-| [BUG-07](#bug-07) | Low | API | `GET /api/recipes/{id}` missing the `:guid` route constraint |
-| [BUG-10](#bug-10) | Medium | Frontend | No recipe detail route, so cards are not clickable |
 | [BUG-12](#bug-12) | Low | Frontend | A paused recipe query renders "No recipes available" |
 | [BUG-13](#bug-13) | Low | Frontend | Whitespace-only search query shows a misleading "matching" heading |
 | [BUG-14](#bug-14) | Low | Caching | The cache still hands out shared entity instances; the write path no longer takes one |
@@ -248,40 +247,6 @@ registers that name, and a local production check silently shows an empty catalo
 ## Contract & functional defects
 
 Full detail on the contract seam is in [agents/08-api-contract.md](agents/08-api-contract.md).
-
-### BUG-07
-**`GET /api/recipes/{id}` missing the `:guid` constraint — Low**
-
-`[HttpGet("{id}")]` while `[HttpPut("{id:guid}")]` and `[HttpDelete("{id:guid}")]` are constrained. A malformed
-id reaches model binding instead of being rejected by routing, producing an inconsistent error shape.
-
-### BUG-10
-**No recipe detail route, so cards are not clickable — Medium**
-
-`App.tsx` routes only `/`, `/recipes`, and `/profile`. There is no `/recipes/:id` screen, so there is nothing
-for a `RecipeCard` click to navigate to.
-
-Until `R-03`, `RecipeList` passed an `onClick` whose entire body was `console.log('Clicked recipe:', …)`. That
-made every card render as `<button aria-label="View {title} recipe">` — focusable, announced to a screen reader
-as an action, and doing nothing when activated. Removing the debug log (`BUG-08`) left a no-op handler, so the
-`onClick` was dropped and cards now render as `<article>`, which is what `RecipeCard`'s element switch is for.
-
-**Fix.** Build the detail screen, add the `/recipes/:id` route, and pass `onClick` again — `RecipeCard` already
-switches to `<button>` when it receives one. The screen is planned as `R-18`.
-
-**`R-18` also has to decide what makes a row look clickable.** Since `7ae44b5` the row has no outline, no fill
-and no `:hover` — a clickable row differs from an inert one only by `cursor: pointer`, which says nothing to a
-touch user and nothing at rest. The app-wide `:focus-visible` outline in `globals.css` covers keyboard users;
-the gap is the resting and hover state for pointer and touch.
-
-That is not a measurable WCAG 1.4.11 failure — the criterion governs the visual information an author provides
-to identify a control, and here there is none to measure. It is the problem one step earlier: the control is
-not identifiable at all. Whatever `R-18` adds becomes that visual information the moment it exists, and then
-has to clear 3:1 against what sits behind it. A fill change alone will not carry it — `--paper-2` on `--paper`
-is 1.09:1 in both themes — and neither will `--rule` (1.29:1 light, 1.36:1 dark). `--field-border` does
-(3.58:1 light, 3.67:1 dark). See `UX-06`.
-
-**Owner:** `03-senior-react` + `07-ux-ui`
 
 ### BUG-12
 **A paused recipe query renders "No recipes available" — Low**
@@ -655,8 +620,9 @@ Two things are worth keeping:
 
 Every `--rule` border on `main` today is legitimate: `Header`, `Footer`, `BottomNav`, `RecipeList` and
 `ProfilePage` use it as a container edge, and `RecipeCard`'s is the separator between rows — which stays a
-separator even when the row is a `<button>`, because it is not what identifies the control. The live
-consequence now sits in `BUG-10`.
+separator now that the row is a link (`R-18`, ADR-024), because it is not what identifies the control. What
+does identify it is a chevron in `--ink-2` (≥ 6.6:1 on `--paper` and `--paper-2` in both themes), which closed
+`BUG-10`'s visual half.
 
 **Fix.** Still open, still a guardrail rather than a live defect. Note that a review checklist item does **not**
 satisfy the close condition: one existed and did not work. Close this when a lint rule makes the pattern

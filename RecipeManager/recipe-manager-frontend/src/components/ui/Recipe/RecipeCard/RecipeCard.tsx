@@ -1,39 +1,34 @@
-import { Recipe } from "@/types";
-import { formatDuration, getISODuration } from "@/utils/duration";
-import React from "react";
+import { useId } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronRightIcon } from '@/components/ui/Icon';
+import type { Recipe } from '@/types';
+import { formatDuration, getISODuration } from '@/utils/duration';
 import styles from './RecipeCard.module.css';
 
 interface RecipeCardProps {
     recipe: Recipe;
-    onClick?: (recipe: Recipe) => void;
 }
 
-export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
-
-    const handleClick = () => {
-        if(onClick){
-            onClick(recipe);
-        }
-    }
-
-    // BUG-10: no detail route exists yet, so nothing ever passes onClick and rows render as
-    // <article> rather than a focusable <button> that would do nothing when activated.
-    const CardComponent = onClick ? 'button' : 'article';
-    const cardProps = onClick ? {
-        type: 'button' as const,
-        onClick: handleClick,
-        'aria-label': `View ${recipe.title} recipe`,
-    } : {};
-
+// A link, not a <button>: the row goes somewhere rather than doing something, so middle-click,
+// open-in-new-tab and copy-link work, and a screen reader announces a destination (ADR-024,
+// reversing the button prescribed by BUG-10's original fix).
+export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
+    const titleId = useId();
+    const descriptionId = useId();
     const totalMinutes = recipe.preparationTime + recipe.cookingTime;
 
     return (
-        <CardComponent className={`${styles.row} ${onClick ? styles.clickable : ''}`} {...cardProps}>
+        <Link
+            to={`/recipes/${recipe.id}`}
+            className={styles.row}
+            aria-labelledby={titleId}
+            aria-describedby={descriptionId}
+        >
             <div className={styles.thumb} aria-hidden="true" />
 
             <div className={styles.info}>
-                <h3 className={styles.title}>{recipe.title}</h3>
-                <p className={styles.description}>
+                <h3 id={titleId} className={styles.title}>{recipe.title}</h3>
+                <p id={descriptionId} className={styles.description}>
                     {recipe.description || 'Delicious homemade recipe'}
                 </p>
             </div>
@@ -41,6 +36,8 @@ export const RecipeCard : React.FC<RecipeCardProps> = ({ recipe, onClick }) => {
             <time className={styles.time} dateTime={getISODuration(totalMinutes)}>
                 {formatDuration(totalMinutes)}
             </time>
-        </CardComponent>
+
+            <ChevronRightIcon className={styles.chevron} />
+        </Link>
     );
 };

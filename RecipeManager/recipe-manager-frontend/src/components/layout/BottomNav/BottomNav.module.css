@@ -65,3 +65,9 @@
 .item .label {
   font-size: 0.625rem;
 }
+
+@media print {
+  .bar {
+    display: none;
+  }
+}

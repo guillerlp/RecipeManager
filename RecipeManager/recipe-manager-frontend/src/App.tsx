@@ -3,7 +3,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from '@/contexts';
-import { HomePage, NotFoundPage, ProfilePage, RecipePage } from '@/pages';
+import { HomePage, NotFoundPage, ProfilePage, RecipeDetailPage, RecipePage } from '@/pages';
 import { AppLayout } from '@/components';
 
 const App: React.FC = () => {
@@ -19,6 +19,11 @@ const App: React.FC = () => {
           <Route path='/recipes' element={
             <AppLayout>
               <RecipePage/>
+            </AppLayout>
+          } />
+          <Route path='/recipes/:id' element={
+            <AppLayout>
+              <RecipeDetailPage/>
             </AppLayout>
           } />
           <Route path='/profile' element={

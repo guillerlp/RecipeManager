@@ -24,3 +24,20 @@ h1, h2, h3, h4 {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/*
+ * Printing in the dark theme would put near-white ink on white paper (browsers drop backgrounds
+ * by default). html[data-theme] (0,1,1) outranks [data-theme="dark"] (0,1,0) regardless of order.
+ */
+@media print {
+  html[data-theme] {
+    --paper: #ffffff;
+    --paper-2: #ffffff;
+    --ink: #000000;
+    --ink-2: #333333;
+    --ink-3: #333333;
+    --rule: #cccccc;
+    --field-border: #666666;
+    --accent: #000000;
+  }
+}

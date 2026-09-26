@@ -205,8 +205,10 @@ The codebase does all of this today; treat it as the minimum, not the goal.
 - [ ] Decorative icons inside a labelled control are `aria-hidden="true"`.
 - [ ] Durations are marked up as `<time dateTime="PT1H30M">` (`RecipeCard.getISODuration`).
 - [ ] Images have descriptive `alt`, plus `loading="lazy"` and `decoding="async"`.
-- [ ] Interactive cards are `<button type="button">`, never `<div onClick>` (`RecipeCard` switches element type
-      based on whether `onClick` is supplied).
+- [ ] A row that navigates is a `<Link>` (`RecipeCard`); a `<button type="button">` is for an action on the
+      current page. Never `<div onClick>` (ADR-024).
+- [ ] Hand-written ARIA widgets follow the WAI-ARIA Authoring Practices pattern exactly and are tested by
+      keyboard — `RecipeDetailTabs` is the reference.
 - [ ] `nav` elements have an `aria-label` when more than one exists on a page (`"Primary navigation"`,
       `"Main recipe management actions"`).
 

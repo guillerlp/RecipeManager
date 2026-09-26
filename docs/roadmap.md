@@ -87,7 +87,7 @@ Build order. Each item names what it waits on, so a later item can move up if it
 | --- | --- | --- |
 | ~~1~~ | ~~`R-10` Structured ingredients~~ — **shipped 2026-09-24**, ADR-022 | — |
 | ~~2~~ | ~~`R-17` Structured instructions~~ — **shipped 2026-09-26**, ADR-023 | — |
-| 3 | `R-18` Recipe detail screen | ~~`R-10`~~ — none |
+| 3 | `R-18` Recipe detail screen — **PR 1 shipped 2026-09-26** (ADR-024); PR 2 (units) open | ~~`R-10`~~ — none |
 | 4 | `R-19` Draft recipes | ~~`R-10`~~ — none |
 | 5 | `R-20` Tags | — |
 | 6 | `R-21` Add/edit form | ~~`R-10`~~, ~~`R-17`~~, `R-19`, `R-20` |
@@ -104,10 +104,15 @@ data.
 
 Design screen 3c: method in the wide column, ingredients in a sticky rail, and a servings stepper that
 rescales every quantity on the client. Closes `BUG-10` (no detail route). Rescaling is presentation only and
-never writes back. It rescales `IngredientDto.Quantity`, a `decimal?`; a null quantity ("salt to taste") stays
-unscaled, and so does an ingredient with a quantity but no `unit`. This is also where `R-16`'s metric/imperial
-preference finally acts on something: ADR-022 made conversion a presentation concern with no canonical stored
-unit, so the conversion table is written here, on the client, over the `Unit` enum.
+never writes back. It rescales `IngredientDto.Quantity`, a `decimal?`; only a null quantity ("salt to taste")
+stays unscaled. A quantity with no `unit` ("2 lemons") **scales** — decided 2026-09-26 in
+[spec 012](specs/012-recipe-detail-screen.md), correcting an earlier sentence here that gave no reason and
+contradicted design 3c. The editorial design's metric/imperial preference also lands here: ADR-022 made
+conversion a presentation concern with no canonical stored unit, so the conversion table is written here, on the
+client, over the `Unit` enum. (`R-16` did not ship that preference — spec 009 §4 left it out.)
+
+**PR 1 (the screen) shipped 2026-09-26 as ADR-024**, closing `BUG-07` and `BUG-10`. **PR 2 (the As written /
+Metric / Imperial preference and the conversion table) remains**, after which this entry is deleted.
 
 ### R-19
 **Draft recipes** · `01-architect` (ADR required) → `02-senior-csharp` → full stack · ~1 day
@@ -176,8 +181,15 @@ the database-level length limits (`SEC-08`; `SEC-09` closed with `R-17`) must ex
 crafted file stores values no API request could. It must also go **through the aggregate** rather than bulk SQL:
 step-to-ingredient references are a `uuid[]` with no foreign key, so only `Recipe.ValidateProperties` stops a
 step pointing at an ingredient that does not exist (ADR-022/023). It also needs a size cap, schema versioning of the export format, and a
-duplicate policy (skip, replace, or copy). "Print the whole catalogue" in the design is a print stylesheet
-and belongs with `R-18`, not here.
+duplicate policy (skip, replace, or copy). "Print the whole catalogue" in the design is not part of this item:
+it is `R-25`.
+
+### R-25
+**Print the whole catalogue** · `07-ux-ui` → `03-senior-react` · ~½ day
+
+The Settings row in the editorial design (3e). Needs a route that renders every recipe in full, reusing
+`R-18`'s print stylesheet, and today it would lean on the unpaginated `GET /api/recipes` (`SEC-07`) — build it
+after `R-11`, or accept that cost explicitly. Split out of `R-18` on 2026-09-26 (spec 012).
 
 ### R-11
 **Pagination and server-side search** · `01-architect` → `02-senior-csharp` + `03-senior-react` · ~1 day
