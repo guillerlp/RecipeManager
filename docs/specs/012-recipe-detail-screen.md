@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `012` |
-| **Status** | approved 2026-09-26 — not yet implemented |
+| **Status** | PR 1 implemented 2026-09-26 (ADR-024) — frontend tests, typecheck, lint and build green locally; the new integration test needs Docker, so it is confirmed on CI. PR 2 not started |
 | **Author** | `00-leader` + `07-ux-ui` |
 | **Created** | `2026-09-26` |
 | **Branch** | `feat/recipe-detail-screen` (PR 1), then `feat/units-preference` (PR 2) |
@@ -29,17 +29,18 @@ Delivered as **two PRs**, decided with the user.
 
 **PR 1 — the screen**
 
-- [ ] Route `/recipes/:id` rendering `RecipeDetailPage` inside `AppLayout`
-- [ ] `useRecipe(id)` query hook, key `['recipes', id]`, over the existing `recipeService.getRecipeById`
-- [ ] Loading, offline, not-found, error, and populated states (§8.3)
-- [ ] `ServingsStepper`, `IngredientRail`, `MethodSteps`, `RecipeDetailTabs` (mobile only) in `components/ui/Recipe/`
-- [ ] `utils/quantity.ts`: `scaleQuantity`, `formatQuantity`, `unitLabel` (§8.4)
-- [ ] `useMediaQuery` hook, used to render the tabs only below 768px
-- [ ] `RecipeCard` becomes a React Router `<Link>` to `/recipes/{id}` with a resting chevron cue, closing `BUG-10`
-- [ ] Print button and an `@media print` stylesheet for this recipe
-- [ ] `.visually-hidden` utility in `styles/globals.css` (no such utility exists today)
-- [ ] `BUG-07`: `[HttpGet("{id:guid}")]` on `RecipesController.Get`, plus an integration test
-- [ ] ADR-024 and the doc updates listed in §16
+- [x] Route `/recipes/:id` rendering `RecipeDetailPage` inside `AppLayout`
+- [x] `useRecipe(id)` query hook, key `['recipes', id]`, over the existing `recipeService.getRecipeById`
+- [x] Loading, offline, not-found, error, and populated states (§8.3)
+- [x] `ServingsStepper`, `IngredientRail`, `MethodSteps`, `RecipeDetailTabs` (mobile only) in `components/ui/Recipe/`
+- [x] `utils/quantity.ts`: `scaleQuantity`, `formatQuantity`, `toKitchenFraction`, `formatAmount` (§8.4)
+- [x] `useMediaQuery` hook, used to render the tabs only at or below 768px (the app's existing `max-width: 768px`)
+- [x] `RecipeCard` becomes a React Router `<Link>` to `/recipes/{id}` with a resting chevron cue, closing `BUG-10`
+- [x] Print button and an `@media print` stylesheet for this recipe
+- [x] `.visuallyHidden` in `styles/a11y.module.css`, consumed via `composes:` — module-scoped rather than a
+      global class in `globals.css`, for the reason ADR-021 gave for the type roles
+- [x] `BUG-07`: `[HttpGet("{id:guid}")]` on `RecipesController.Get`, plus an integration test
+- [x] ADR-024 and the doc updates listed in §16
 
 **PR 2 — units**
 
@@ -82,7 +83,7 @@ that silently changes nothing is worse than an absent one.
 | 5 | How are rescaled quantities displayed? | **Kitchen fractions for tsp, tbsp, cup, fl oz; trimmed decimals for everything else** |
 | 6 | What print support? | **This recipe only**; the whole catalogue becomes `R-25` |
 | 7 | What makes a row look clickable? | **A resting chevron in `--ink-2`, plus a title underline on hover and focus** |
-| 8 | How is the mobile Ingredients/Method switch built? | **WAI-ARIA tabs**, rendered only below 768px |
+| 8 | How is the mobile Ingredients/Method switch built? | **WAI-ARIA tabs**, rendered only at or below 768px |
 | 9 | Does a quantity with no unit ("2 lemons") scale? | **Yes.** Only a null quantity stays fixed. Corrects the roadmap sentence, which gave no reason and contradicts 3c |
 | 10 | Units options and default? | **As written / Metric / Imperial, default As written** — departs from 3c's two options so nothing converts until asked |
 
@@ -133,7 +134,7 @@ The screen relies on two existing invariants: every recipe has at least one ingr
 | `ServingsStepper` | `ui/Recipe/` | Two native `<button>`s around an `<output>`, range 1–999 (the `Servings` validator's bounds) |
 | `IngredientRail` | `ui/Recipe/` | Sticky `<aside>`: heading, stepper, ingredient list, scale note |
 | `MethodSteps` | `ui/Recipe/` | `<ol>` of steps with visible numbers |
-| `RecipeDetailTabs` | `ui/Recipe/` | WAI-ARIA tabs over the rail and the method, rendered only below 768px |
+| `RecipeDetailTabs` | `ui/Recipe/` | WAI-ARIA tabs over the rail and the method, rendered only at or below 768px |
 | `RecipeCard` | `ui/Recipe/` *(changed)* | A `<Link>`; the `onClick` prop and the `article`/`button` element switch are deleted |
 | `useMediaQuery` | `hooks/` | Subscribes to one media query's `change` event — the same pattern `ThemeProvider` uses for `prefers-color-scheme` |
 
@@ -151,7 +152,7 @@ rejected (nothing else reads it) and so was the URL (§4).
 | Populated | data | Below |
 | Empty | — | **Cannot occur**: the domain guarantees at least one ingredient and one step. Not built |
 
-Populated, desktop (≥ 768px):
+Populated, desktop (wider than 768px):
 
 - Back link "← All recipes" to `/recipes`.
 - Title (`--type-display`, serif) and description.
@@ -166,7 +167,7 @@ Populated, desktop (≥ 768px):
   the number and every quantity follows."
 - **Print** button below the method.
 
-Populated, mobile (< 768px, frame 3c mobile):
+Populated, mobile (768px and narrower, frame 3c mobile):
 
 - Back link, title, description, stats as above, stacked.
 - Tabs **Ingredients** | **Method**, Ingredients selected by default. The stepper sits at the top of the
@@ -184,13 +185,15 @@ Pure functions, no React:
   - **`Teaspoon`, `Tablespoon`, `Cup`, `FluidOunce`** snap to the nearest of ⅛ ¼ ⅓ ⅜ ½ ⅝ ⅔ ¾ ⅞ and render as a
     whole number plus a vulgar-fraction glyph (`1¼`, `¾`, `2`). A positive value never renders as `0`; the
     smallest shown is `⅛`.
-  - **Everything else**, including no unit: a decimal with trailing zeros trimmed — 2 places below 1, 1 place
-    below 10, none from 10 up (`0.25`, `1.5`, `450`).
-- `unitLabel(unit, value)`: abbreviations never pluralise — `g`, `kg`, `oz`, `lb`, `ml`, `l`, `tsp`, `tbsp`,
-  `fl oz`; words do when the value is not 1 — `cup`, `piece`, `clove`, `pinch`, `slice`, `can`, `bunch`,
-  `sprig`.
-- Each amount is rendered twice: the visible short form `aria-hidden`, and a `.visually-hidden` long form
-  (`1¼ tablespoons`), because screen readers read `tbsp` letter by letter.
+  - **Everything else**, including no unit: a decimal with trailing zeros trimmed — two significant digits
+    below 1 (so a small positive amount never shows as `0`), 1 place below 10, none from 10 up (`0.25`, `1.5`,
+    `450`).
+- `formatAmount(value, unit)` returns `{ visible, spoken }`: abbreviations never pluralise — `g`, `kg`, `oz`,
+  `lb`, `ml`, `l`, `tsp`, `tbsp`, `fl oz`; words are singular at or below 1 and plural above — `cup`, `piece`,
+  `clove`, `pinch`, `slice`, `can`, `bunch`, `sprig`.
+- Where the two forms differ, the visible short form is `aria-hidden` and a visually hidden long form
+  (`a11y.module.css`) is read instead (`1¼ tablespoons`), because screen readers read `tbsp` letter by letter.
+  A bare count (`2.5`) is rendered once.
 
 ### 8.5 Conversion — `utils/units.ts` (PR 2)
 
@@ -234,7 +237,7 @@ which contradicts ADR-022. Options **As written / Metric / Imperial**.
 The Print button calls `window.print()`; its icon is the Material "print" path copied into `components/ui/Icon/`.
 The `@media print` block hides the header, navigation, footer, back link, stepper buttons, tabs, and the Print
 button; lays the page out in one column with ingredients before the method; and prints black on white. It
-prints at the **currently selected** servings (and, after PR 2, the selected units).
+prints at the **currently selected** servings (and, after PR 2, the selected units). Two overrides make that work: the app shell is a fixed-height viewport whose `.main` scrolls, so `AppLayout` resets both to `auto`/`visible` in print (otherwise only the first screenful prints); and `globals.css` forces light print tokens on `html[data-theme]`, because the dark theme would otherwise print near-white ink on white paper.
 
 ### 8.8 Tokens
 
@@ -296,9 +299,9 @@ Existing tokens only. No new colour token.
 - [ ] Given an unknown well-formed id, then "Recipe not found" renders with a link to `/recipes`.
 - [ ] Given `/recipes/not-a-guid`, then the API answers 404 (not 400) and the screen shows "Recipe not found".
 - [ ] Given a network failure, then "Couldn't load this recipe." renders and Retry refetches.
-- [ ] Given a viewport under 768px, then Ingredients/Method tabs render; arrow keys, Home, and End move between
+- [ ] Given a viewport of 768px or narrower, then Ingredients/Method tabs render; arrow keys, Home, and End move between
       them; and only the selected panel is visible.
-- [ ] Given a viewport of 768px or more, then no tablist is in the DOM and both columns show.
+- [ ] Given a viewport wider than 768px, then no tablist is in the DOM and both columns show.
 - [ ] Given the print dialog, then only the recipe prints, in one column, at the selected servings.
 - [ ] *(PR 2)* Given the preference is As written, then no quantity is converted.
 - [ ] *(PR 2)* Given Metric and an ingredient of 8 oz, then about `227 g` is shown; given Imperial and 500 ml,

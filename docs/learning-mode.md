@@ -138,6 +138,9 @@ of these, point at the file.
 | **Derived state via `useMemo`** | `RecipeList.filteredRecipes` | Filtering is computed from props and state, never stored in its own `useState` — no synchronisation bug is possible. |
 | **Semantic element selection** | `RecipeCard` rendering `<article>` or `<button>` by whether `onClick` exists | Accessibility falls out of the element choice instead of being bolted on with ARIA. |
 | **Design tokens and theming** | `styles/themes/*.css`, `data-theme` on `<html>` | One attribute swaps the whole palette because no component hard-codes a colour. |
+| **External store subscription** | `hooks/useMediaQuery.ts` | `useSyncExternalStore` reads the value during render, so the first paint is already right; compare `ThemeProvider`'s `useEffect` subscription. |
+| **WAI-ARIA tabs** | `components/ui/Recipe/RecipeDetailTabs/` | Roving `tabindex`, `aria-selected`, `aria-controls`, `hidden` panels — the ARIA HTML does not provide, verified by keyboard tests. |
+| **Derived display values** | `utils/quantity.ts`, `IngredientRail` | Scaled amounts are recomputed from the stored quantity on every render and rounded only at display, so stepping servings up and back down can never drift. |
 | **Zero-specificity defaults with `:where()`** | `components/ui/Icon/Icon.module.css` | Base styles any consumer class overrides without `!important` and regardless of stylesheet order. Compare the `!important`s ADR-014 deleted, which existed because a runtime style engine won ties. |
 
 ---

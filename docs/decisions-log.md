@@ -41,18 +41,64 @@ Jump to every entry touching a topic.
 | Caching | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
 | Domain modelling | [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Persistence / EF Core | [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
-| Testing | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Testing | [2026-09-26 Tests skip CSS](#2026-09-26--a-green-test-suite-said-nothing-about-the-stylesheet), [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
 | Tooling / infrastructure | [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Enforcement vs. convention | [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Dependency management | [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
-| Frontend / React | [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
-| Accessibility | [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-20 Design file as proposal](#2026-09-20--a-design-file-is-a-proposal-about-colour-not-a-verdict), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
+| Frontend / React | [2026-09-26 Row is a link](#2026-09-26--a-row-that-goes-somewhere-is-a-link-whatever-the-component-already-supports), [2026-09-26 Tests skip CSS](#2026-09-26--a-green-test-suite-said-nothing-about-the-stylesheet), [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
+| Accessibility | [2026-09-26 Row is a link](#2026-09-26--a-row-that-goes-somewhere-is-a-link-whatever-the-component-already-supports), [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-20 Design file as proposal](#2026-09-20--a-design-file-is-a-proposal-about-colour-not-a-verdict), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | API contract | [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript) |
 
 ---
 
 ## Entries
+
+### 2026-09-26 — A row that goes somewhere is a link, whatever the component already supports
+
+**Context.** `BUG-10` said list rows were not clickable, and its recorded fix was to pass `onClick` so
+`RecipeCard` would render a `<button>` — the element switch `R-03` had left in place for exactly that. The
+`07-ux-ui` and `03-senior-react` checklists said the same: "interactive cards are `<button type="button">`".
+`R-18` (ADR-024) built the destination and made the row a React Router `<Link>` instead.
+
+**Decision.** Reverse the prescribed fix. The row navigates, so it is an anchor. The `onClick` prop and the
+`article`/`button` switch were deleted rather than kept for a future action.
+
+**Rejected.** *The button, as written.* It works with a mouse and a keyboard, which is why it looked right. It
+loses everything the browser gives an anchor for free — middle-click, open in new tab, copy link, the URL preview
+on hover — and a screen reader announces "button", so a user expects something to happen *here*. It would also
+have needed a `navigate()` call to reimplement what `<a href>` already does.
+
+**Cost.** Two agent checklists and a known-issues fix were wrong and had to be rewritten. A future "select several
+rows" mode cannot reuse the row as its control.
+
+**Takeaway.** *Choose the element by what activation does, not by what the component already supports.* Goes
+somewhere: a link. Does something here: a button. The existing switch made the button the path of least
+resistance, and least resistance is not a reason.
+
+---
+
+### 2026-09-26 — A green test suite said nothing about the stylesheet
+
+**Context.** `R-18`'s plan styled the detail stats with `.stats dt { composes: label from ... }`. All 136 Vitest
+tests passed, typecheck and lint passed, and the app rendered a **blank page**: Vite refused the module
+("composition is only allowed when selector is single :local class name"), and because every route imports the
+pages barrel, no route rendered at all. Found only in manual verification in the browser.
+
+**Decision.** Give the `dt`/`dd` their own classes, and treat `npm run build` as the test that reproduces it — it
+fails with the same message, and passes after the fix.
+
+**Rejected.** *A CSS-parsing Vitest setup* (`css: true`): it changes CSS handling for the whole suite to cover a
+rule the production build already enforces — the same trade `QUAL-06` recorded and declined.
+
+**Cost.** None beyond the lesson. `BottomNav.module.css` already documented this exact rule in a comment; the plan
+was written without reading it.
+
+**Takeaway.** *Know what each check does not look at.* Vitest here never processes CSS, so a stylesheet can be
+invalid while every test is green. The build is the only automated check that compiles CSS Modules — run it
+before calling a styling change done, not only at the end.
+
+---
 
 ### 2026-09-26 — Local references on the wire, global references in the store
 
