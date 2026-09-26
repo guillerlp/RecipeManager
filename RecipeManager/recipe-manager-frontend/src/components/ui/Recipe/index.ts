@@ -2,3 +2,4 @@
 
 export { RecipeList } from './RecipeList';
 export { RecipeCard } from './RecipeCard';
+export { ServingsStepper } from './ServingsStepper';
