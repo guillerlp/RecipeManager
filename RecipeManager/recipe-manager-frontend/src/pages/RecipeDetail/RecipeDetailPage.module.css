@@ -1,0 +1,150 @@
+/* RecipeDetailPage.module.css */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  padding-bottom: var(--spacing-2xl);
+}
+
+.back {
+  composes: label from '@/styles/typography.module.css';
+  align-self: flex-start;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  max-width: 44rem;
+}
+
+.title {
+  composes: display from '@/styles/typography.module.css';
+  color: var(--ink);
+}
+
+.description {
+  composes: body from '@/styles/typography.module.css';
+  margin: 0;
+  color: var(--ink-2);
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xl);
+  margin: var(--spacing-sm) 0 0;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--rule); /* decorative */
+}
+
+.stats dt {
+  composes: label from '@/styles/typography.module.css';
+  color: var(--ink-3);
+}
+
+.stats dd {
+  composes: numeric from '@/styles/typography.module.css';
+  margin: var(--spacing-xs) 0 0;
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+
+/* Method in the wide column, the ingredients rail beside it (frame 3c). */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: var(--spacing-2xl);
+  align-items: start;
+}
+
+.method {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.sectionHeading {
+  composes: label from '@/styles/typography.module.css';
+  color: var(--ink-2);
+}
+
+.print {
+  composes: ui from '@/styles/typography.module.css';
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.print:hover {
+  background: var(--paper-2);
+}
+
+.printIcon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.status {
+  composes: body from '@/styles/typography.module.css';
+  color: var(--ink-2);
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl) 0;
+}
+
+.messageTitle {
+  composes: title from '@/styles/typography.module.css';
+  color: var(--ink);
+}
+
+.retry {
+  composes: ui from '@/styles/typography.module.css';
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr) 17rem;
+    gap: var(--spacing-xl);
+  }
+}
+
+/* Paper, not screen: one column, ingredients first, no controls. */
+@media print {
+  .back,
+  .print {
+    display: none;
+  }
+
+  .columns {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--spacing-xl);
+  }
+}

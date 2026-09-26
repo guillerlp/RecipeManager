@@ -34,3 +34,9 @@
     gap: var(--spacing-sm);
   }
 }
+
+@media print {
+  .footer {
+    display: none;
+  }
+}

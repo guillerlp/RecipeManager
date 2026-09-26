@@ -82,3 +82,15 @@ export const PersonIcon = ({ className }: IconProps) => (
     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4" />
   </SvgIcon>
 );
+
+export const ChevronRightIcon = ({ className }: IconProps) => (
+  <SvgIcon className={className}>
+    <path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+  </SvgIcon>
+);
+
+export const PrintIcon = ({ className }: IconProps) => (
+  <SvgIcon className={className}>
+    <path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3m-3 11H8v-5h8zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1m-1-9H6v4h12z" />
+  </SvgIcon>
+);
