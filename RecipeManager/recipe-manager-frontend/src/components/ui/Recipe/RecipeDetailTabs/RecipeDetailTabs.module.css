@@ -1,4 +1,4 @@
-/* RecipeDetailTabs.module.css — the visual language of ThemeControl's segmented track. */
+/* RecipeDetailTabs.module.css — the visual language of SegmentedControl's segmented track. */
 
 .tabs {
   display: flex;
@@ -25,7 +25,7 @@
   transition: background var(--transition-normal), color var(--transition-normal);
 }
 
-/* Qualified for the same composes/specificity reason as ThemeControl's .segment.selected.
+/* Qualified for the same composes/specificity reason as SegmentedControl's .segment.selected.
    --field-border is the 3:1 boundary on --paper-2 in both themes. */
 .tab.selected {
   background: var(--paper);
