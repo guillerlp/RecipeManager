@@ -37,7 +37,7 @@ public class RecipesController : ControllerBase
         return Ok(recipes);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<ActionResult<RecipeDto>> Get([FromRoute] Guid id,
         CancellationToken cancellationToken)
     {
