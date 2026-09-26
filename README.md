@@ -126,12 +126,12 @@ dotnet dev-certs https --trust
 dotnet test RecipeManager.sln
 ```
 
-138 tests: 104 unit and 34 integration. Of the 34, **30** start a real PostgreSQL container (ADR-017) and the
-other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 138 passed;
-**without it** you get 108 passed and 30 skipped, each naming Docker as the reason. The skip is deliberate — see
+190 tests: 141 unit and 49 integration. Of the 49, **45** start a real PostgreSQL container (ADR-017) and the
+other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 190 passed;
+**without it** you get 145 passed and 45 skipped, each naming Docker as the reason. The skip is deliberate — see
 the troubleshooting entry below — but it means a green run is only as complete as its skip count says. On a
 Windows machine with Smart App Control enabled, the 4 contract tests do not skip — they **fail** with
-`FileLoadException`, the same way the 30 integration tests do; see the Smart App Control entry below.
+`FileLoadException`, the same way the 45 integration tests do; see the Smart App Control entry below.
 
 These counts come from CI (run 36051107842), not from a local run: the machine this was written on has no
 Docker and has Smart App Control enabled, so neither number can be taken there.
@@ -223,7 +223,7 @@ on `ubuntu-latest`:
 
 | Job | Steps |
 | --- | --- |
-| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (138) → upload `openapi-received` snapshot on failure → vulnerable-package check |
+| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (190) → upload `openapi-received` snapshot on failure → vulnerable-package check |
 | **Frontend** | `npm ci` → contract types are current (`npm run gen:api` + diff check) → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` → `npm audit --audit-level=high --prefix ../contracts` |
 
 Two things are worth knowing before a run surprises you:

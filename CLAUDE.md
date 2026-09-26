@@ -35,7 +35,8 @@ Never document a target as though it were already reality, and never lower a doc
 existing code — fix the code, or record the gap.
 
 Verified against `main` @ `edfd057` (merge of `dotnet10-postgresql`) on 2026-07-26; the domain, persistence, and
-test-count statements re-verified on 2026-09-24 against `feat/structured-ingredients` (ADR-022).
+test-count statements re-verified on 2026-09-24 against `feat/structured-ingredients` (ADR-022) and on 2026-09-26
+against `feat/structured-instructions` (`R-17`, ADR-023).
 
 ---
 
@@ -68,12 +69,12 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     Directory.Build.props            TargetFramework/Nullable/ImplicitUsings + TreatWarningsAsErrors + EnforceCodeStyleInBuild, all projects
     Directory.Packages.props         every package version (central package management) — never version a .csproj
     contracts/                       OpenAPI snapshot + isolated TS generator (ADR-019)
-    RecipeManager.Domain/            Recipe aggregate, Ingredient (owned) + Unit enum, Entity base, RecipeErrors, IRecipeRepository
+    RecipeManager.Domain/            Recipe aggregate, Ingredient + InstructionStep (owned) + Unit enum, Entity base, RecipeErrors, IRecipeRepository
     RecipeManager.Application/       Commands, Queries, Handlers, Dispatchers, DTOs, Validators, Mappings
     RecipeManager.Infrastructure/    AppDbContext + Context/Configurations, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
     RecipeManager.Api/               RecipesController, Startup/*, Startup/Swagger/*, Middlewares/*, Extensions/*
-    RecipeManager.UnitTests/         104 tests — xUnit + NSubstitute (Domain + Application handlers + Api result mapping)
-    RecipeManager.IntegrationTests/  33 tests — xUnit + WebApplicationFactory (29 real PostgreSQL via Testcontainers, 4 OpenAPI contract needing no Docker)
+    RecipeManager.UnitTests/         141 tests — xUnit + NSubstitute (Domain + Application handlers/mappings/validators + Api result mapping)
+    RecipeManager.IntegrationTests/  49 tests — xUnit + WebApplicationFactory (45 real PostgreSQL via Testcontainers, 4 OpenAPI contract needing no Docker)
     recipe-manager-frontend/         React 19 + Vite SPA — 77 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
@@ -117,8 +118,9 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **0 warnings** and **138 tests pass** (104 unit + 34 integration), measured on
-**CI run 36051107842** with 0 failed and 0 skipped. Of the 34 integration tests, **30 need Docker** and are
+Current state: build succeeds with **0 warnings** and the suite has **190 tests** (141 unit + 49 integration) after
+`R-17` — counted **locally** on 2026-09-26 without Docker (145 passed, 45 skipped); the last CI-confirmed run
+was **36051107842** at 138 (104 + 34), so re-confirm on CI. Of the 49 integration tests, **45 need Docker** and are
 reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need no Docker, but on a
 Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip — and that machine can have
 any freshly-built assembly blocked, `dotnet ef` included, so **CI is the authority for these numbers**.
@@ -171,8 +173,9 @@ API first; there is no mock backend.
 - **There is no seed mechanism.** The database starts empty; create recipes via `POST /api/recipes` or Swagger.
   Integration tests seed through `IntegrationTestBase.SeedDatabase<T>(...)` into their own throwaway database on
   the test container only (`INFRA-05`; a Development-only seeder is planned as `R-13`).
-- PostgreSQL folds unquoted identifiers to lowercase while EF creates `"Recipes"` and `"RecipeIngredients"` —
-  quote them in psql: `SELECT * FROM "Recipes";`, `SELECT * FROM "RecipeIngredients" ORDER BY "Position";`
+- PostgreSQL folds unquoted identifiers to lowercase while EF creates `"Recipes"`, `"RecipeIngredients"`, and
+  `"RecipeInstructionSteps"` — quote them in psql: `SELECT * FROM "Recipes";`,
+  `SELECT * FROM "RecipeInstructionSteps" ORDER BY "Position";`
 
 ---
 
