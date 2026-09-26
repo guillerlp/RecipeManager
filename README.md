@@ -133,8 +133,9 @@ the troubleshooting entry below — but it means a green run is only as complete
 Windows machine with Smart App Control enabled, the 4 contract tests do not skip — they **fail** with
 `FileLoadException`, the same way the 45 integration tests do; see the Smart App Control entry below.
 
-These counts come from CI (run 36051107842), not from a local run: the machine this was written on has no
-Docker and has Smart App Control enabled, so neither number can be taken there.
+These counts were taken **locally** on 2026-09-26, on a machine with no Docker: 145 passed and 45 skipped. The
+"with Docker" figure is the expected total, **not yet confirmed by CI**; the last CI-confirmed run
+(36051107842) predates `R-17` and counted 138. Treat CI as the authority once it has run.
 
 Unit tests with an HTML coverage report (requires `dotnet tool install --global dotnet-reportgenerator-globaltool`):
 

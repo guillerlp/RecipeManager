@@ -559,18 +559,29 @@ public class RecipesControllerTests : IntegrationTestBase
         step.DurationMinutes.Should().Be(5);
         step.IngredientIds.Should().Equal(butter, flour);
 
-        RecipeDto reread = (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions))!;
-        reread.Instructions.Single().IngredientIds.Should().Equal(butter, flour);
+        // Not a GET: AddAsync warms recipe_{id} with the very entity just saved, so a GET here would be served
+        // from memory and prove nothing about what PostgreSQL stored. Read through a cleared DbContext instead.
+        DbContext.ChangeTracker.Clear();
+        Recipe stored = await DbContext.Recipes.SingleAsync(r => r.Id == created.Id);
+        stored.Instructions.Single().IngredientIds.Should().Equal(butter, flour);
     }
 
     [SkippableFact]
-    public async Task CreateRecipe_ShouldReturnStepsInExactlyTheOrderGiven()
+    public async Task CreateRecipe_ShouldPersistStepsInExactlyTheOrderGiven()
     {
-        // TEST-03: Should().Equal is order-sensitive; BeEquivalentTo would pass on a shuffle.
+        // TEST-03: Should().Equal is order-sensitive; BeEquivalentTo would pass on a shuffle. Asserted on the
+        // "Position" column itself, not through the API (whose first GET is cache-served after a POST) and not
+        // through Recipe.Instructions (whose getter sorts, and would hide a column holding the wrong values).
         RecipeDto created = await PostRecipe(FlourAndButter(StepInput("A"), StepInput("B"), StepInput("C")));
 
-        RecipeDto reread = (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions))!;
-        reread.Instructions.Select(s => s.Text).Should().Equal("A", "B", "C");
+        List<string> texts = await DbContext.Database
+            .SqlQuery<string>($"""
+                SELECT s."Text" AS "Value" FROM "RecipeInstructionSteps" s
+                WHERE s."RecipeId" = {created.Id} ORDER BY s."Position"
+                """)
+            .ToListAsync();
+
+        texts.Should().Equal("A", "B", "C");
     }
 
     [SkippableFact]

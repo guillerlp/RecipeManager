@@ -74,6 +74,7 @@ kind of negative test.
 | [BUG-13](#bug-13) | Low | Frontend | Whitespace-only search query shows a misleading "matching" heading |
 | [BUG-14](#bug-14) | Low | Caching | The cache still hands out shared entity instances; the write path no longer takes one |
 | [BUG-15](#bug-15) | Medium | API | A client-supplied ingredient id can trigger a duplicate-key 500 on create, on update, or within one payload |
+| [BUG-16](#bug-16) | Low | API | `"ingredients": [null]` reaches the handler and fails as a 500 instead of a 400 |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [INFRA-07](#infra-07) | Medium | CI/CD | CI runs on every PR but is not yet *required* to merge |
@@ -331,8 +332,9 @@ cache write, with the reason stated in a comment on the method. A failed save no
 **What is still open.** Handing out a shared entity is still the design. Its last concrete exposure — the former
 `BUG-11`, a cached recipe's `Instructions` materialised as a castable `List<string>` — **closed with `R-17`**
 (2026-09-26): `Ingredients`, `Instructions`, and every step's `IngredientIds` are now read-only copies of private
-backing fields, pinned against real PostgreSQL by
-`RecipesControllerTests.RecipeReadFromPostgres_ShouldRoundTripStepReferencesAndExposeNoMutableList`. What remains
+backing fields. The in-memory side is pinned by unit tests; the materialised-from-PostgreSQL side by
+`RecipesControllerTests.RecipeReadFromPostgres_ShouldRoundTripStepReferencesAndExposeNoMutableList`, which needs
+Docker and had **not yet run on CI** when this was written — confirm it green there before relying on it. What remains
 is structural rather than a known hole: the entity's safety depends on every future member staying read-only,
 and nothing enforces that. Severity stays Low — nothing reachable over HTTP triggers it.
 
@@ -408,6 +410,25 @@ error style; a single factory reused for all three is plausible, but that is an 
 whoever picks this up, not something this entry should pre-decide.
 
 **Owner:** `02-senior-csharp` · `01-architect` if the error's `field` or kind is contested
+
+### BUG-16
+**A `null` element in `ingredients` is a 500, not a 400 — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-17`. JSON allows `"ingredients": [null]`. FluentValidation's
+child validator (`SetValidator` inside `ForEach`) skips null elements, and ASP.NET's implicit-required check for
+non-nullable reference types covers properties, not list elements — so nothing rejects the null before
+`IngredientMappingExtensions.ToIngredients` dereferences it. The `NullReferenceException` reaches
+`ErrorHandlerMiddleware` and the client gets a 500 for what is a malformed request.
+
+Present since `R-10`. `R-17` hit the identical flaw on `instructions` and fixed it there (`NotNull()` per item in
+`RecipeValidationRules.ValidateInstructions`, pinned by
+`CreateRecipeCommandValidatorTests.Validate_ANullInstructionStep_ShouldFailInsteadOfReachingTheHandler`); the
+ingredient side was left alone because it predates that change (CLAUDE.md rule 9).
+
+**Fix.** The same one line in `ValidateIngredients` — `.ForEach(item => item.NotNull().SetValidator(...))` — plus
+the matching validator test.
+
+**Owner:** `02-senior-csharp` · **Effort:** ~10 min
 
 ---
 

@@ -58,6 +58,10 @@ public static class RecipeValidationRules
         return ruleBuilder
             .NotNull().WithMessage("Instructions list cannot be null")
             .Must(list => list.Count <= 50).WithMessage("Cannot exceed 50 instruction steps")
-            .ForEach(item => item.SetValidator(new InstructionStepInputDtoValidator()));
+            // NotNull per item: a child validator skips null elements, so "instructions": [null] would
+            // otherwise reach the handler and fail as a 500 instead of a 400.
+            .ForEach(item => item
+                .NotNull().WithMessage("Instruction steps cannot be null")
+                .SetValidator(new InstructionStepInputDtoValidator()));
     }
 }
