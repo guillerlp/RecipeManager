@@ -74,6 +74,9 @@ const toTrimmedDecimal = (value: number): string => {
 export const formatQuantity = (value: number, unit: Unit | null | undefined): string =>
   unit && FRACTION_UNITS.has(unit) ? toKitchenFraction(value) : toTrimmedDecimal(value);
 
+// A lone fraction glyph ("½ cup") or a shown number of at most 1 reads singular; "1¼" and "2" do not.
+const SINGULAR_FRACTION = /^[⅛¼⅓⅜½⅝⅔¾⅞]$/;
+
 export const formatAmount = (value: number | null, unit: Unit | null | undefined): AmountText | null => {
   if (value === null) return null;
 
@@ -81,6 +84,6 @@ export const formatAmount = (value: number | null, unit: Unit | null | undefined
   if (!unit) return { visible: number, spoken: number };
 
   const names = UNIT_NAMES[unit];
-  const word = value <= 1 ? names.one : names.many;
+  const word = SINGULAR_FRACTION.test(number) || Number(number) <= 1 ? names.one : names.many;
   return { visible: `${number} ${names.abbr ?? word}`, spoken: `${number} ${word}` };
 };

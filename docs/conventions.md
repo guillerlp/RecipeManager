@@ -169,7 +169,7 @@ recipe-manager-frontend/src/
   components/
     common/    cross-cutting widgets (SearchBar)
     layout/    AppLayout, Header, Footer, BottomNav
-    ui/        presentational pieces (Icon, Logo, NavLink, Recipe/RecipeCard, Recipe/RecipeList, ThemeControl)
+    ui/        presentational pieces (Icon, Logo, NavLink, Recipe/RecipeCard, Recipe/RecipeList, SegmentedControl)
   contexts/    ThemeContext (the context object), ThemeProvider (the component)
   hooks/       useTheme, useRecipes
   pages/       Home/HomePage, Recipe/RecipePage, Profile/ProfilePage, NotFound/NotFoundPage
