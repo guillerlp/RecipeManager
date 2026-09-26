@@ -46,12 +46,13 @@
   border-top: 1px solid var(--rule); /* decorative */
 }
 
-.stats dt {
+/* Classes, not `.stats dt`: CSS Modules allows composes: only on a single-class selector. */
+.statLabel {
   composes: label from '@/styles/typography.module.css';
   color: var(--ink-3);
 }
 
-.stats dd {
+.statValue {
   composes: numeric from '@/styles/typography.module.css';
   margin: var(--spacing-xs) 0 0;
   font-family: var(--font-mono);

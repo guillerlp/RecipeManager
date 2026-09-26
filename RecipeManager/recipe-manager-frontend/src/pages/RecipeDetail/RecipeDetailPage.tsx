@@ -47,25 +47,25 @@ const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
 
         <dl className={styles.stats}>
           <div>
-            <dt>Total</dt>
-            <dd><Duration minutes={recipe.preparationTime + recipe.cookingTime} /></dd>
+            <dt className={styles.statLabel}>Total</dt>
+            <dd className={styles.statValue}><Duration minutes={recipe.preparationTime + recipe.cookingTime} /></dd>
           </div>
           {recipe.preparationTime > 0 && (
             <div>
-              <dt>Hands on</dt>
-              <dd><Duration minutes={recipe.preparationTime} /></dd>
+              <dt className={styles.statLabel}>Hands on</dt>
+              <dd className={styles.statValue}><Duration minutes={recipe.preparationTime} /></dd>
             </div>
           )}
           {recipe.cookingTime > 0 && (
             <div>
-              <dt>Cooking</dt>
-              <dd><Duration minutes={recipe.cookingTime} /></dd>
+              <dt className={styles.statLabel}>Cooking</dt>
+              <dd className={styles.statValue}><Duration minutes={recipe.cookingTime} /></dd>
             </div>
           )}
           <div>
-            <dt>Serves</dt>
+            <dt className={styles.statLabel}>Serves</dt>
             {/* Follows the stepper, so the page never shows two different servings counts. */}
-            <dd data-testid="serves">{servings}</dd>
+            <dd className={styles.statValue} data-testid="serves">{servings}</dd>
           </div>
         </dl>
       </header>
