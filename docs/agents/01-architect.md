@@ -58,7 +58,7 @@ These were settled on 2026-07-26. Implement towards them; do not re-litigate the
 | Domain error codes | HTTP status moved out of the Domain into a semantic error kind (**shipped**) | ADR-009, `R-05` |
 | Ingredients | Owned entities with a `Guid Id` in a `RecipeIngredients` child table; `Unit` a closed enum; conversion is a presentation concern (**shipped** 2026-09-24) | ADR-022, [spec 010](../specs/010-structured-ingredients.md) |
 | Ingredient catalogue | None — ingredients are owned by their recipe (2026-09-19, **shipped**) | ADR-022 |
-| Instructions | `InstructionStep` — `Position`, `Text`, `DurationMinutes int?`, `IngredientIds Guid[]` (2026-09-24) | ADR-022, `R-17` |
+| Instructions | `InstructionStep` owned entities in a `RecipeInstructionSteps` child table — `Position`, `Text`, `DurationMinutes int?`, `IngredientIds` `uuid[]`; requests reference ingredients by payload index (**shipped** 2026-09-26) | ADR-022, ADR-023, [spec 011](../specs/011-structured-instructions.md) |
 | "Only a title required" | Draft recipes with a Draft/Published status, not a relaxed aggregate (2026-09-19) | `R-19` |
 | Fonts and icons | Self-hosted; icons stay inline SVG (ADR-014), no runtime Google Fonts (2026-09-19) | `R-16` |
 | Integration tests | Testcontainers with real PostgreSQL — **unblocked**, CI now provides Docker (ADR-013) | `R-06` |
@@ -72,10 +72,10 @@ Do not defer these silently — each will be forced by a feature request sooner 
   [spec 010](../specs/010-structured-ingredients.md): `Ingredient` is an owned entity with a `Guid Id` in a
   child table, `Unit` is a closed enum stored as a string, conversion is a presentation concern with no
   canonical stored unit, existing `text[]` rows migrate losslessly as name-only ingredients, and
-  `InstructionStep` is fixed for `R-17`. **The ingredient half was built and shipped on 2026-09-24**; the
-  instruction half is decided and unbuilt. Two consequences were appended to ADR-022 during implementation —
-  `ValueGeneratedNever()` on domain-minted `Guid` keys, and a Swashbuckle schema filter for nullable enums —
-  and both apply again to `R-17`.
+  `InstructionStep` is fixed for `R-17`. **Both halves have shipped**: ingredients on 2026-09-24, instructions
+  on 2026-09-26 (`R-17`). Building the second half surfaced the one thing ADR-022 had not foreseen — a create
+  request has no ingredient ids to reference — which ADR-023 settles by addressing ingredients by payload index
+  on the wire.
 - **Ownership / multi-tenancy.** Requires a `User` aggregate, `OwnerId` on `Recipe`, a filter on every query, a
   migration for existing rows, and an auth stack. Choose the identity source (ASP.NET Core Identity vs. an
   external IdP) *before* touching the schema. `R-14`, on the deploy gate.

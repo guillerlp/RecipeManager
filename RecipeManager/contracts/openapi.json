@@ -215,7 +215,7 @@
           "instructions": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/InstructionStepInputDto"
             }
           }
         },
@@ -289,6 +289,61 @@
         },
         "additionalProperties": false
       },
+      "InstructionStepDto": {
+        "required": [
+          "id",
+          "ingredientIds",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ingredientIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "InstructionStepInputDto": {
+        "required": [
+          "ingredientIndexes",
+          "text"
+        ],
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ingredientIndexes": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "RecipeDto": {
         "required": [
           "cookingTime",
@@ -333,7 +388,7 @@
           "instructions": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/InstructionStepDto"
             }
           }
         },
@@ -400,7 +455,7 @@
           "instructions": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/InstructionStepInputDto"
             }
           }
         },

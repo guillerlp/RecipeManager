@@ -11,6 +11,8 @@ public class EntityTests
 {
     private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
 
+    private static InstructionStep Step(string text) => InstructionStep.Create(text, null, []).Value;
+
     #region Equals Tests
 
     [Fact]
@@ -22,14 +24,14 @@ public class EntityTests
         var recipe1Result = Recipe.Create(
             "Recipe 1", "Description 1", 10, 20, 2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
         var recipe1 = recipe1Result.Value;
 
         var recipe2Result = Recipe.Create(
             "Recipe 2", "Description 2", 15, 25, 4,
             new List<Ingredient> { Ing("Sugar") },
-            new List<string> { "Bake" }
+            new List<InstructionStep> { Step("Bake") }
         );
         var recipe2 = recipe2Result.Value;
 
@@ -52,13 +54,13 @@ public class EntityTests
         var recipe1Result = Recipe.Create(
             "Recipe 1", "Description", 10, 20, 2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         var recipe2Result = Recipe.Create(
             "Recipe 2", "Description", 10, 20, 2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         // Act
@@ -75,7 +77,7 @@ public class EntityTests
         var recipeResult = Recipe.Create(
             "Recipe", "Description", 10, 20, 2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         // Act
@@ -92,7 +94,7 @@ public class EntityTests
         var recipeResult = Recipe.Create(
             "Recipe", "Description", 10, 20, 2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         var someObject = new object();
@@ -111,7 +113,7 @@ public class EntityTests
         var recipeResult = Recipe.Create(
             "Recipe", "Description", 10, 20, 2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
         var recipe = recipeResult.Value;
 
@@ -133,7 +135,7 @@ public class EntityTests
         var recipeResult = Recipe.Create(
             "Recipe", "Description", 10, 20, 2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
         var recipe = recipeResult.Value;
 
@@ -154,13 +156,13 @@ public class EntityTests
         var recipe1Result = Recipe.Create(
             "Recipe 1", "Description", 10, 20, 2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         var recipe2Result = Recipe.Create(
             "Recipe 2", "Different Description", 15, 25, 4,
             new List<Ingredient> { Ing("Sugar") },
-            new List<string> { "Bake" }
+            new List<InstructionStep> { Step("Bake") }
         );
 
         // Set same ID
@@ -183,13 +185,13 @@ public class EntityTests
         var recipe1Result = Recipe.Create(
             "Recipe 1", "Description", 10, 20, 2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         var recipe2Result = Recipe.Create(
             "Recipe 2", "Description", 10, 20, 2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         // Act

@@ -50,6 +50,11 @@ Verified project references:
   on its own: `Position`, `Quantity` (`decimal?`), `Unit` (`Unit?`), `Name`, `Notes` (`string?`), with the same
   `Create(...)` → `Result<Ingredient>` factory shape and its own `ValidateProperties`. Only `Recipe` may set
   `Position`, through an `internal` method — order belongs to the collection, not to the item.
+- `RecipeManager.Domain/Entities/InstructionStep.cs` — the second **owned entity** of `Recipe` (ADR-022,
+  built as `R-17`): `Position`, `Text`, `DurationMinutes` (`int?`), and `IngredientIds`, a read-only copy of a
+  private `List<Guid>` so no caller can downcast and mutate it. Same factory shape; `Create` always mints the id.
+  Whether each referenced id belongs to the recipe is `Recipe`'s invariant, since only the aggregate knows its
+  ingredients.
 - `RecipeManager.Domain/Entities/Unit.cs` — the closed `Unit` enum (ADR-022), filed beside the concept it
   serves rather than in an `Enums/` folder, following `ErrorKind` next to `DomainError`.
 - `RecipeManager.Domain/Errors/RecipeErrors.cs` — every domain error as a static factory returning a `DomainError`
@@ -68,12 +73,17 @@ Verified project references:
 - `RecipeManager.Application/Commands/`, `.../Queries/` — positional `record` types implementing the marker interfaces.
 - `RecipeManager.Application/Handlers/Recipes/` — one class per command/query; constructor-injected `IRecipeRepository` (+ `ILogger`
   where used).
-- `RecipeManager.Application/DTO/Recipes/` — `RecipeDto`, `UpdateRecipeDto`, `IngredientDto` (response) and
-  `IngredientInputDto` (request), all positional records, one file per type.
+- `RecipeManager.Application/DTO/Recipes/` — `RecipeDto`, `UpdateRecipeDto`, `IngredientDto` and
+  `InstructionStepDto` (response), `IngredientInputDto` and `InstructionStepInputDto` (request), all positional
+  records, one file per type.
 - `RecipeManager.Application/Mappings/RecipeMappingExtensions.cs` — hand-written `MapToRecipeDto()` extension. **No AutoMapper.**
   `RecipeManager.Application/Mappings/IngredientMappingExtensions.cs` — `ToIngredients()` builds every
   `Ingredient` from its input DTO and collects the failures rather than stopping at the first, matching
   `Recipe.ValidateProperties`.
+  `RecipeManager.Application/Mappings/InstructionMappingExtensions.cs` — `ToInstructionSteps()` translates each
+  step's `IngredientIndexes` (positions in the same request's ingredient list) into the ids `Ingredient.Create`
+  has just minted, then builds the steps, again collecting every failure (ADR-023). It is the boundary where the
+  wire's local references become the domain's global ones.
 - `RecipeManager.Application/Validators/Recipes/` — FluentValidation validators over the *bound request type*, plus shared rule
   extensions in `RecipeValidationRules`.
 - `RecipeManager.Application/Common/Interfaces/Caching/ICacheService.cs` — the caching port (implementation lives in Infrastructure).
@@ -82,12 +92,12 @@ Verified project references:
 
 - `RecipeManager.Infrastructure/Context/AppDbContext.cs` — a single `DbSet<Recipe>`, with an `OnModelCreating`
   that applies every `IEntityTypeConfiguration<T>` in the Infrastructure assembly by scan (ADR-022).
-  EF Core 10 + Npgsql still map `IReadOnlyList<string>` to a native PostgreSQL `text[]` column with no
-  configuration — that is how `Instructions` is persisted.
 - `RecipeManager.Infrastructure/Context/Configurations/RecipeConfiguration.cs` — the first and so far only
-  entity configuration: `OwnsMany` for the `RecipeIngredients` child table, `HasMaxLength`/`HasPrecision` on
-  its columns, the `Unit` enum converted to its member **name**, `ValueGeneratedNever()` on both `Guid` keys,
-  and `PropertyAccessMode.Field` on the `Ingredients` navigation because the getter sorts.
+  entity configuration: two `OwnsMany`, for the `RecipeIngredients` and `RecipeInstructionSteps` child tables,
+  `HasMaxLength`/`HasPrecision` on their columns, the `Unit` enum converted to its member **name**,
+  `ValueGeneratedNever()` on all three `Guid` keys, `PropertyAccessMode.Field` on both navigations because the
+  getters sort, and a `PrimitiveCollection` for `InstructionStep.IngredientIds` (a `uuid[]`, also field-mapped
+  because its getter returns a copy).
 - `RecipeManager.Infrastructure/Repositories/Recipes/RecipeRepository.cs` — EF implementation. Read paths use `AsNoTracking()`;
   `GetByIdForUpdateAsync` deliberately does **not**, because the write path needs EF's change tracker to work
   out which owned rows are inserts, updates, and deletes. Every write calls `SaveChangesAsync` immediately (no
@@ -96,9 +106,10 @@ Verified project references:
 - `RecipeManager.Infrastructure/Repositories/Recipes/CachedRecipeRepository.cs` — decorator implementing the same interface.
 - `RecipeManager.Infrastructure/Services/MemoryCacheService.cs` — `IMemoryCache` adapter, plus a `ConcurrentDictionary` key registry.
 - `RecipeManager.Infrastructure/Constants/CacheKeys.cs`, `RecipeManager.Infrastructure/Constants/CacheDuration.cs`.
-- `RecipeManager.Infrastructure/Migrations/` — three migrations: `20260725173218_InitialCreate`,
-  `20260924130146_StructureIngredients` (ADR-022), and `20260924153243_SyncIdValueGeneration`, which carries no
-  DDL and exists only to bring `AppDbContextModelSnapshot.cs` back in step with the corrected key metadata.
+- `RecipeManager.Infrastructure/Migrations/` — four migrations: `20260725173218_InitialCreate`,
+  `20260924130146_StructureIngredients` (ADR-022), `20260924153243_SyncIdValueGeneration`, which carries no
+  DDL and exists only to bring `AppDbContextModelSnapshot.cs` back in step with the corrected key metadata, and
+  `20260926113324_StructureInstructions` (`R-17`), which backfills the old `text[]` behind a length guard.
 
 ### Api (`RecipeManager.Api`)
 
@@ -142,11 +153,15 @@ Handlers do not need to order their errors. An error that is not a `DomainError`
 ### Persistence
 
 - PostgreSQL via `options.UseNpgsql(...)` in `ServiceInitializer.RegisterDbContext`.
-- Column types on `"Recipes"`: `Id uuid` (PK), `Title`/`Description` `text`, times and `Servings` `integer`,
-  `Instructions` **`text[]`** (a native PostgreSQL array, not JSON).
+- Column types on `"Recipes"`: `Id uuid` (PK), `Title`/`Description` `text`, times and `Servings` `integer`.
 - Ingredients live in the `"RecipeIngredients"` child table (ADR-022): `Id uuid` PK, `RecipeId uuid` FK with
   cascade delete and an index, `Position integer`, `Quantity numeric(9,3)` nullable, `Unit varchar(20)` nullable
   holding the enum member name, `Name varchar(200)` `NOT NULL`, `Notes varchar(200)` nullable.
+- Instruction steps live in the `"RecipeInstructionSteps"` child table (`R-17`): the same `Id`/`RecipeId`/
+  `Position` shape, `Text varchar(2000)` `NOT NULL`, `DurationMinutes integer` nullable, and `IngredientIds
+  uuid[]` `NOT NULL` — a native PostgreSQL array with **no foreign key**. Step-to-ingredient integrity is the
+  `Recipe` invariant `InstructionIngredientNotFound`, so a write that bypasses the aggregate (raw SQL, a future
+  bulk import) can leave dangling ids nothing in the database notices.
 - Ids are generated in the entity constructor with `Guid.NewGuid()`, not by the database.
 - Migrations run at startup via `app.MigrateDatabase()`.
 
@@ -162,11 +177,11 @@ Handlers do not need to order their errors. An error that is not a `DomainError`
   shared between requests, so handing it out for mutation would let one request's edits leak into another's
   copy. Writes load straight from the database.
 - Cached values are **entity instances**. The intended safety argument is that reads are `AsNoTracking()` and
-  `Recipe` exposes read-only collections. **That now holds for ingredients and not for instructions:**
-  `Ingredients` is an `IReadOnlyList<Ingredient>` over a private backing field since ADR-022, but a recipe read
-  from the database still carries a mutable `List<string>` behind `IReadOnlyList<string>` for `Instructions`,
-  and the cache serves that same instance to every later request. See [BUG-11](known-issues.md#bug-11), open
-  for the instruction half until `R-17`.
+  `Recipe` exposes read-only collections. **That holds since `R-17`:** `Ingredients`, `Instructions`, and each
+  step's `IngredientIds` are all read-only copies of private backing fields, so nothing handed a cached recipe
+  can downcast a collection and mutate the shared instance (the former `BUG-11`, pinned by
+  `RecipeReadFromPostgres_ShouldRoundTripStepReferencesAndExposeNoMutableList`). Caching a shared *entity*
+  rather than an immutable read model is still the design — see [BUG-14](known-issues.md#bug-14).
 
 ### Logging
 
@@ -242,8 +257,8 @@ endpoint is anonymous and every recipe is world-writable. See
 ### ADR-004 — Ingredients and instructions as `IReadOnlyList<string>`
 
 - **Status:** **superseded by ADR-022** (2026-09-24). ADR-022 restructures ingredients and fixes the
-  `InstructionStep` shape; `Instructions` stays `text[]` in code until `R-17` implements it. Originally
-  accepted (initial migration).
+  `InstructionStep` shape, which `R-17` implemented on 2026-09-26 (ADR-023). Originally accepted (initial
+  migration).
 - **Decision:** no `Ingredient`, `Step`, `Unit` or `Quantity` entities; both are primitive string collections
   persisted as PostgreSQL `text[]`.
 - **Consequences:** trivially simple, and `text[]` *is* queryable in PostgreSQL — but there is no quantity,
@@ -766,6 +781,7 @@ endpoint is anonymous and every recipe is world-writable. See
   4. An explicit `int Position` carries order, because a child table has none — `text[]` gave it for free.
   5. `InstructionStep` (`Position`, `Text`, `DurationMinutes int?`, `IngredientIds Guid[]`) is the shape
      `R-17` implements. Step references point at ingredient ids; integrity is a domain invariant, not an FK.
+     The wire format of those references is ADR-023.
   6. Existing `text[]` rows migrate **losslessly** as name-only ingredients. No parsing.
 - **Alternatives:** `Unit` as an open-set value object (no compile-time safety, leaves `R-21`'s parser with no
   vocabulary); a canonical base unit converted on write (needs per-ingredient density, which the no-catalogue
@@ -796,6 +812,25 @@ endpoint is anonymous and every recipe is world-writable. See
     exactly those properties' references in `allOf` so `nullable: true` can sit beside them. Scoped to the
     affected properties instead of enabling `UseAllOfToExtendReferenceSchemas()` document-wide, which would
     also rewrap every request-body `$ref` that needs no such override.
+
+### ADR-023 — Step references cross the wire as payload indexes
+
+- **Status:** accepted (2026-09-26). **Amends ADR-022 at the wire only.** Full detail:
+  [specs/011-structured-instructions.md](specs/011-structured-instructions.md).
+- **Context:** ADR-022 decided that `InstructionStep.IngredientIds` references ingredient ids. On `POST` the
+  ingredients have no ids yet — the server mints them — and `BUG-15`'s agreed fix forbids trusting a
+  client-supplied id on create, so a create payload had no way to express a reference.
+- **Decision:** the request body's `InstructionStepInputDto.IngredientIndexes` holds indexes into the same
+  request's `ingredients` array. `InstructionMappingExtensions.ToInstructionSteps` (Application) resolves them to
+  the ids `Ingredient.Create` has already minted, before the aggregate is built. Responses carry ids. The domain,
+  its invariant ("every id belongs to this recipe"), and the `uuid[]` column are exactly as ADR-022 decided.
+- **Alternatives:** ids in the input (impossible on create without client-minted ids); client-chosen string keys
+  (a new wire concept with its own uniqueness problem); resolving indexes inside `Recipe` (leaks a transport
+  concept into the aggregate). Weighed in spec 011 §9.
+- **Consequences:** input and output are asymmetric — clients read ids and write indexes, and every writer
+  (`R-21`, `R-24`) must translate. A form that rebuilds the ingredient list from scratch no longer breaks step
+  references, so the ingredient-id echo matters only for ingredient identity. Step ids are re-minted on every
+  `PUT`; anything that tracks "the current step" across an edit must key on position.
 
 ---
 

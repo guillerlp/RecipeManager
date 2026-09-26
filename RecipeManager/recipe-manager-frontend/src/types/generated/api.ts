@@ -161,7 +161,7 @@ export interface components {
             /** Format: int32 */
             servings: number;
             ingredients: components["schemas"]["IngredientInputDto"][];
-            instructions: string[];
+            instructions: components["schemas"]["InstructionStepInputDto"][];
         };
         IngredientDto: {
             /** Format: uuid */
@@ -181,6 +181,20 @@ export interface components {
             name: string;
             notes?: string | null;
         };
+        InstructionStepDto: {
+            /** Format: uuid */
+            id: string;
+            text: string;
+            /** Format: int32 */
+            durationMinutes?: number | null;
+            ingredientIds: string[];
+        };
+        InstructionStepInputDto: {
+            text: string;
+            /** Format: int32 */
+            durationMinutes?: number | null;
+            ingredientIndexes: number[];
+        };
         RecipeDto: {
             /** Format: uuid */
             id: string;
@@ -193,7 +207,7 @@ export interface components {
             /** Format: int32 */
             servings: number;
             ingredients: components["schemas"]["IngredientDto"][];
-            instructions: string[];
+            instructions: components["schemas"]["InstructionStepDto"][];
         };
         /** @enum {string} */
         Unit: "Gram" | "Kilogram" | "Ounce" | "Pound" | "Millilitre" | "Litre" | "Teaspoon" | "Tablespoon" | "Cup" | "FluidOunce" | "Piece" | "Clove" | "Pinch" | "Slice" | "Can" | "Bunch" | "Sprig";
@@ -207,7 +221,7 @@ export interface components {
             /** Format: int32 */
             servings: number;
             ingredients: components["schemas"]["IngredientInputDto"][];
-            instructions: string[];
+            instructions: components["schemas"]["InstructionStepInputDto"][];
         };
     };
     responses: never;

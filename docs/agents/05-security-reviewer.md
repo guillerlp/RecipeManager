@@ -41,8 +41,7 @@ Record these when asked "is this app secure?". They are facts about `main`, not 
 | `SEC-05` | **Exception messages are returned to the client.** `ErrorHandlerMiddleware` sets `ProblemDetails.Detail = exception.Message` and `Type = exception.GetType().Name` for **all** exceptions, including 500s — this can leak connection details, SQL fragments, and stack context. | `RecipeManager.Api/Middlewares/ErrorHandlerMiddleware.cs` | High |
 | `SEC-06` | **`DeleteRecipeHandler` echoes `ex.Message` into a `Result` error**, which reaches the client through `CreateProblemDetails`. | `RecipeManager.Application/Handlers/Recipes/DeleteRecipeHandler.cs` | Medium |
 | `SEC-07` | **Unbounded collection read.** `GET /api/recipes` returns the whole table with no pagination and caches it in one `IMemoryCache` entry — a resource-exhaustion path. | `GetAllRecipesHandler`, `CachedRecipeRepository` | Medium |
-| `SEC-08` | **No length limit at the database for `Title`, `Description`, `Instructions`.** Those columns are unbounded `text`/`text[]`; the 200/1000-char caps exist only in FluentValidation, so anything bypassing the API stores unbounded data. The ingredient columns are the exception — ADR-022 bounded them at `varchar(200)`. | `20260725173218_InitialCreate`, `RecipeManager.Infrastructure/Context/Configurations/RecipeConfiguration.cs` | Medium |
-| `SEC-09` | **No per-item length cap on instruction strings.** Instruction *strings* have no maximum length at all — only the list is capped at 50 items. The ingredient half closed with ADR-022: `Name` and `Notes` are capped at 200 in the validator *and* in the database. | `RecipeValidationRules.cs` | Medium |
+| `SEC-08` | **No length limit at the database for `Title` and `Description`.** Those columns are unbounded `text`; the 200/1000-char caps exist only in FluentValidation, so anything bypassing the API stores unbounded data. The ingredient and step columns are the exception — `varchar(200)` (ADR-022) and `varchar(2000)` (`R-17`). | `20260725173218_InitialCreate`, `RecipeManager.Infrastructure/Context/Configurations/RecipeConfiguration.cs` | Medium |
 | `BUG-15` | **A client-supplied ingredient id is never checked against the recipe being updated.** `PUT` preserves `IngredientInputDto.Id` verbatim; one colliding with another recipe's ingredient row is a duplicate-key **500**, which also makes `PUT` a weak existence oracle for a `Guid`. Harmless while every recipe is world-writable anyway (`SEC-02`), a genuine cross-tenant write attempt the moment `R-14` lands. | `Recipe.Update`, `RecipeManager.Application/Mappings/IngredientMappingExtensions.cs` | Medium |
 | `SEC-10` | **No security headers.** No HSTS (`UseHsts` is not called), no CSP, no `X-Content-Type-Options`. | `ApplicationInitializer.ConfigurePipeline` | Medium |
 | `SEC-11` | **No health check or readiness endpoint**, so failures are only observable through 500s. | `ServiceInitializer.cs` | Low |
@@ -81,7 +80,7 @@ Things that are **correct** today and must not regress:
       business rule, a domain invariant. Neither layer alone is sufficient — recall that `Title = ""` passes
       FluentValidation.
 - [ ] New string fields have an explicit `MaximumLength`. New collections have an explicit max count **and** a
-      per-item length cap (`SEC-09`).
+      per-item length cap, in the validator **and** the database (the lesson of the closed `SEC-09`).
 - [ ] Numeric fields have both a lower and an upper bound (the existing rules cap times at 1440 and servings at
       1000 — follow that).
 - [ ] Ids are `Guid` with a `{id:guid}` route constraint.

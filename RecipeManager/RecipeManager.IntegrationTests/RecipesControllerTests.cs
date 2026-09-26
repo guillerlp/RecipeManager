@@ -17,6 +17,11 @@ public class RecipesControllerTests : IntegrationTestBase
 
     private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
 
+    private static InstructionStep Step(string text) => InstructionStep.Create(text, null, []).Value;
+
+    private static InstructionStepInputDto StepInput(string text, params int[] ingredientIndexes) =>
+        new(text, null, [.. ingredientIndexes]);
+
     [SkippableFact]
     public async Task CreateRecipe_WithValidData_ShouldReturnCreatedStatusAndSaveToDatabase()
     {
@@ -34,7 +39,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(null, null, null, "Cocoa powder", null),
                 new IngredientInputDto(null, null, null, "Eggs", null)
             ],
-            Instructions: ["Mix dry ingredients", "Add wet ingredients", "Bake at 350°F for 30 minutes"]
+            Instructions: [StepInput("Mix dry ingredients"), StepInput("Add wet ingredients"), StepInput("Bake at 350°F for 30 minutes")]
         );
 
         // ==================== ACT ====================
@@ -53,7 +58,7 @@ public class RecipesControllerTests : IntegrationTestBase
         createdRecipe.CookingTime.Should().Be(command.CookingTime);
         createdRecipe.Servings.Should().Be(command.Servings);
         createdRecipe.Ingredients.Select(i => i.Name).Should().Equal("Flour", "Sugar", "Cocoa powder", "Eggs");
-        createdRecipe.Instructions.Should().BeEquivalentTo(command.Instructions);
+        createdRecipe.Instructions.Select(s => s.Text).Should().Equal(command.Instructions.Select(s => s.Text));
 
         Recipe? recipeInDb = await DbContext.Recipes.FindAsync(createdRecipe.Id);
         recipeInDb.Should().NotBeNull();
@@ -71,7 +76,7 @@ public class RecipesControllerTests : IntegrationTestBase
             CookingTime: 20,
             Servings: 4,
             Ingredients: [new IngredientInputDto(null, null, null, "Ingredient 1", null)],
-            Instructions: ["Step 1"]
+            Instructions: [StepInput("Step 1")]
         );
 
         // ==================== ACT ====================
@@ -95,7 +100,7 @@ public class RecipesControllerTests : IntegrationTestBase
             25,
             6,
             new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
-            new List<string> { "Step 1", "Step 2" }
+            new List<InstructionStep> { Step("Step 1"), Step("Step 2") }
         );
         Recipe existingRecipe = existingRecipeResult.Value;
 
@@ -138,7 +143,7 @@ public class RecipesControllerTests : IntegrationTestBase
             15,
             4,
             new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
-            new List<string> { "Step 1", "Step 2" });
+            new List<InstructionStep> { Step("Step 1"), Step("Step 2") });
 
         var recipe2Result = Recipe.Create(
             "title2",
@@ -147,7 +152,7 @@ public class RecipesControllerTests : IntegrationTestBase
             15,
             4,
             new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
-            new List<string> { "Step 1", "Step 2" });
+            new List<InstructionStep> { Step("Step 1"), Step("Step 2") });
 
         var recipe3Result = Recipe.Create(
             "title3",
@@ -156,7 +161,7 @@ public class RecipesControllerTests : IntegrationTestBase
             15,
             4,
             new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
-            new List<string> { "Step 1", "Step 2" });
+            new List<InstructionStep> { Step("Step 1"), Step("Step 2") });
 
         await SeedDatabase(recipe1Result.Value, recipe2Result.Value, recipe3Result.Value);
 
@@ -185,7 +190,7 @@ public class RecipesControllerTests : IntegrationTestBase
             15,
             4,
             new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
-            new List<string> { "Step 1", "Step 2" });
+            new List<InstructionStep> { Step("Step 1"), Step("Step 2") });
 
         await SeedDatabase(currentRecipeResult.Value);
 
@@ -199,7 +204,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(null, null, null, "Ingredient A1", null),
                 new IngredientInputDto(null, null, null, "Ingredient B1", null)
             ],
-            ["Step 1B", "Step 2B"]);
+            [StepInput("Step 1B"), StepInput("Step 2B")]);
 
         var currentId = currentRecipeResult.Value.Id;
 
@@ -220,7 +225,7 @@ public class RecipesControllerTests : IntegrationTestBase
         updatedRecipe.CookingTime.Should().Be(updateRecipeDto.CookingTime);
         updatedRecipe.Servings.Should().Be(updateRecipeDto.Servings);
         updatedRecipe.Ingredients.Select(i => i.Name).Should().Equal("Ingredient A1", "Ingredient B1");
-        updatedRecipe.Instructions.Should().BeEquivalentTo(updateRecipeDto.Instructions);
+        updatedRecipe.Instructions.Select(s => s.Text).Should().Equal(updateRecipeDto.Instructions.Select(s => s.Text));
     }
 
     [SkippableFact]
@@ -234,7 +239,7 @@ public class RecipesControllerTests : IntegrationTestBase
             15,
             4,
             new List<Ingredient> { Ing("Ingredient A"), Ing("Ingredient B") },
-            new List<string> { "Step 1", "Step 2" });
+            new List<InstructionStep> { Step("Step 1"), Step("Step 2") });
 
         await SeedDatabase(existingRecipe.Value);
 
@@ -266,6 +271,33 @@ public class RecipesControllerTests : IntegrationTestBase
     }
 
     [SkippableFact]
+    public async Task RecipeReadFromPostgres_ShouldRoundTripStepReferencesAndExposeNoMutableList()
+    {
+        // Two things at once, both only provable against a real database:
+        //  - spec 011 §6.1's risk — a uuid[] primitive collection inside an owned type, mapped through a
+        //    backing field of a different type, round-trips with its order intact;
+        //  - BUG-11 — EF materialises every collection without leaving a castable List<> behind. This also
+        //    pins the ingredient-half criterion spec 010 §11 left unpinned.
+        Ingredient flour = Ing("Flour");
+        Ingredient butter = Ing("Butter");
+        Recipe recipe = Recipe.Create("Cast me", "Description", 5, 5, 2, [flour, butter],
+            [InstructionStep.Create("Rub in", 5, [butter.Id, flour.Id]).Value, Step("Chill")]).Value;
+        await SeedDatabase(recipe);
+        DbContext.ChangeTracker.Clear();
+
+        Recipe reread = await DbContext.Recipes.SingleAsync(r => r.Id == recipe.Id);
+
+        reread.Instructions.Select(s => s.Text).Should().Equal("Rub in", "Chill");
+        reread.Instructions[0].IngredientIds.Should().Equal(butter.Id, flour.Id);
+        reread.Instructions[0].DurationMinutes.Should().Be(5);
+        reread.Instructions[1].IngredientIds.Should().BeEmpty();
+
+        reread.Ingredients.Should().NotBeAssignableTo<List<Ingredient>>();
+        reread.Instructions.Should().NotBeAssignableTo<List<InstructionStep>>();
+        reread.Instructions[0].IngredientIds.Should().NotBeAssignableTo<List<Guid>>();
+    }
+
+    [SkippableFact]
     public async Task CreateRecipe_WithStructuredIngredients_ShouldRoundTripEveryField()
     {
         var command = new CreateRecipeCommand(
@@ -280,7 +312,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(null, 3m, null, "Eggs", null),
                 new IngredientInputDto(null, null, null, "Salt to taste", null),
             ],
-            Instructions: ["Melt", "Whisk"]
+            Instructions: [StepInput("Melt"), StepInput("Whisk")]
         );
 
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
@@ -328,7 +360,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(null, 2m, Unit.Cup, "B", null),
                 new IngredientInputDto(null, 3m, Unit.Cup, "C", null),
             ],
-            ["Step"]);
+            [StepInput("Step")]);
 
         HttpResponseMessage createResponse = await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions);
         RecipeDto created = (await createResponse.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
@@ -343,7 +375,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(a.Id, a.Quantity, a.Unit, a.Name, a.Notes),
                 new IngredientInputDto(b.Id, b.Quantity, b.Unit, b.Name, b.Notes),
             ],
-            ["Step"]);
+            [StepInput("Step")]);
 
         HttpResponseMessage updateResponse = await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions);
         updateResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -359,7 +391,7 @@ public class RecipesControllerTests : IntegrationTestBase
     public async Task UpdateRecipe_WithANullId_ShouldMintANewIdAndKeepTheOthers()
     {
         var create = new CreateRecipeCommand("Add one", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, 1m, Unit.Cup, "Existing", null)], ["Step"]);
+            [new IngredientInputDto(null, 1m, Unit.Cup, "Existing", null)], [StepInput("Step")]);
 
         RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions))
             .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
@@ -370,7 +402,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(existingId, 1m, Unit.Cup, "Existing", null),
                 new IngredientInputDto(null, 2m, Unit.Cup, "Brand new", null),
             ],
-            ["Step"]);
+            [StepInput("Step")]);
 
         await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions);
 
@@ -382,13 +414,13 @@ public class RecipesControllerTests : IntegrationTestBase
     }
 
     [SkippableFact]
-    public async Task DeleteRecipe_ThroughTheApi_ShouldLeaveNoOrphanIngredientRowsForThatRecipe()
+    public async Task DeleteRecipe_ThroughTheApi_ShouldLeaveNoOrphanChildRowsForThatRecipe()
     {
         // This proves EF's in-memory cascade (owned collections are always loaded, so EF deletes their
         // rows itself), not the database's: it would still pass even with no ON DELETE CASCADE at all.
         // The database-level guarantee is exercised separately below, bypassing EF entirely.
         var create = new CreateRecipeCommand("Delete me", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], ["Step"]);
+            [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], [StepInput("Step")]);
 
         RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions))
             .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
@@ -404,6 +436,13 @@ public class RecipesControllerTests : IntegrationTestBase
             .SingleAsync();
 
         orphans.Should().Be(0);
+
+        int orphanSteps = await DbContext.Database
+            .SqlQuery<int>(
+                $"SELECT COUNT(*)::int AS \"Value\" FROM \"RecipeInstructionSteps\" WHERE \"RecipeId\" = {created.Id}")
+            .SingleAsync();
+
+        orphanSteps.Should().Be(0);
     }
 
     [SkippableFact]
@@ -413,7 +452,7 @@ public class RecipesControllerTests : IntegrationTestBase
         // entirely, so this is the test that actually exercises "RecipeIngredients"."RecipeId" ON DELETE
         // CASCADE rather than relying on application code to clean up.
         var create = new CreateRecipeCommand("Delete me via SQL", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], ["Step"]);
+            [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], [StepInput("Step")]);
 
         RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions))
             .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
@@ -430,6 +469,13 @@ public class RecipesControllerTests : IntegrationTestBase
             .SingleAsync();
 
         orphans.Should().Be(0);
+
+        int orphanSteps = await DbContext.Database
+            .SqlQuery<int>(
+                $"SELECT COUNT(*)::int AS \"Value\" FROM \"RecipeInstructionSteps\" WHERE \"RecipeId\" = {created.Id}")
+            .SingleAsync();
+
+        orphanSteps.Should().Be(0);
     }
 
     [SkippableTheory]
@@ -443,7 +489,7 @@ public class RecipesControllerTests : IntegrationTestBase
         string name)
     {
         var command = new CreateRecipeCommand("Bad ingredient", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, (decimal?)quantity, Enum.Parse<Unit>(unit), name, null)], ["Step"]);
+            [new IngredientInputDto(null, (decimal?)quantity, Enum.Parse<Unit>(unit), name, null)], [StepInput("Step")]);
 
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
@@ -456,7 +502,7 @@ public class RecipesControllerTests : IntegrationTestBase
     {
         // SEC-09, ingredient half: the cap is in FluentValidation *and* in the database.
         var command = new CreateRecipeCommand("Long name", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, 1m, Unit.Gram, new string('x', 201), null)], ["Step"]);
+            [new IngredientInputDto(null, 1m, Unit.Gram, new string('x', 201), null)], [StepInput("Step")]);
 
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
@@ -473,7 +519,7 @@ public class RecipesControllerTests : IntegrationTestBase
               "title": "Bad unit", "description": "Description",
               "preparationTime": 5, "cookingTime": 5, "servings": 2,
               "ingredients": [{ "id": null, "quantity": 1, "unit": "Furlong", "name": "Flour", "notes": null }],
-              "instructions": ["Step"]
+              "instructions": [{ "text": "Step", "durationMinutes": null, "ingredientIndexes": [] }]
             }
             """, System.Text.Encoding.UTF8, "application/json");
 
@@ -483,5 +529,167 @@ public class RecipesControllerTests : IntegrationTestBase
         // Without this, an unrelated binding failure earlier in the payload would also produce a bare
         // 400 and pass here for the wrong reason.
         (await response.Content.ReadAsStringAsync()).Should().ContainEquivalentOf("unit");
+    }
+
+    private async Task<RecipeDto> PostRecipe(CreateRecipeCommand command)
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        return (await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
+    }
+
+    private static CreateRecipeCommand FlourAndButter(params InstructionStepInputDto[] steps) =>
+        new("Shortcrust", "Description", 10, 20, 4,
+            [
+                new IngredientInputDto(null, 200m, Unit.Gram, "Flour", null),
+                new IngredientInputDto(null, 100m, Unit.Gram, "Butter", "cold"),
+            ],
+            [.. steps]);
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithStepReferences_ShouldResolveIndexesToIngredientIdsInOrder()
+    {
+        RecipeDto created = await PostRecipe(FlourAndButter(new InstructionStepInputDto("Rub in", 5, [1, 0])));
+
+        Guid flour = created.Ingredients[0].Id;
+        Guid butter = created.Ingredients[1].Id;
+        InstructionStepDto step = created.Instructions.Single();
+        step.Id.Should().NotBeEmpty();
+        step.Text.Should().Be("Rub in");
+        step.DurationMinutes.Should().Be(5);
+        step.IngredientIds.Should().Equal(butter, flour);
+
+        // Not a GET: AddAsync warms recipe_{id} with the very entity just saved, so a GET here would be served
+        // from memory and prove nothing about what PostgreSQL stored. Read through a cleared DbContext instead.
+        DbContext.ChangeTracker.Clear();
+        Recipe stored = await DbContext.Recipes.SingleAsync(r => r.Id == created.Id);
+        stored.Instructions.Single().IngredientIds.Should().Equal(butter, flour);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_ShouldPersistStepsInExactlyTheOrderGiven()
+    {
+        // TEST-03: Should().Equal is order-sensitive; BeEquivalentTo would pass on a shuffle. Asserted on the
+        // "Position" column itself, not through the API (whose first GET is cache-served after a POST) and not
+        // through Recipe.Instructions (whose getter sorts, and would hide a column holding the wrong values).
+        RecipeDto created = await PostRecipe(FlourAndButter(StepInput("A"), StepInput("B"), StepInput("C")));
+
+        List<string> texts = await DbContext.Database
+            .SqlQuery<string>($"""
+                SELECT s."Text" AS "Value" FROM "RecipeInstructionSteps" s
+                WHERE s."RecipeId" = {created.Id} ORDER BY s."Position"
+                """)
+            .ToListAsync();
+
+        texts.Should().Equal("A", "B", "C");
+    }
+
+    [SkippableFact]
+    public async Task UpdateRecipe_WhenIngredientsAreReordered_ShouldKeepTheStepPointingAtTheSameIngredient()
+    {
+        RecipeDto created = await PostRecipe(FlourAndButter(StepInput("Rub in", 1)));
+        IngredientDto flour = created.Ingredients[0];
+        IngredientDto butter = created.Ingredients[1];
+
+        // Butter moves to index 0, and the client updates the step's index to follow it.
+        var update = new UpdateRecipeDto("Shortcrust", "Description", 10, 20, 4,
+            [
+                new IngredientInputDto(butter.Id, butter.Quantity, butter.Unit, butter.Name, butter.Notes),
+                new IngredientInputDto(flour.Id, flour.Quantity, flour.Unit, flour.Name, flour.Notes),
+            ],
+            [StepInput("Rub in", 0)]);
+
+        (await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        RecipeDto reread = (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions))!;
+        reread.Instructions.Single().IngredientIds.Should().Equal(butter.Id);
+    }
+
+    [SkippableFact]
+    public async Task UpdateRecipe_WithoutEchoingIngredientIds_ShouldPointTheStepAtTheNewId()
+    {
+        // The form hazard spec 010 feared — rebuilding the ingredient list from scratch — cannot break a step
+        // reference any more: references are re-resolved from indexes on every write.
+        RecipeDto created = await PostRecipe(FlourAndButter(StepInput("Rub in", 1)));
+        Guid oldButter = created.Ingredients[1].Id;
+
+        var update = new UpdateRecipeDto("Shortcrust", "Description", 10, 20, 4,
+            [
+                new IngredientInputDto(null, 200m, Unit.Gram, "Flour", null),
+                new IngredientInputDto(null, 100m, Unit.Gram, "Butter", "cold"),
+            ],
+            [StepInput("Rub in", 1)]);
+
+        (await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions))
+            .StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        RecipeDto reread = (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{created.Id}", JsonOptions))!;
+        Guid newButter = reread.Ingredients[1].Id;
+        newButter.Should().NotBe(oldButter);
+        reread.Instructions.Single().IngredientIds.Should().Equal(newButter);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithAnOutOfRangeIngredientIndex_ShouldReturn422OnInstructions()
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(StepInput("Sift", 2)), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("instructions");
+        DbContext.Recipes.Should().BeEmpty();
+    }
+
+    [SkippableTheory]
+    [InlineData(new[] { -1 })]
+    [InlineData(new[] { 0, 0 })]
+    public async Task CreateRecipe_WithMalformedIngredientIndexes_ShouldReturn400(int[] indexes)
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(new InstructionStepInputDto("Sift", null, [.. indexes])), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithBlankStepText_ShouldReturn422OnInstructions()
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(StepInput("   ")), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("instructions");
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithAnOverlongStep_ShouldReturn400()
+    {
+        // SEC-09, instruction half: the cap is in FluentValidation and in varchar(2000).
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(StepInput(new string('x', 2001))), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithAZeroMinuteStep_ShouldReturn422_BecausePositiveIsADomainRule()
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(new InstructionStepInputDto("Rest", 0, [])), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("instructions");
+    }
+
+    [SkippableTheory]
+    [InlineData(-1)]
+    [InlineData(1440)]
+    public async Task CreateRecipe_WithAStepDurationOutOfBounds_ShouldReturn400(int duration)
+    {
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes",
+            FlourAndButter(new InstructionStepInputDto("Rest", duration, [])), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }

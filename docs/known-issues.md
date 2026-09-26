@@ -65,18 +65,16 @@ kind of negative test.
 | [SEC-06](#sec-06) | Medium | Security | `DeleteRecipeHandler` echoes `ex.Message` to the client |
 | [SEC-07](#sec-07) | Medium | Security | `GET /api/recipes` is unbounded and cached whole |
 | [SEC-08](#sec-08) | Medium | Security | No length limits in the database |
-| [SEC-09](#sec-09) | Medium | Security | No per-item length cap on instruction strings |
 | [SEC-10](#sec-10) | Medium | Security | No security headers, no HSTS |
 | [SEC-11](#sec-11) | Low | Ops | No health/readiness endpoint |
 | [SEC-12](#sec-12) | Low | Config | `.env.production` points at a placeholder host |
 | [BUG-07](#bug-07) | Low | API | `GET /api/recipes/{id}` missing the `:guid` route constraint |
 | [BUG-10](#bug-10) | Medium | Frontend | No recipe detail route, so cards are not clickable |
-| [BUG-11](#bug-11) | Low | Domain | `Instructions` loaded from the database is a mutable `List<string>` ([#8](https://github.com/guillerlp/RecipeManager/issues/8)) |
 | [BUG-12](#bug-12) | Low | Frontend | A paused recipe query renders "No recipes available" |
 | [BUG-13](#bug-13) | Low | Frontend | Whitespace-only search query shows a misleading "matching" heading |
 | [BUG-14](#bug-14) | Low | Caching | The cache still hands out shared entity instances; the write path no longer takes one |
 | [BUG-15](#bug-15) | Medium | API | A client-supplied ingredient id can trigger a duplicate-key 500 on create, on update, or within one payload |
-| [TEST-03](#test-03) | Medium | Tests | Instruction ordering never asserted |
+| [BUG-16](#bug-16) | Low | API | `"ingredients": [null]` reaches the handler and fails as a 500 instead of a 400 |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [INFRA-07](#infra-07) | Medium | CI/CD | CI runs on every PR but is not yet *required* to merge |
@@ -196,12 +194,14 @@ before the list screen does, not only when the list screen is opened.
 ### SEC-08
 **No length limits in the database — Medium**
 
-`Title` and `Description` are unbounded `text`, and `Instructions` is an unbounded `text[]`. The 200/1000-character
+`Title` and `Description` are unbounded `text`. The 200/1000-character
 caps exist **only** in FluentValidation, so anything writing outside the API — a future bulk import, a direct
 psql session, a second service — can store unbounded values.
 
 `"RecipeIngredients"."Name"` and `"Notes"` are the exception: ADR-022 bounded both at `varchar(200)` in the
-database as well as in the validator, which is what this entry asks for everywhere else.
+database as well as in the validator, which is what this entry asks for everywhere else. So is
+`"RecipeInstructionSteps"."Text"` (`varchar(2000)`, `R-17`, 2026-09-26), which replaced the unbounded
+`Instructions` `text[]` this entry used to list.
 
 **Fix.** Add `HasMaxLength` for `Title` and `Description` to `RecipeConfiguration` and generate a migration.
 
@@ -213,23 +213,6 @@ the file that is already there. `Title` and `Description` stayed out of
 migration risk from creating a new one, and mixing the two would have hidden it.
 
 **Owner:** `02-senior-csharp` · **Effort:** ~30 min
-
-### SEC-09
-**No per-item length cap on instruction strings — Medium**
-
-`RecipeValidationRules.ValidateInstructions` caps the instruction **list** at 50 items but never limits the
-length of each string. A single 10 MB instruction string passes validation.
-
-**Fix.** Add `.ForEach(item => item.MaximumLength(<n>))` to `ValidateInstructions`, and the matching database
-cap once `Instructions` stops being a `text[]`.
-
-**The ingredient half shipped 2026-09-24** (`R-10`, ADR-022,
-[spec 010](specs/010-structured-ingredients.md)): `ValidateIngredients` now delegates to
-`IngredientInputDtoValidator`, which caps `Name` and `Notes` at 200 characters — and, uniquely in this codebase
-so far, the same cap exists in the database. The **instruction half stays open** until `R-17`, which reshapes
-`Instructions` anyway and is the right place to add both caps at once. Delete this entry then.
-
-**Owner:** `02-senior-csharp` · **Effort:** ~15 min (validator only; the database cap comes with `R-17`)
 
 ### SEC-10
 **No security headers — Medium**
@@ -300,77 +283,6 @@ is 1.09:1 in both themes — and neither will `--rule` (1.29:1 light, 1.36:1 dar
 
 **Owner:** `03-senior-react` + `07-ux-ui`
 
-### BUG-11
-**`Recipe.Instructions` loaded from the database is a mutable `List<string>` behind `IReadOnlyList<string>` — Low**
-
-Tracked on GitHub as [#8](https://github.com/guillerlp/RecipeManager/issues/8). The issue covers ingredients as
-well; **that half closed on 2026-09-24** — see the update at the end of this entry. The issue stays open for the
-instruction half, so do not close it yet.
-
-`Recipe.Instructions` is an auto-property with a `private set`. `Recipe.Create` and `Recipe.Update` assign
-`ToList().AsReadOnly()`, which is genuinely read-only. EF Core, however, materializes a primitive collection as a
-`List<string>` and assigns it straight through the private setter, and `RecipeConfiguration` says nothing about
-it. So the same entity is protected when constructed and unprotected when read:
-
-```
-[construct] System.Collections.ObjectModel.ReadOnlyCollection`1[System.String]
-[read]      System.Collections.Generic.List`1[System.String]
-[cast]      castable to List<string>: True
-```
-
-Reproduced 2026-09-13 against local PostgreSQL on `main` @ `84226dc` (EF Core 10.0.12, Npgsql 10.0.3) with a
-throwaway probe that created, re-read, and deleted one recipe. That confirms the July finding in #8 still holds.
-
-**Consequences.**
-- `((List<string>)recipe.Instructions).Add(…)` compiles and bypasses the validation in `Recipe.Update`, which
-  breaks the rule that the domain owns every invariant (CLAUDE.md global rule 5). On a tracked entity the
-  change persists.
-- **The cache makes it worse (found while verifying #8, not stated in it).** Both repository reads use
-  `AsNoTracking()`, and `MemoryCacheService` stores that same instance. A mutated cached recipe therefore never
-  reaches the database. It is served to every later request until the entry expires. The safety argument in
-  [architecture.md → Caching](architecture.md#caching) relied on these collections being read-only.
-- The `02-senior-csharp` checklist item "assigned with `.ToList().AsReadOnly()`" covers the construction path
-  only. Following it does not prevent this defect.
-
-**Severity.** Low: nothing reachable over HTTP triggers it, since it needs a deliberate downcast in this repo's
-own code. It is recorded because it silently falsifies an encapsulation guarantee two documents relied on.
-
-**Fix (as proposed in #8).** Private backing fields, with the properties exposing a read-only view:
-
-```csharp
-private readonly List<string> _instructions = new();
-public IReadOnlyList<string> Instructions => _instructions.AsReadOnly();
-```
-
-EF is then pointed at the field (`UsePropertyAccessMode(PropertyAccessMode.Field)` in `RecipeConfiguration`,
-which now exists). The issue also sets two constraints. They are recorded here as its author's
-reasoning and were not re-verified for this entry:
-- no `ValueConverter` on these collections, which would likely collapse the native `text[]` mapping into a
-  serialized scalar;
-- no switch to `string[]`, because an array behind `IReadOnlyList<string>` is still castable and writable.
-
-**Verification must use real PostgreSQL.** The integration tests now run against one (ADR-017), so the
-regression test for this can finally be written there. Also check that a schema diff produces no migration,
-since the column should not change.
-
-**The ingredient half shipped 2026-09-24** (`R-10`, ADR-022). `Recipe.Ingredients` is now
-`IReadOnlyList<Ingredient>` over exactly the private backing field proposed above — independently the idiomatic
-EF pattern for an owned collection, so the fix cost nothing on top of a rewrite that was happening anyway — and
-`RecipeConfiguration` points EF at the field with `UsePropertyAccessMode(PropertyAccessMode.Field)`. The getter
-returns a fresh `.OrderBy(...).ToList().AsReadOnly()` on every access, so a downcast to `List<Ingredient>` fails
-and even a successful one would only mutate a throwaway. The "no migration should result" check did **not**
-apply to that half: `R-10` replaced the column deliberately.
-
-One caveat, recorded rather than glossed: [spec 010](specs/010-structured-ingredients.md) §11 lists "the cast
-fails" as an acceptance criterion, and **no test pins it**. The guarantee currently rests on reading the getter.
-Whoever writes the instruction-half fix should add that assertion for both collections at once.
-
-The **instruction half stays open** until `R-17`; delete this entry and close
-[#8](https://github.com/guillerlp/RecipeManager/issues/8) then — not before, since half of the issue is still
-live.
-
-**Owner:** `02-senior-csharp` (fix) · `01-architect` if the property-access-mode choice needs an ADR
-
 ### BUG-12
 **A paused recipe query renders "No recipes available" — Low**
 
@@ -417,13 +329,17 @@ touches the cache at all**: `UpdateRecipeHandler` loads through `IRecipeReposito
 cache write, with the reason stated in a comment on the method. A failed save now leaves the cache holding the
 *previously persisted* values, which is stale but not fictitious.
 
-**What is still open.** Handing out a shared mutable entity is still the design, and its safety now rests
-entirely on [BUG-11](#bug-11): a cached recipe's `Instructions` is a mutable `List<string>`, so anything that
-downcasts it corrupts every later reader. `Ingredients` is safe since ADR-022. Severity drops to Low for the
-same reason `BUG-11` is Low — nothing reachable over HTTP triggers it.
+**What is still open.** Handing out a shared entity is still the design. Its last concrete exposure — the former
+`BUG-11`, a cached recipe's `Instructions` materialised as a castable `List<string>` — **closed with `R-17`**
+(2026-09-26): `Ingredients`, `Instructions`, and every step's `IngredientIds` are now read-only copies of private
+backing fields. The in-memory side is pinned by unit tests; the materialised-from-PostgreSQL side by
+`RecipesControllerTests.RecipeReadFromPostgres_ShouldRoundTripStepReferencesAndExposeNoMutableList`, which needs
+Docker and had **not yet run on CI** when this was written — confirm it green there before relying on it. What remains
+is structural rather than a known hole: the entity's safety depends on every future member staying read-only,
+and nothing enforces that. Severity stays Low — nothing reachable over HTTP triggers it.
 
-**Fix.** Cache an immutable read model (`RecipeDto`) instead of the entity, which also removes the `BUG-11`
-exposure. Then tighten the detail assertion in
+**Fix.** Cache an immutable read model (`RecipeDto`) instead of the entity, which makes the guarantee
+structural instead of a property every entity member has to keep. Then tighten the detail assertion in
 `RecipeCacheTests.UpdateRecipe_AfterListAndDetailWereCached_ShouldReturnNewValuesFromBoth` so it detects a
 missing `recipe_{id}` invalidation — the entry previously noted that this was impossible because the cached
 object already held the new values. That is no longer true, so the assertion can now be written.
@@ -432,7 +348,13 @@ object already held the new values. That is no longer true, so the assertion can
 **A client-supplied ingredient id can trigger a duplicate-key 500 by three separate routes — Medium**
 
 Found 2026-09-24 while closing `R-10`. `IngredientInputDto.Id` exists so a client can echo back the ids the API
-gave it, keeping future step references (`R-17`) stable across an edit; a null means "this ingredient is new".
+gave it, keeping an ingredient's identity stable across an edit; a null means "this ingredient is new".
+
+**Updated 2026-09-26 (`R-17`, ADR-023).** Step references do not travel on this id: a request addresses
+ingredients by index into its own payload, and the server resolves indexes to the ids it has just minted or
+accepted. So the echo no longer carries step references, and a client that omits it gets correctly re-wired steps.
+**All three routes below still stand** — `R-17` neither fixed nor widened them (index resolution can only name
+an ingredient in the same payload, so it adds no cross-recipe route). Fixing this is the next PR after `R-17`.
 `Ingredient.Create` takes that id and uses it verbatim — `id ?? Guid.NewGuid()` — and nothing between the
 controller and `SaveChangesAsync` checks it. Three independent routes reach the same duplicate-key crash;
 an earlier version of this entry named only (b) and its stated fix would have left (a) and (c) open.
@@ -489,23 +411,28 @@ whoever picks this up, not something this entry should pre-decide.
 
 **Owner:** `02-senior-csharp` · `01-architect` if the error's `field` or kind is contested
 
+### BUG-16
+**A `null` element in `ingredients` is a 500, not a 400 — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-17`. JSON allows `"ingredients": [null]`. FluentValidation's
+child validator (`SetValidator` inside `ForEach`) skips null elements, and ASP.NET's implicit-required check for
+non-nullable reference types covers properties, not list elements — so nothing rejects the null before
+`IngredientMappingExtensions.ToIngredients` dereferences it. The `NullReferenceException` reaches
+`ErrorHandlerMiddleware` and the client gets a 500 for what is a malformed request.
+
+Present since `R-10`. `R-17` hit the identical flaw on `instructions` and fixed it there (`NotNull()` per item in
+`RecipeValidationRules.ValidateInstructions`, pinned by
+`CreateRecipeCommandValidatorTests.Validate_ANullInstructionStep_ShouldFailInsteadOfReachingTheHandler`); the
+ingredient side was left alone because it predates that change (CLAUDE.md rule 9).
+
+**Fix.** The same one line in `ValidateIngredients` — `.ForEach(item => item.NotNull().SetValidator(...))` — plus
+the matching validator test.
+
+**Owner:** `02-senior-csharp` · **Effort:** ~10 min
+
 ---
 
 ## Testing gaps
-
-### TEST-03
-**Instruction ordering never asserted — Medium**
-
-Instructions are an ordered `text[]` and order is semantically essential, but every assertion uses
-`BeEquivalentTo`, which is order-**insensitive**. A bug that reversed or shuffled steps would pass.
-
-**Fix.** Use `Should().Equal(...)` where order is the property under test.
-
-**Scope narrowed 2026-09-24.** This is now about **instructions only**. `R-10` applied the lesson prospectively
-to the collection it introduced: ingredient ordering is asserted with `Should().Equal(...)` in
-`RecipesControllerTests.UpdateRecipe_WhenReordered_ShouldKeepTheIdsAndTheNewOrder`,
-`StructureIngredientsMigrationTests`, and the `Recipe` unit tests. Close this entry with `R-17`, which reshapes
-the instructions and is exactly the change an order-insensitive assertion would let through.
 
 ### TEST-04
 **`Location` header never asserted — Low**

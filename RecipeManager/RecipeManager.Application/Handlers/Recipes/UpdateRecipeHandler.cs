@@ -29,8 +29,14 @@ public class UpdateRecipeHandler : ICommandHandler<UpdateRecipeCommand, Result>
         if (ingredients.IsFailed)
             return ingredients.ToResult();
 
+        // Steps are resolved against the ingredients just built, so they cannot be mapped until those succeed.
+        Result<List<InstructionStep>> instructions = request.Instructions.ToInstructionSteps(ingredients.Value);
+
+        if (instructions.IsFailed)
+            return instructions.ToResult();
+
         Result updateResult = recipeToUpdate.Update(request.Title, request.Description, request.PreparationTime,
-            request.CookingTime, request.Servings, ingredients.Value, request.Instructions);
+            request.CookingTime, request.Servings, ingredients.Value, instructions.Value);
 
         if (updateResult.IsFailed)
         {

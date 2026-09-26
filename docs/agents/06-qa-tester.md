@@ -134,13 +134,16 @@ Work from this list; tick what is covered, add tests for what is not.
 - Per-ingredient shape rules, each 400 from FluentValidation: `Name` of 201 characters, `Notes` of 201,
   `Quantity` outside 0–100000, and an unrecognised `Unit` (rejected at model binding, before any validator).
 - Exactly 50 items → valid; 51 → 400 from FluentValidation.
-- **Instruction order must round-trip.** Stored as `text[]`; a reordering bug is invisible unless asserted with
-  an order-sensitive comparison. Note `BeEquivalentTo` is order-**insensitive** — use `Should().Equal(...)`
-  when order is the thing under test. No existing test does this for instructions (`TEST-03`); every ingredient
-  ordering assertion already uses `Should().Equal(...)`.
+- **Order must round-trip — ingredients, steps, and each step's `IngredientIds`.** Child tables have no
+  inherent row order (an explicit `Position` carries it), so a reordering bug is invisible unless asserted with
+  an order-sensitive comparison. `BeEquivalentTo` is order-**insensitive** — use `Should().Equal(...)` when order
+  is the thing under test. Every ordering assertion in the suite does since `R-17` (the former `TEST-03`).
 - **Ingredient ids must survive a reorder.** A `PUT` that returns the same ids in a new order must read back in
-  that order with those ids, and a null id must mint a new one while the others keep theirs. This is what
-  `R-17`'s step references depend on.
+  that order with those ids, and a null id must mint a new one while the others keep theirs.
+- **Step references follow the ingredient, not the index.** Requests reference ingredients by index into the
+  same payload (ADR-023). Reorder the ingredients and update the index: the step must still point at the same
+  ingredient id. Omit the id echo: the step must point at the *new* id. An index past the end is 422 on
+  `instructions`; a negative or duplicate index is 400.
 - Duplicate ingredient names → currently allowed; no test asserts the intent either way.
 - Unicode and non-Latin text (`"Ají"`, `"350°F"`, CJK) — `350°F` already appears in one integration test.
   `text`, `text[]` and `varchar(200)` all handle it; worth an explicit test if internationalisation matters.

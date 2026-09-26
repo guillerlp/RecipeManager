@@ -52,11 +52,16 @@ public static class RecipeValidationRules
             .ForEach(item => item.SetValidator(new IngredientInputDtoValidator()));
     }
 
-    public static IRuleBuilderOptions<T, List<string>> ValidateInstructions<T>(
-        this IRuleBuilder<T, List<string>> ruleBuilder)
+    public static IRuleBuilderOptions<T, IEnumerable<InstructionStepInputDto>> ValidateInstructions<T>(
+        this IRuleBuilder<T, List<InstructionStepInputDto>> ruleBuilder)
     {
         return ruleBuilder
             .NotNull().WithMessage("Instructions list cannot be null")
-            .Must(list => list.Count <= 50).WithMessage("Cannot exceed 50 instruction steps");
+            .Must(list => list.Count <= 50).WithMessage("Cannot exceed 50 instruction steps")
+            // NotNull per item: a child validator skips null elements, so "instructions": [null] would
+            // otherwise reach the handler and fail as a 500 instead of a 400.
+            .ForEach(item => item
+                .NotNull().WithMessage("Instruction steps cannot be null")
+                .SetValidator(new InstructionStepInputDtoValidator()));
     }
 }

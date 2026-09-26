@@ -24,6 +24,8 @@ public class GetAllRecipesHandlerTests
 
     private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
 
+    private static InstructionStep Step(string text) => InstructionStep.Create(text, null, []).Value;
+
     #region Success Scenarios
 
     [Fact]
@@ -37,7 +39,7 @@ public class GetAllRecipesHandlerTests
             30,
             8,
             new List<Ingredient> { Ing("Flour"), Ing("Sugar") },
-            new List<string> { "Mix", "Bake" }
+            new List<InstructionStep> { Step("Mix"), Step("Bake") }
         );
 
         var recipe2Result = Recipe.Create(
@@ -47,7 +49,7 @@ public class GetAllRecipesHandlerTests
             15,
             4,
             new List<Ingredient> { Ing("Pasta"), Ing("Tomatoes") },
-            new List<string> { "Boil", "Mix" }
+            new List<InstructionStep> { Step("Boil"), Step("Mix") }
         );
 
         var recipe3Result = Recipe.Create(
@@ -57,7 +59,7 @@ public class GetAllRecipesHandlerTests
             0,
             2,
             new List<Ingredient> { Ing("Lettuce"), Ing("Tomatoes") },
-            new List<string> { "Chop", "Mix" }
+            new List<InstructionStep> { Step("Chop"), Step("Mix") }
         );
 
         var recipes = new List<Recipe>
@@ -97,7 +99,7 @@ public class GetAllRecipesHandlerTests
             20,
             2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         var recipes = new List<Recipe> { recipeResult.Value };
@@ -143,7 +145,7 @@ public class GetAllRecipesHandlerTests
     {
         // Arrange
         var ingredients = new List<Ingredient> { Ing("Ingredient1"), Ing("Ingredient2"), Ing("Ingredient3") };
-        var instructions = new List<string> { "Step1", "Step2", "Step3" };
+        var instructions = new List<InstructionStep> { Step("Step1"), Step("Step2"), Step("Step3") };
 
         var recipeResult = Recipe.Create(
             "Test Recipe",
@@ -174,7 +176,7 @@ public class GetAllRecipesHandlerTests
         dto.CookingTime.Should().Be(35);
         dto.Servings.Should().Be(6);
         dto.Ingredients.Select(i => i.Name).Should().Equal("Ingredient1", "Ingredient2", "Ingredient3");
-        dto.Instructions.Should().BeEquivalentTo(instructions);
+        dto.Instructions.Select(s => s.Text).Should().Equal(instructions.Select(s => s.Text));
     }
 
     [Fact]
@@ -229,7 +231,7 @@ public class GetAllRecipesHandlerTests
                 20,
                 2,
                 new List<Ingredient> { Ing($"Ingredient{i}") },
-                new List<string> { $"Step{i}" }
+                new List<InstructionStep> { Step($"Step{i}") }
             );
             recipes.Add(recipeResult.Value);
         }
@@ -251,13 +253,13 @@ public class GetAllRecipesHandlerTests
     {
         // Arrange
         var recipe1 = Recipe.Create("Salad", "No cooking", 10, 0, 2,
-            new List<Ingredient> { Ing("Lettuce") }, new List<string> { "Chop" }).Value;
+            new List<Ingredient> { Ing("Lettuce") }, new List<InstructionStep> { Step("Chop") }).Value;
 
         var recipe2 = Recipe.Create("Frozen Pizza", "No prep", 0, 15, 2,
-            new List<Ingredient> { Ing("Pizza") }, new List<string> { "Bake" }).Value;
+            new List<Ingredient> { Ing("Pizza") }, new List<InstructionStep> { Step("Bake") }).Value;
 
         var recipe3 = Recipe.Create("Cake", "Both times", 20, 30, 8,
-            new List<Ingredient> { Ing("Flour") }, new List<string> { "Mix", "Bake" }).Value;
+            new List<Ingredient> { Ing("Flour") }, new List<InstructionStep> { Step("Mix"), Step("Bake") }).Value;
 
         var recipes = new List<Recipe> { recipe1, recipe2, recipe3 };
 

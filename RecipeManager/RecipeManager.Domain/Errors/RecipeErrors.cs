@@ -42,8 +42,14 @@ public static class RecipeErrors
     public static Error InstructionsRequired() =>
         Validation("At least one instruction step is required").Field("instructions");
 
-    public static Error InstructionEmpty() =>
-        Validation("Instruction steps cannot be empty").Field("instructions");
+    public static Error InstructionTextRequired() =>
+        Validation("Instruction step text is required").Field("instructions");
+
+    public static Error InstructionDurationNotPositive() =>
+        Validation("Instruction step duration must be greater than 0 when provided").Field("instructions");
+
+    public static Error InstructionIngredientNotFound() =>
+        Validation("An instruction step references an ingredient that is not in this recipe").Field("instructions");
 
     private static Error Validation(string message) => new DomainError(message, ErrorKind.Validation);
 

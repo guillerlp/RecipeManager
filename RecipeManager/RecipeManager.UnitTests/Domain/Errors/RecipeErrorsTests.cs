@@ -34,11 +34,13 @@ public class RecipeErrorsTests
             RecipeErrors.IngredientQuantityNotPositive(),
             RecipeErrors.IngredientUnitWithoutQuantity(),
             RecipeErrors.InstructionsRequired(),
-            RecipeErrors.InstructionEmpty()
+            RecipeErrors.InstructionTextRequired(),
+            RecipeErrors.InstructionDurationNotPositive(),
+            RecipeErrors.InstructionIngredientNotFound()
         ];
 
         // Assert
-        errors.Should().HaveCount(12).And.AllSatisfy(error =>
+        errors.Should().HaveCount(14).And.AllSatisfy(error =>
             error.Should().BeOfType<DomainError>()
                 .Which.Kind.Should().Be(ErrorKind.Validation));
     }
@@ -61,6 +63,25 @@ public class RecipeErrorsTests
                 .Which.Kind.Should().Be(ErrorKind.Validation);
             error.Metadata.Should().ContainKey("field");
             error.Metadata["field"].Should().Be("ingredients");
+        });
+    }
+
+    [Fact]
+    public void InstructionStepErrors_ShouldBeValidationDomainErrorsWithInstructionsField()
+    {
+        Error[] errors =
+        [
+            RecipeErrors.InstructionTextRequired(),
+            RecipeErrors.InstructionDurationNotPositive(),
+            RecipeErrors.InstructionIngredientNotFound()
+        ];
+
+        errors.Should().HaveCount(3).And.AllSatisfy(error =>
+        {
+            error.Should().BeOfType<DomainError>()
+                .Which.Kind.Should().Be(ErrorKind.Validation);
+            error.Metadata.Should().ContainKey("field");
+            error.Metadata["field"].Should().Be("instructions");
         });
     }
 }

@@ -8,5 +8,5 @@ public record RecipeDto(
     int CookingTime,
     int Servings,
     List<IngredientDto> Ingredients,
-    List<string> Instructions
+    List<InstructionStepDto> Instructions
 );

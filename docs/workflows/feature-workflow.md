@@ -118,7 +118,7 @@ Only if persistence changes.
   interaction (`Received(1)`).
 - Integration test in `RecipesControllerTests` for each new endpoint: status code + database state, with
   `DbContext.ChangeTracker.Clear()` before asserting after a write.
-- Run and compare against the current numbers — 137 passing (104 unit + 33 integration, of which 4 need no
+- Run and compare against the current numbers — 191 tests (142 unit + 49 integration, of which 4 need no
   Docker), 0 build warnings (warnings are errors, ADR-010):
   ```bash
   dotnet test RecipeManager.sln

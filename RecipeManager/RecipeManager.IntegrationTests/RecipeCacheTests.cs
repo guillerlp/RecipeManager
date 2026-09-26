@@ -58,7 +58,7 @@ public class RecipeCacheTests : IntegrationTestBase
             CookingTime: 20,
             Servings: 2,
             Ingredients: [new IngredientInputDto(null, null, null, "Ingredient A", null)],
-            Instructions: ["Step 1"]);
+            Instructions: [StepInput("Step 1")]);
 
         // ==================== ACT ====================
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
@@ -90,7 +90,7 @@ public class RecipeCacheTests : IntegrationTestBase
             25,
             3,
             [new IngredientInputDto(null, null, null, "Ingredient B", null)],
-            ["Step 1B"]);
+            [StepInput("Step 1B")]);
 
         // ==================== ACT ====================
         HttpResponseMessage response = await Client.PutAsJsonAsync($"/api/recipes/{recipe.Id}", update, JsonOptions);
@@ -134,9 +134,14 @@ public class RecipeCacheTests : IntegrationTestBase
     }
 
     private static Recipe CreateRecipe(string title) =>
-        Recipe.Create(title, "Description", 10, 15, 4, [Ing("Ingredient A")], ["Step 1"]).Value;
+        Recipe.Create(title, "Description", 10, 15, 4, [Ing("Ingredient A")], [Step("Step 1")]).Value;
 
     private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
+
+    private static InstructionStep Step(string text) => InstructionStep.Create(text, null, []).Value;
+
+    private static InstructionStepInputDto StepInput(string text, params int[] ingredientIndexes) =>
+        new(text, null, [.. ingredientIndexes]);
 
     private async Task<List<RecipeDto>> GetAllRecipes()
     {
