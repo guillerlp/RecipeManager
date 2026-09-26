@@ -73,7 +73,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Application/       Commands, Queries, Handlers, Dispatchers, DTOs, Validators, Mappings
     RecipeManager.Infrastructure/    AppDbContext + Context/Configurations, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
     RecipeManager.Api/               RecipesController, Startup/*, Startup/Swagger/*, Middlewares/*, Extensions/*
-    RecipeManager.UnitTests/         141 tests — xUnit + NSubstitute (Domain + Application handlers/mappings/validators + Api result mapping)
+    RecipeManager.UnitTests/         142 tests — xUnit + NSubstitute (Domain + Application handlers/mappings/validators + Api result mapping)
     RecipeManager.IntegrationTests/  49 tests — xUnit + WebApplicationFactory (45 real PostgreSQL via Testcontainers, 4 OpenAPI contract needing no Docker)
     recipe-manager-frontend/         React 19 + Vite SPA — 77 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
@@ -118,8 +118,8 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **0 warnings** and the suite has **190 tests** (141 unit + 49 integration) after
-`R-17` — counted **locally** on 2026-09-26 without Docker (145 passed, 45 skipped); the last CI-confirmed run
+Current state: build succeeds with **0 warnings** and the suite has **191 tests** (142 unit + 49 integration) after
+`R-17` — counted **locally** on 2026-09-26 without Docker (146 passed, 45 skipped); the last CI-confirmed run
 was **36051107842** at 138 (104 + 34), so re-confirm on CI. Of the 49 integration tests, **45 need Docker** and are
 reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need no Docker, but on a
 Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip — and that machine can have

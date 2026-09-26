@@ -126,14 +126,14 @@ dotnet dev-certs https --trust
 dotnet test RecipeManager.sln
 ```
 
-190 tests: 141 unit and 49 integration. Of the 49, **45** start a real PostgreSQL container (ADR-017) and the
-other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 190 passed;
-**without it** you get 145 passed and 45 skipped, each naming Docker as the reason. The skip is deliberate — see
+191 tests: 142 unit and 49 integration. Of the 49, **45** start a real PostgreSQL container (ADR-017) and the
+other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 191 passed;
+**without it** you get 146 passed and 45 skipped, each naming Docker as the reason. The skip is deliberate — see
 the troubleshooting entry below — but it means a green run is only as complete as its skip count says. On a
 Windows machine with Smart App Control enabled, the 4 contract tests do not skip — they **fail** with
 `FileLoadException`, the same way the 45 integration tests do; see the Smart App Control entry below.
 
-These counts were taken **locally** on 2026-09-26, on a machine with no Docker: 145 passed and 45 skipped. The
+These counts were taken **locally** on 2026-09-26, on a machine with no Docker: 146 passed and 45 skipped. The
 "with Docker" figure is the expected total, **not yet confirmed by CI**; the last CI-confirmed run
 (36051107842) predates `R-17` and counted 138. Treat CI as the authority once it has run.
 
@@ -224,7 +224,7 @@ on `ubuntu-latest`:
 
 | Job | Steps |
 | --- | --- |
-| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (190) → upload `openapi-received` snapshot on failure → vulnerable-package check |
+| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (191) → upload `openapi-received` snapshot on failure → vulnerable-package check |
 | **Frontend** | `npm ci` → contract types are current (`npm run gen:api` + diff check) → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` → `npm audit --audit-level=high --prefix ../contracts` |
 
 Two things are worth knowing before a run surprises you:
