@@ -217,7 +217,7 @@ which contradicts ADR-022. Options **As written / Metric / Imperial**.
 ### 8.6 Accessibility
 
 - **Stepper:** `role="group"` with `aria-label="Servings"`; buttons named "Decrease servings" / "Increase
-  servings", `disabled` at 1 and 999; the value is an `<output aria-live="polite">`.
+  servings", `aria-disabled` (not `disabled`) at 1 and 999, so the focused button keeps focus when it reaches a bound; the value is an `<output aria-live="polite">`.
 - **Tabs:** the WAI-ARIA tabs pattern — `role="tablist"`/`tab`/`tabpanel`, `aria-selected`, `aria-controls`,
   `aria-labelledby`, roving `tabindex` (only the selected tab is in the tab order), Left/Right wrap, Home/End,
   and the inactive panel carries `hidden`. Hand-written ARIA, because HTML has no native tabs element; that is
@@ -274,8 +274,10 @@ Existing tokens only. No new colour token.
 
 ## 10. Security impact
 
-- **New user-controlled input:** the `:id` route parameter. It is interpolated into the request path; a
-  malformed value is now a 404 at routing (`BUG-07`). No other input.
+- **New user-controlled input:** the `:id` route parameter. React Router decodes it, so `..%2FRecipes` arrives as
+  `../Recipes`; the SPA therefore sends only an id that is a GUID (`isRecipeId` in `hooks/useRecipe.ts`) and
+  encodes it in `recipeService`. Anything else renders "Recipe not found" without a request. A malformed id that
+  reaches the API directly is a 404 at routing (`BUG-07`). No other input.
 - **User content rendered in the SPA:** yes — title, description, ingredient names and notes, step text. All are
   rendered as React text children, which React escapes. No `dangerouslySetInnerHTML`.
 - **File upload:** no

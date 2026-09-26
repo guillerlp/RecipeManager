@@ -20,13 +20,22 @@ describe('ServingsStepper', () => {
     expect(onChange.mock.calls).toEqual([[3], [5]]);
   });
 
-  it('cannot go below 1', () => {
-    render(<ServingsStepper value={1} onChange={() => undefined} />);
-    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Decrease servings' }).disabled).toBe(true);
-  });
+  // aria-disabled, not the disabled attribute: disabling the button that has focus (pressing − down to 1)
+  // would drop keyboard focus to <body> and a screen-reader user would lose their place.
+  it.each<[string, number]>([
+    ['Decrease servings', 1],
+    ['Increase servings', 999],
+  ])('%s is unavailable at %i but keeps focus', (name, value) => {
+    const onChange = vi.fn();
+    render(<ServingsStepper value={value} onChange={onChange} />);
+    const button = screen.getByRole<HTMLButtonElement>('button', { name });
+    button.focus();
 
-  it('cannot go above 999, the servings validator bound', () => {
-    render(<ServingsStepper value={999} onChange={() => undefined} />);
-    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Increase servings' }).disabled).toBe(true);
+    fireEvent.click(button);
+
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    expect(button.disabled).toBe(false);
+    expect(document.activeElement).toBe(button);
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

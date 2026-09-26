@@ -12,7 +12,7 @@ running `npm test` directly (10 files, 77 passed). Backend test numbers re-measu
 77 frontend tests across 10 files. They were measured on CI rather than locally on purpose: Docker is not
 installed on the author's machine, and Smart App Control intermittently blocks freshly-built assemblies there
 (`INFRA-06`), so CI is the only place these numbers can be taken honestly. The frontend row re-measured locally on
-2026-09-26 after `R-18` PR 1 (17 files, 136 passed).
+2026-09-26 after `R-18` PR 1 (17 files, 139 passed).
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -35,7 +35,7 @@ installed on the author's machine, and Smart App Control intermittently blocks f
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
 | Frontend lint | `npm run lint` | **0 problems** — Oxlint, 159 rules: the 71 type-aware ones on `src/**` plus the `correctness` category everywhere (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
-| Frontend tests | `npm test` | 136 pass — Vitest + RTL under jsdom (ADR-018). Vitest does not process CSS, so an invalid CSS Module passes here and fails only `npm run build` |
+| Frontend tests | `npm test` | 139 pass — Vitest + RTL under jsdom (ADR-018). Vitest does not process CSS, so an invalid CSS Module passes here and fails only `npm run build` |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets

@@ -134,7 +134,7 @@ npm test
 - [ ] `npm run lint` must report **0 problems**. Read the output — a linter that cannot start also exits
       non-zero, and for eleven months nobody noticed the difference (`BUILD-03`, now closed).
       `npx oxlint --format=default` prints how many files and rules ran — a quick check that it checked anything.
-- [ ] `npm test` (Vitest + RTL under jsdom, ADR-018) must pass — currently **136**. It does not
+- [ ] `npm test` (Vitest + RTL under jsdom, ADR-018) must pass — currently **139**. It does not
       process CSS, so run `npm run build` after any stylesheet change: an invalid CSS Module (e.g. `composes:`
       on a non-single-class selector) passes every test and blanks the app.
 - [ ] No `console.log` added — `no-console` is an **error** in `.oxlintrc.json` (`warn`/`error` are allowed).

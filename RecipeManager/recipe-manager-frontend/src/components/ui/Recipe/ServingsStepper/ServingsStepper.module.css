@@ -23,11 +23,11 @@
   transition: background-color var(--transition-fast);
 }
 
-.button:hover:not(:disabled) {
+.button:hover:not([aria-disabled="true"]) {
   background: var(--paper-2);
 }
 
-.button:disabled {
+.button[aria-disabled="true"] {
   color: var(--ink-3);
   cursor: not-allowed;
 }

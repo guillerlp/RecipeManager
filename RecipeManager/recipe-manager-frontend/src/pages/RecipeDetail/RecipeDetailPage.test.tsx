@@ -37,10 +37,10 @@ const recipe: Recipe = {
 const notFound = () =>
   new AxiosError('Not Found', 'ERR_BAD_REQUEST', undefined, undefined, { status: 404 } as AxiosResponse);
 
-const renderPage = () =>
+const renderPage = (path = `/recipes/${ID}`) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={[`/recipes/${ID}`]}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/recipes/:id" element={<RecipeDetailPage />} />
         </Routes>
@@ -89,6 +89,18 @@ describe('RecipeDetailPage states', () => {
     expect(screen.getByRole('link', { name: '← All recipes' }).getAttribute('href')).toBe('/recipes');
     expect(getRecipeById).toHaveBeenCalledTimes(1);
   });
+
+  // React Router decodes %2F in a param, so without a guard this id would make the SPA request
+  // /api/Recipes/../Recipes — the list endpoint — and crash rendering an array as one recipe.
+  it.each(['/recipes/..%2FRecipes', '/recipes/%2E', '/recipes/not-a-guid'])(
+    'treats %s as not found without calling the API',
+    path => {
+      renderPage(path);
+
+      expect(screen.getByRole('heading', { name: 'Recipe not found' })).toBeTruthy();
+      expect(getRecipeById).not.toHaveBeenCalled();
+    },
+  );
 
   it('shows a generic error and recovers through Retry', async () => {
     vi.useFakeTimers();

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { IngredientRail, MethodSteps, RecipeDetailTabs } from '@/components';
 import { PrintIcon } from '@/components/ui/Icon';
-import { useMediaQuery, useRecipe } from '@/hooks';
+import { isRecipeId, useMediaQuery, useRecipe } from '@/hooks';
 import { isNotFoundError } from '@/services';
 import type { Recipe } from '@/types';
 import { formatDuration, getISODuration } from '@/utils/duration';
@@ -90,9 +90,20 @@ const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
   );
 };
 
+const RecipeNotFound = () => (
+  <section className={styles.message}>
+    <h1 className={styles.messageTitle}>Recipe not found</h1>
+    <p className={styles.description}>It may have been deleted, or the link is wrong.</p>
+    <BackLink />
+  </section>
+);
+
 export const RecipeDetailPage: React.FC = () => {
   const { id = '' } = useParams();
   const query = useRecipe(id);
+
+  // Checked before isPending: a disabled query stays pending forever and would read "Loading recipe…".
+  if (!isRecipeId(id)) return <RecipeNotFound />;
 
   if (query.isPending) {
     return (
@@ -105,15 +116,7 @@ export const RecipeDetailPage: React.FC = () => {
   }
 
   if (query.isError) {
-    if (isNotFoundError(query.error)) {
-      return (
-        <section className={styles.message}>
-          <h1 className={styles.messageTitle}>Recipe not found</h1>
-          <p className={styles.description}>It may have been deleted, or the link is wrong.</p>
-          <BackLink />
-        </section>
-      );
-    }
+    if (isNotFoundError(query.error)) return <RecipeNotFound />;
     // The error's own message is deliberately not rendered: it can carry server detail (SEC-05).
     return (
       <section className={styles.message}>

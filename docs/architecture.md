@@ -850,7 +850,8 @@ endpoint is anonymous and every recipe is world-writable. See
      significant digits below 1 so a small positive amount never shows as 0.
   4. At or below 768px the two columns become WAI-ARIA tabs, rendered only there (`useMediaQuery` over
      `useSyncExternalStore`), so desktop has no inert `tabpanel`s.
-  5. `GET /api/recipes/{id}` gains `:guid` (`BUG-07`), so any id the screen cannot load is a 404.
+  5. `GET /api/recipes/{id}` gains `:guid` (`BUG-07`), and the SPA sends only a GUID id, URL-encoded: React
+     Router decodes `%2F` in a param, so an unchecked `..%2FRecipes` would reach `/api/Recipes` instead.
 - **Alternatives:** a `<button>` row (loses native link behaviour, announced as an action); servings in the URL or
   in context (not asked for / nothing else reads it); tabs hidden by CSS on desktop; a radio group for the switch;
   decimals everywhere. Each is weighed in spec 012 §9.

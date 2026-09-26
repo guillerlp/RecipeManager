@@ -20,17 +20,17 @@ export const recipeService = {
     api.get<Recipe[]>('/Recipes'),
 
   getRecipeById: (id: string): Promise<AxiosResponse<Recipe>> =>
-    api.get<Recipe>(`/Recipes/${id}`),
+    api.get<Recipe>(`/Recipes/${encodeURIComponent(id)}`),
 
   createRecipe: (recipe: CreateRecipeRequest): Promise<AxiosResponse<Recipe>> =>
     api.post<Recipe>('/Recipes', recipe),
 
   // PUT returns 204 No Content, so there is no body to type.
   updateRecipe: (id: string, recipe: UpdateRecipeRequest): Promise<AxiosResponse<void>> =>
-    api.put<void>(`/Recipes/${id}`, recipe),
+    api.put<void>(`/Recipes/${encodeURIComponent(id)}`, recipe),
 
   deleteRecipe: (id: string): Promise<AxiosResponse<void>> =>
-    api.delete<void>(`/Recipes/${id}`),
+    api.delete<void>(`/Recipes/${encodeURIComponent(id)}`),
 };
 
 // Kept here so hooks and components can tell a missing recipe from a failure without importing axios.
