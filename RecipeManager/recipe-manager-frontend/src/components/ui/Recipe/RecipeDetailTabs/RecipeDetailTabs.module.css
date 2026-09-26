@@ -1,0 +1,52 @@
+/* RecipeDetailTabs.module.css — the visual language of ThemeControl's segmented track. */
+
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.list {
+  display: flex;
+  padding: 3px;
+  background: var(--paper-2);
+  border-radius: var(--radius-pill);
+}
+
+.tab {
+  composes: ui from '@/styles/typography.module.css';
+  flex: 1;
+  padding: 0.625rem var(--spacing-md);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background var(--transition-normal), color var(--transition-normal);
+}
+
+/* Qualified for the same composes/specificity reason as ThemeControl's .segment.selected.
+   --field-border is the 3:1 boundary on --paper-2 in both themes. */
+.tab.selected {
+  background: var(--paper);
+  color: var(--ink);
+  border-color: var(--field-border);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab {
+    transition: none;
+  }
+}
+
+/* Print shows both sections in full, one after the other. */
+@media print {
+  .list {
+    display: none;
+  }
+
+  .panel[hidden] {
+    display: block;
+  }
+}
