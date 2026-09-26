@@ -52,11 +52,12 @@ public static class RecipeValidationRules
             .ForEach(item => item.SetValidator(new IngredientInputDtoValidator()));
     }
 
-    public static IRuleBuilderOptions<T, List<string>> ValidateInstructions<T>(
-        this IRuleBuilder<T, List<string>> ruleBuilder)
+    public static IRuleBuilderOptions<T, IEnumerable<InstructionStepInputDto>> ValidateInstructions<T>(
+        this IRuleBuilder<T, List<InstructionStepInputDto>> ruleBuilder)
     {
         return ruleBuilder
             .NotNull().WithMessage("Instructions list cannot be null")
-            .Must(list => list.Count <= 50).WithMessage("Cannot exceed 50 instruction steps");
+            .Must(list => list.Count <= 50).WithMessage("Cannot exceed 50 instruction steps")
+            .ForEach(item => item.SetValidator(new InstructionStepInputDtoValidator()));
     }
 }

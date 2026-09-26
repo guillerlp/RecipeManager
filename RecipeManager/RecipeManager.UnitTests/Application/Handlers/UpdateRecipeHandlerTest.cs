@@ -22,6 +22,11 @@ public class UpdateRecipeHandlerTest
 
     private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
 
+    private static InstructionStep Step(string text) => InstructionStep.Create(text, null, []).Value;
+
+    private static InstructionStepInputDto StepInput(string text, params int[] ingredientIndexes) =>
+        new(text, null, [.. ingredientIndexes]);
+
     #region Success Scenarios
 
     [Fact]
@@ -36,7 +41,7 @@ public class UpdateRecipeHandlerTest
             20,
             2,
             [Ing("Flour")],
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         Recipe? existingRecipe = existingRecipeResult.Value;
@@ -55,7 +60,7 @@ public class UpdateRecipeHandlerTest
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Butter", null)
             ],
-            new List<string> { "Cream", "Mix" }
+            [StepInput("Cream"), StepInput("Mix")]
         );
 
         // Act
@@ -102,7 +107,7 @@ public class UpdateRecipeHandlerTest
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Butter", null)
             ],
-            new List<string> { "Cream", "Mix" }
+            [StepInput("Cream"), StepInput("Mix")]
         );
 
         // Act
@@ -130,7 +135,7 @@ public class UpdateRecipeHandlerTest
             20,
             2,
             [Ing("Flour")],
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
@@ -147,7 +152,7 @@ public class UpdateRecipeHandlerTest
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Butter", null)
             ],
-            new List<string> { "Cream", "Mix" }
+            [StepInput("Cream"), StepInput("Mix")]
         );
 
         // Act
@@ -175,7 +180,7 @@ public class UpdateRecipeHandlerTest
             20,
             2,
             [Ing("Flour")],
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
@@ -189,7 +194,7 @@ public class UpdateRecipeHandlerTest
             25,
             4,
             new List<IngredientInputDto>(), // Invalid: empty ingredients
-            new List<string> { "Cream", "Mix" }
+            [StepInput("Cream"), StepInput("Mix")]
         );
 
         // Act
@@ -212,7 +217,7 @@ public class UpdateRecipeHandlerTest
             20,
             2,
             [Ing("Flour")],
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
@@ -226,7 +231,7 @@ public class UpdateRecipeHandlerTest
             25,
             4,
             [new IngredientInputDto(null, null, Unit.Gram, "Sugar", null)],
-            new List<string> { "Cream", "Mix" }
+            [StepInput("Cream"), StepInput("Mix")]
         );
 
         // Act
@@ -256,7 +261,7 @@ public class UpdateRecipeHandlerTest
             20,
             2,
             [Ing("Flour")],
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         Recipe? existingRecipe = existingRecipeResult.Value;
@@ -275,7 +280,7 @@ public class UpdateRecipeHandlerTest
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Butter", null)
             ],
-            new List<string> { "Cream", "Mix" }
+            [StepInput("Cream"), StepInput("Mix")]
         );
 
         // Act
@@ -304,7 +309,7 @@ public class UpdateRecipeHandlerTest
             20,
             2,
             [Ing("Flour")],
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>())
@@ -321,7 +326,7 @@ public class UpdateRecipeHandlerTest
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Butter", null)
             ],
-            new List<string> { "Cream", "Mix" }
+            [StepInput("Cream"), StepInput("Mix")]
         );
 
         // Act

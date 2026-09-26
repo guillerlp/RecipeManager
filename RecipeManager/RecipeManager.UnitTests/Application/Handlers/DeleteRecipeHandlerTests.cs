@@ -23,6 +23,8 @@ public class DeleteRecipeHandlerTests
 
     private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
 
+    private static InstructionStep Step(string text) => InstructionStep.Create(text, null, []).Value;
+
     #region Success Scenarios
 
     [Fact]
@@ -37,7 +39,7 @@ public class DeleteRecipeHandlerTests
             20,
             2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
         var existingRecipe = existingRecipeResult.Value;
 
@@ -71,7 +73,7 @@ public class DeleteRecipeHandlerTests
             20,
             2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
@@ -171,7 +173,7 @@ public class DeleteRecipeHandlerTests
             20,
             2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
@@ -207,7 +209,7 @@ public class DeleteRecipeHandlerTests
             20,
             2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())

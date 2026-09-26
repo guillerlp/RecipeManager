@@ -26,6 +26,8 @@ public class GetRecipeByIdHandlerTests
 
     private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
 
+    private static InstructionStep Step(string text) => InstructionStep.Create(text, null, []).Value;
+
     #region Success Scenarios
 
     [Fact]
@@ -40,7 +42,7 @@ public class GetRecipeByIdHandlerTests
             30,
             8,
             new List<Ingredient> { Ing("Flour"), Ing("Sugar"), Ing("Cocoa") },
-            new List<string> { "Mix", "Bake" }
+            new List<InstructionStep> { Step("Mix"), Step("Bake") }
         );
         var existingRecipe = existingRecipeResult.Value;
 
@@ -62,7 +64,7 @@ public class GetRecipeByIdHandlerTests
         result.Value.CookingTime.Should().Be(existingRecipe.CookingTime);
         result.Value.Servings.Should().Be(existingRecipe.Servings);
         result.Value.Ingredients.Select(i => i.Name).Should().Equal("Flour", "Sugar", "Cocoa");
-        result.Value.Instructions.Should().BeEquivalentTo(existingRecipe.Instructions);
+        result.Value.Instructions.Select(s => s.Id).Should().Equal(existingRecipe.Instructions.Select(s => s.Id));
 
         await _recipeRepository.Received(1).GetByIdAsync(recipeId, Arg.Any<CancellationToken>());
     }
@@ -79,7 +81,7 @@ public class GetRecipeByIdHandlerTests
             20,
             2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())
@@ -100,7 +102,7 @@ public class GetRecipeByIdHandlerTests
         // Arrange
         var recipeId = Guid.NewGuid();
         var ingredients = new List<Ingredient> { Ing("Flour"), Ing("Sugar"), Ing("Eggs"), Ing("Butter") };
-        var instructions = new List<string> { "Mix dry ingredients", "Add wet ingredients", "Bake" };
+        var instructions = new List<InstructionStep> { Step("Mix dry ingredients"), Step("Add wet ingredients"), Step("Bake") };
 
         var existingRecipeResult = Recipe.Create(
             "Complex Recipe",
@@ -125,7 +127,7 @@ public class GetRecipeByIdHandlerTests
         result.Value.Ingredients.Should().HaveCount(4);
         result.Value.Instructions.Should().HaveCount(3);
         result.Value.Ingredients.Select(i => i.Name).Should().Equal("Flour", "Sugar", "Eggs", "Butter");
-        result.Value.Instructions.Should().BeEquivalentTo(instructions);
+        result.Value.Instructions.Select(s => s.Text).Should().Equal(instructions.Select(s => s.Text));
     }
 
     #endregion
@@ -210,7 +212,7 @@ public class GetRecipeByIdHandlerTests
             20,
             2,
             new List<Ingredient> { Ing("Flour") },
-            new List<string> { "Mix" }
+            new List<InstructionStep> { Step("Mix") }
         );
 
         _recipeRepository.GetByIdAsync(recipeId, Arg.Any<CancellationToken>())

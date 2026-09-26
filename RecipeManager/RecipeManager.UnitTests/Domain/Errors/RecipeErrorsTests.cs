@@ -34,11 +34,13 @@ public class RecipeErrorsTests
             RecipeErrors.IngredientQuantityNotPositive(),
             RecipeErrors.IngredientUnitWithoutQuantity(),
             RecipeErrors.InstructionsRequired(),
-            RecipeErrors.InstructionEmpty()
+            RecipeErrors.InstructionTextRequired(),
+            RecipeErrors.InstructionDurationNotPositive(),
+            RecipeErrors.InstructionIngredientNotFound()
         ];
 
         // Assert
-        errors.Should().HaveCount(12).And.AllSatisfy(error =>
+        errors.Should().HaveCount(14).And.AllSatisfy(error =>
             error.Should().BeOfType<DomainError>()
                 .Which.Kind.Should().Be(ErrorKind.Validation));
     }

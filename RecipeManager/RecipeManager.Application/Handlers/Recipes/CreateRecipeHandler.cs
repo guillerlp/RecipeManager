@@ -24,8 +24,14 @@ public class CreateRecipeHandler : ICommandHandler<CreateRecipeCommand, Result<R
         if (ingredients.IsFailed)
             return Result.Fail<RecipeDto>(ingredients.Errors);
 
+        // Steps are resolved against the ingredients just built, so they cannot be mapped until those succeed.
+        Result<List<InstructionStep>> instructions = request.Instructions.ToInstructionSteps(ingredients.Value);
+
+        if (instructions.IsFailed)
+            return Result.Fail<RecipeDto>(instructions.Errors);
+
         Result<Recipe> recipe = Recipe.Create(request.Title, request.Description, request.PreparationTime,
-            request.CookingTime, request.Servings, ingredients.Value, request.Instructions);
+            request.CookingTime, request.Servings, ingredients.Value, instructions.Value);
 
         if (recipe.IsFailed)
             return Result.Fail<RecipeDto>(recipe.Errors);

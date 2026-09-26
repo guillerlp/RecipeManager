@@ -11,4 +11,4 @@ public record CreateRecipeCommand(
     int CookingTime,
     int Servings,
     List<IngredientInputDto> Ingredients,
-    List<string> Instructions) : ICommand<Result<RecipeDto>>;
+    List<InstructionStepInputDto> Instructions) : ICommand<Result<RecipeDto>>;
