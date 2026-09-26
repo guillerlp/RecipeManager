@@ -10,3 +10,5 @@ export type CreateRecipeRequest = Schemas['CreateRecipeCommand'];
 export type UpdateRecipeRequest = Schemas['UpdateRecipeDto'];
 export type Ingredient = Schemas['IngredientDto'];
 export type IngredientInput = Schemas['IngredientInputDto'];
+export type InstructionStep = Schemas['InstructionStepDto'];
+export type InstructionStepInput = Schemas['InstructionStepInputDto'];
