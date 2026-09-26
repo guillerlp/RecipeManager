@@ -75,14 +75,18 @@ build config.
 There is **no form in the codebase today** and no form library installed. When building the recipe form:
 
 - [ ] `Ingredients` is a dynamic ordered list of **objects** since ADR-022 — `IngredientInput`
-      (`{ id, quantity, unit, name, notes }`) on the way in, `Ingredient` on the way out. `Instructions` is
-      still a list of strings (`text[]` server-side) until `R-17`. Both need add / remove / reorder per row, and
-      each row must have a stable `key` that is **not** the array index if reordering is supported — for
-      ingredients that key is the server's `id`.
-- [ ] **Echo each ingredient's `id` back on update.** A form that rebuilds the list from scratch mints new ids
-      for unchanged rows and breaks `R-17`'s step references, and nothing in the type system prevents it. A
-      `null` id means "this one is new". Never invent an id: nothing server-side checks that it belongs to this
-      recipe, and a collision with another recipe's row is a 500 (`BUG-15`).
+      (`{ id, quantity, unit, name, notes }`) on the way in, `Ingredient` on the way out. `Instructions` is a
+      list of objects too since `R-17` — `InstructionStepInput` (`{ text, durationMinutes, ingredientIndexes }`)
+      in, `InstructionStep` (`{ id, text, durationMinutes, ingredientIds }`) out. Both need add / remove /
+      reorder per row, and each row must have a stable `key` that is **not** the array index if reordering is
+      supported — the server's `id` for existing rows.
+- [ ] **Step references go out as indexes and come back as ids** (ADR-023). At submit time, translate each
+      step's selected ingredient ids into indexes into the **exact** `ingredients` array in the same request.
+      `number[]` vs `string[]` stops a direct copy, but nothing stops an index computed against a stale array —
+      test the translation after a reorder.
+- [ ] **Echo each ingredient's `id` back on update** so ingredients keep their identity; step references no
+      longer depend on it. A `null` id means "this one is new". Never invent an id: nothing server-side checks
+      that it belongs to this recipe, and a collision with another recipe's row is a 500 (`BUG-15`).
 - [ ] Mirror the server rules so the user sees them before the round-trip, but treat the server as the source of
       truth: title ≤ 200 chars, description ≤ 1000, prep/cook each 0–1439 minutes, servings 1–999, at most 50
       ingredients and 50 instructions, no blank rows, and **not both times zero**. Per ingredient: `name` ≤ 200

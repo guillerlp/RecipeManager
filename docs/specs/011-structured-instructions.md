@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `011` |
-| **Status** | approved (2026-09-26) |
+| **Status** | implemented 2026-09-26 — unit and contract tests green locally; every integration test written but **not yet run** (no Docker on the implementing machine), so §11 stays unticked until CI runs them |
 | **Author** | `00-leader` + `01-architect` |
 | **Created** | `2026-09-26` |
 | **Branch** | `feat/structured-instructions` — spec and implementation ship in one PR |
@@ -27,21 +27,21 @@ recipe's ingredients by id, as ADR-022 decided.
 
 ## 3. In scope
 
-- [ ] `InstructionStep` owned entity — `Position`, `Text`, `DurationMinutes`, `IngredientIds` — with a `Create`
+- [x] `InstructionStep` owned entity — `Position`, `Text`, `DurationMinutes`, `IngredientIds` — with a `Create`
       factory returning `Result<InstructionStep>`
-- [ ] `Recipe.Instructions` becomes `IReadOnlyList<InstructionStep>` over a private backing field
-- [ ] New domain invariants and their `RecipeErrors` factories; `InstructionEmpty()` replaced
-- [ ] `InstructionStepInputDtoValidator` with per-item caps, closing the validator half of `SEC-09`
-- [ ] A second `OwnsMany` in `RecipeConfiguration` into `"RecipeInstructionSteps"`, with `varchar(2000)` on
+- [x] `Recipe.Instructions` becomes `IReadOnlyList<InstructionStep>` over a private backing field
+- [x] New domain invariants and their `RecipeErrors` factories; `InstructionEmpty()` replaced
+- [x] `InstructionStepInputDtoValidator` with per-item caps, closing the validator half of `SEC-09`
+- [x] A second `OwnsMany` in `RecipeConfiguration` into `"RecipeInstructionSteps"`, with `varchar(2000)` on
       `Text`, closing the database half of `SEC-09`
-- [ ] Migration `StructureInstructions` with a pre-flight length guard and a lossless backfill from `text[]`
-- [ ] `InstructionMappingExtensions.ToInstructionSteps`, resolving payload indexes to ingredient ids
-- [ ] `RecipeDto`, `CreateRecipeCommand`, `UpdateRecipeDto`, `UpdateRecipeCommand` carry `InstructionStepDto` /
+- [x] Migration `StructureInstructions` with a pre-flight length guard and a lossless backfill from `text[]`
+- [x] `InstructionMappingExtensions.ToInstructionSteps`, resolving payload indexes to ingredient ids
+- [x] `RecipeDto`, `CreateRecipeCommand`, `UpdateRecipeDto`, `UpdateRecipeCommand` carry `InstructionStepDto` /
       `InstructionStepInputDto`
-- [ ] Regenerated OpenAPI snapshot and TypeScript contract, plus two new aliases in `recipe.ts`
-- [ ] A regression test proving no collection on a materialised `Recipe` is castable to `List<>` (`BUG-11`, both
+- [x] Regenerated OpenAPI snapshot and TypeScript contract, plus two new aliases in `recipe.ts`
+- [x] A regression test proving no collection on a materialised `Recipe` is castable to `List<>` (`BUG-11`, both
       halves, and the unpinned acceptance criterion from spec 010 §11)
-- [ ] ADR-023 recording that step references cross the wire as payload indexes
+- [x] ADR-023 recording that step references cross the wire as payload indexes
 
 ## 4. Out of scope
 
@@ -155,6 +155,12 @@ field whose type (`List<Guid>`) differs from the property type (`IReadOnlyList<G
 `R-10` did not exercise. The first backend task is therefore a failing integration test that round-trips it
 through PostgreSQL. If EF rejects the mapping, the fallback is to configure the field explicitly with `HasField`
 — an implementation adjustment, not a design change — and it is reported either way.
+
+> **Implementation note, 2026-09-26.** The risk above did not materialise: EF Core 10.0.12 accepted
+> `PrimitiveCollection` over the `readonly List<Guid> _ingredientIds` field with no `HasField` and no
+> fallback, and the scaffolded column types matched this table exactly. The scaffold did put `DropColumn`
+> **first**, which would have destroyed the `text[]` before the backfill read it; the committed migration moves
+> it last, as §6.2 prescribes. Not a design change, so no correction block.
 
 ### 6.2 Existing rows
 

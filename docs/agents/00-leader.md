@@ -43,11 +43,11 @@ forgotten in this codebase.
 
 - **Ownership is implied.** Anything phrased as "my recipes", "private", "share", "user" — there is **no `User`
   entity and no auth at all**. Ask who owns a recipe before anyone writes code. (`R-14`, deploy gate.)
-- **Instructions need structure.** Per-step timing, per-step ingredient references, or cooking mode all break
-  against `IReadOnlyList<string>`. The shape is **decided** (ADR-022) and unbuilt (`R-17`) — ask whether this
-  request should pull that work forward, or wait. Never approve a string-parsing workaround. Ingredients went
-  through exactly this and shipped on 2026-09-24, so quantities, units, scaling, shopping lists, and
-  "find recipes with X" are no longer blocked by the model.
+- **Instructions are structured.** Steps carry text, an optional duration, and references to the recipe's
+  ingredients (`R-17`, shipped 2026-09-26), so per-step timing and "for this step" lists are no longer blocked
+  by the model — nor are quantities, units, scaling, shopping lists, and "find recipes with X" (ADR-022).
+  Grouping ("For the sauce:") and per-step images are **not** modelled: a request for either is a domain change
+  for `01-architect`. Never approve a string-parsing workaround for them.
 - **Images are involved.** There is no image field on `RecipeDto` and no upload endpoint, but
   `recipe-manager-frontend/src/types/recipe.ts` has an unused `image?: string`. Ask what the source of truth should be.
 - **Scale or listing behaviour.** `GET /api/recipes` returns the entire table, unpaginated, cached in one

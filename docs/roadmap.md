@@ -74,44 +74,30 @@ removed `SEC-08`'s architecture blocker by introducing `OnModelCreating` and the
 the domain looks like now is described as current state in [domain-model.md](domain-model.md). **Every item that
 waited on it is now unblocked** — the whole of Phase 3 was gated on this one.
 
+`R-17` (structured instructions) shipped 2026-09-26 as **ADR-023**
+([spec 011](specs/011-structured-instructions.md)), implementing the `InstructionStep` shape ADR-022 had fixed.
+It closed `BUG-11` (with GitHub [#8](https://github.com/guillerlp/RecipeManager/issues/8)), `SEC-09`, and
+`TEST-03`, and removed the last `text[]` from the schema. ADR-023 is the one thing ADR-022 did not foresee: a
+create request has no ingredient ids to reference, so requests address ingredients **by index into the same
+payload** and responses carry ids. `R-23` is now waiting only on `R-22`.
+
 Build order. Each item names what it waits on, so a later item can move up if its dependencies are met:
 
 | Order | Item | Waits on |
 | --- | --- | --- |
 | ~~1~~ | ~~`R-10` Structured ingredients~~ — **shipped 2026-09-24**, ADR-022 | — |
-| 2 | `R-17` Structured instructions — shape decided in ADR-022, so **unblocked** | ~~`R-10` ADR~~ |
+| ~~2~~ | ~~`R-17` Structured instructions~~ — **shipped 2026-09-26**, ADR-023 | — |
 | 3 | `R-18` Recipe detail screen | ~~`R-10`~~ — none |
 | 4 | `R-19` Draft recipes | ~~`R-10`~~ — none |
 | 5 | `R-20` Tags | — |
-| 6 | `R-21` Add/edit form | ~~`R-10`~~, `R-17`, `R-19`, `R-20` |
+| 6 | `R-21` Add/edit form | ~~`R-10`~~, ~~`R-17`~~, `R-19`, `R-20` |
 | 7 | `R-22` Cook log | — |
-| 8 | `R-23` Cooking mode | `R-17`, `R-22` |
-| 9 | `R-24` Export and import | `SEC-08`, `SEC-09` |
+| 8 | `R-23` Cooking mode | ~~`R-17`~~, `R-22` |
+| 9 | `R-24` Export and import | `SEC-08`, ~~`SEC-09`~~ |
 
 `R-11`, `R-12`, `R-13`, and `R-14` keep their IDs and are unordered relative to the list above; each notes what
 the design asks of it. `R-13` is worth doing early, since every screen above is easier to check against realistic
 data.
-
-### R-17
-**Structured instructions** · `02-senior-csharp` → full stack · ~1–2 days · **shape decided in ADR-022**
-
-`Instructions` becomes an ordered list of steps. ADR-022 fixes the shape: `InstructionStep` with `Position`,
-`Text`, `DurationMinutes int?`, and `IngredientIds Guid[]`. Those references are what cooking mode's "For this
-step" and "Already used" lists are built from, and they point at ingredient ids — which is why ADR-022 made
-`Ingredient` an entity rather than a pure value object. Referential integrity is a domain invariant, not a
-foreign key. Fix `TEST-03` (step order never asserted) before or with this: reshaping the steps is exactly the
-change an order-insensitive assertion would let through. `BUG-11` and `SEC-09` each close their instruction
-half here; the ingredient half closed with ADR-022 on 2026-09-24. Closing `BUG-11` also means closing GitHub
-[#8](https://github.com/guillerlp/RecipeManager/issues/8), deliberately left open for this half.
-
-The shape is **still** what ADR-022 accepted — re-checked 2026-09-24 against the shipped code, which changed
-nothing about it. What it inherits from the ingredient work, and should copy rather than re-derive: an
-`Entity`-derived owned type needs `ValueGeneratedNever()` on its `Guid` key, `OwnsMany` into a child table with
-an explicit `Position`, a private backing field plus `PropertyAccessMode.Field`, per-item `HasMaxLength` in
-`RecipeConfiguration` as well as in the validator (which is what finally closes `SEC-09`), and a write path that
-loads through `GetByIdForUpdateAsync` so EF's change tracker computes the inserts and deletes. Both consequences
-appended to ADR-022 on 2026-09-24 apply again. `RecipeConfiguration` already exists, so there is no architecture
-sign-off to obtain this time.
 
 ### R-18
 **Recipe detail screen** · `07-ux-ui` → `03-senior-react` · ~1 day
@@ -140,8 +126,9 @@ only, and relaxing the aggregate to require only a title.
 **Tags** · `01-architect` → full stack · ~1 day
 
 Freeform labels ("roast", "breakfast", "feeds a table") on a recipe, shown in the list and on the detail
-screen, and edited in the form. Removes known limitation #6. Decide the storage (`text[]`, as `Instructions`
-still is, or an owned child table as `Ingredients` now is) and normalisation (case, whitespace, duplicates) in
+screen, and edited in the form. Removes known limitation #6. Decide the storage (a `text[]` primitive
+collection, as `InstructionStep.IngredientIds` is a `uuid[]`, or an owned child table as `Ingredients` and
+`Instructions` now are) and normalisation (case, whitespace, duplicates) in
 the ADR. ADR-022's reasoning transfers: a `text[]` is cheaper and keeps order for free, a child table is what
 makes "every recipe tagged *roast*" an indexable SQL query rather than a client-side scan. Comes before `R-21`
 so the form is built once.
@@ -155,10 +142,12 @@ and produces an `IngredientInputDto`; the server never parses free text. Its rul
 §9 and ADR-022 — against the `Unit` enum that now exists. Adds the SPA's first mutation hooks (the `['recipes']`
 invalidation pattern in the feature workflow) and gives `/recipes/new` a real screen in place of the `R-16` 404
 fallback. The existing checklist in [agents/07-ux-ui.md](agents/07-ux-ui.md) still applies: keyboard reorder,
-visible limits, cross-field errors, and 400/422 mapping. Two things the form must not get wrong: it has to echo
-back each ingredient's `id` rather than rebuilding the list from scratch, or `R-17`'s step references break with
-nothing in the type system to stop it; and it must not invent ids, because nothing server-side validates that
-one belongs to the recipe (`BUG-15`). "Draft saved" in the design depends on `R-19`. The photo field depends on
+visible limits, cross-field errors, and 400/422 mapping. Three things the form must not get wrong. **Step
+references are sent as indexes, read as ids** (ADR-023): at submit time, translate each step's selected
+ingredient ids into indexes into the exact `ingredients` array being sent in that request. `number[]` against
+`string[]` stops a direct copy, but nothing stops an index computed against a stale array. It should echo each
+ingredient's `id` so ingredients keep their identity, though step references no longer depend on it. And it must
+not invent ids, because nothing server-side validates that one belongs to the recipe (`BUG-15`). "Draft saved" in the design depends on `R-19`. The photo field depends on
 `R-12`.
 
 ### R-22
@@ -183,8 +172,10 @@ since it is not a theme.
 **Export and import** · `01-architect` + `05-security-reviewer` (both required) → full stack · ~1–2 days
 
 Export the whole catalogue as JSON, and import it back. Import is a bulk write from a user-supplied file, so
-the database-level length limits (`SEC-08`, `SEC-09`) must exist first. Otherwise one crafted file stores
-values no API request could. It also needs a size cap, schema versioning of the export format, and a
+the database-level length limits (`SEC-08`; `SEC-09` closed with `R-17`) must exist first. Otherwise one
+crafted file stores values no API request could. It must also go **through the aggregate** rather than bulk SQL:
+step-to-ingredient references are a `uuid[]` with no foreign key, so only `Recipe.ValidateProperties` stops a
+step pointing at an ingredient that does not exist (ADR-022/023). It also needs a size cap, schema versioning of the export format, and a
 duplicate policy (skip, replace, or copy). "Print the whole catalogue" in the design is a print stylesheet
 and belongs with `R-18`, not here.
 
@@ -242,7 +233,7 @@ definition of ready-to-deploy. Re-read this list before the first deployment.
 | Rate limiting on write endpoints | `SEC-04` |
 | Exception messages no longer returned to clients | `SEC-05`, `SEC-06` |
 | Security headers and HSTS enabled | `SEC-10` |
-| Length limits enforced at the database, not only in FluentValidation | `SEC-08`, `SEC-09` |
+| Length limits enforced at the database, not only in FluentValidation — ingredients and steps done; `Title`/`Description` remain | `SEC-08` (`SEC-09` closed 2026-09-26) |
 | `GET /api/recipes` paginated | `SEC-07`, `R-11` |
 | Health/readiness endpoint | `SEC-11` |
 | CI green on every PR — **workflow shipped**; still to make the checks *required* to merge | `INFRA-07` (was `INFRA-01`, `R-04`) |
