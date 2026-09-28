@@ -73,6 +73,13 @@ describe('formatAmount', () => {
     expect(formatAmount(1.5, 'Cup')).toEqual({ visible: '1½ cups', spoken: '1½ cups' });
   });
 
+  it('chooses singular or plural from the number it shows, not the unrounded value (BUG-17)', () => {
+    expect(formatAmount(1.05, 'Cup')).toEqual({ visible: '1 cup', spoken: '1 cup' });
+    expect(formatAmount(1.02, 'Kilogram')).toEqual({ visible: '1 kg', spoken: '1 kilogram' });
+    expect(formatAmount(0.97, 'Cup')).toEqual({ visible: '1 cup', spoken: '1 cup' });
+    expect(formatAmount(1.2, 'Cup')).toEqual({ visible: '1¼ cups', spoken: '1¼ cups' });
+  });
+
   it('renders a bare number when there is no unit', () => {
     expect(formatAmount(2, null)).toEqual({ visible: '2', spoken: '2' });
   });

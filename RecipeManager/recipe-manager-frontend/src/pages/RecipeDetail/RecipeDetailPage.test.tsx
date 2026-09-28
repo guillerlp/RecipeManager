@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { AxiosError, type AxiosResponse } from 'axios';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { UnitsProvider } from '@/contexts';
 import { recipeService } from '@/services';
 import type { Recipe } from '@/types';
 import { RecipeDetailPage } from './RecipeDetailPage';
@@ -40,11 +41,13 @@ const notFound = () =>
 const renderPage = (path = `/recipes/${ID}`) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/recipes/:id" element={<RecipeDetailPage />} />
-        </Routes>
-      </MemoryRouter>
+      <UnitsProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/recipes/:id" element={<RecipeDetailPage />} />
+          </Routes>
+        </MemoryRouter>
+      </UnitsProvider>
     </QueryClientProvider>,
   );
 
@@ -56,6 +59,7 @@ const pretendMobile = () => {
 
 beforeEach(() => {
   getRecipeById.mockReset();
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -182,5 +186,12 @@ describe('RecipeDetailPage populated', () => {
 
     expect(print).toHaveBeenCalledTimes(1);
     print.mockRestore();
+  });
+
+  it('shows quantities in the unit system chosen in Settings', async () => {
+    localStorage.setItem('units', 'imperial');
+    renderPage();
+
+    expect(await screen.findByText('3.5 lb')).toBeTruthy();
   });
 });

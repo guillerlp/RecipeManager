@@ -852,12 +852,19 @@ endpoint is anonymous and every recipe is world-writable. See
      `useSyncExternalStore`), so desktop has no inert `tabpanel`s.
   5. `GET /api/recipes/{id}` gains `:guid` (`BUG-07`), and the SPA sends only a GUID id, URL-encoded: React
      Router decodes `%2F` in a param, so an unchecked `..%2FRecipes` would reach `/api/Recipes` instead.
+  6. *(PR 2)* Quantities convert **on display only** to the chosen system — As written / Metric / Imperial,
+     default As written, so nothing converts until asked. The pipeline is scale → convert → format, so the
+     larger-unit thresholds (1000 g or ml, 1 lb, ¼ cup) apply to the scaled amount. Spoons and counts never
+     convert; cups and fluid ounces are US customary. The preference is a `UnitsProvider` context persisted to
+     `localStorage` (the `ThemeProvider` pattern), and `ThemeControl` became the generic `SegmentedControl`.
 - **Alternatives:** a `<button>` row (loses native link behaviour, announced as an action); servings in the URL or
   in context (not asked for / nothing else reads it); tabs hidden by CSS on desktop; a radio group for the switch;
-  decimals everywhere. Each is weighed in spec 012 §9.
+  decimals everywhere; Metric/Imperial only with Metric as the default, which would convert every imperial
+  recipe unasked. Each is weighed in spec 012 §9.
 - **Consequences:** the row is always a link, so a future multi-select mode needs another element; the tabs are
   the first hand-written ARIA widget, guarded only by keyboard tests; print depends on overriding the shell's
-  fixed-height scroll container and forcing light tokens in `@media print`.
+  fixed-height scroll container and forcing light tokens in `@media print`; US customary cups read wrong to a
+  UK or Australian cook, and a converted amount is rounded for display, so it is never exact.
 
 ---
 

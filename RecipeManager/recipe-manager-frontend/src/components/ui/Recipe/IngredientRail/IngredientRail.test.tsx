@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
-import type { Ingredient } from '@/types';
+import type { Ingredient, UnitSystem } from '@/types';
 import { IngredientRail } from './IngredientRail';
 
 let nextId = 0;
@@ -22,9 +22,9 @@ const ingredients: Ingredient[] = [
 ];
 
 // Owns the state the way RecipeDetailPage will, so the stepper actually drives the amounts.
-const Harness = () => {
+const Harness = ({ unitSystem = 'asWritten', items = ingredients }: { unitSystem?: UnitSystem; items?: Ingredient[] }) => {
   const [servings, setServings] = useState(4);
-  return <IngredientRail ingredients={ingredients} writtenServings={4} servings={servings} onServingsChange={setServings} />;
+  return <IngredientRail ingredients={items} writtenServings={4} servings={servings} onServingsChange={setServings} unitSystem={unitSystem} />;
 };
 
 const rowTexts = () => screen.getAllByRole('listitem').map(item => item.textContent);
@@ -64,5 +64,26 @@ describe('IngredientRail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Decrease servings' }));
 
     expect(rowTexts()).toEqual(before);
+  });
+
+  it('converts after scaling, so stepping servings can cross into the larger unit', () => {
+    render(<Harness unitSystem="imperial" items={[ingredient({ quantity: 400, unit: 'Gram', name: 'potatoes' })]} />);
+    expect(screen.getByText('14 oz')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Increase servings' }));
+
+    expect(screen.getByText('1.1 lb')).toBeTruthy();
+  });
+
+  it('says so in the note when anything was converted, and only then', () => {
+    const { unmount } = render(<Harness unitSystem="metric" />);
+    expect(screen.getByText('Scaled for 4. Change the number and every quantity follows.')).toBeTruthy();
+    unmount();
+
+    render(<Harness unitSystem="imperial" />);
+    expect(screen.getByText('3.5 lb')).toBeTruthy();
+    expect(screen.getByText(
+      "Scaled for 4. Change the number and every quantity follows. Converted from the recipe's own units.",
+    )).toBeTruthy();
   });
 });

@@ -1,10 +1,27 @@
 // src/pages/Profile/ProfilePage.tsx
 
 import { LockOpenIcon } from '@/components/ui/Icon';
-import { ThemeControl } from '@/components/ui/ThemeControl';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { useTheme, useUnits } from '@/hooks';
+import type { ThemePreference, UnitSystem } from '@/types';
 import styles from './ProfilePage.module.css';
 
+const THEME_OPTIONS: readonly { value: ThemePreference; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+];
+
+const UNIT_OPTIONS: readonly { value: UnitSystem; label: string }[] = [
+  { value: 'asWritten', label: 'As written' },
+  { value: 'metric', label: 'Metric' },
+  { value: 'imperial', label: 'Imperial' },
+];
+
 export const ProfilePage: React.FC = () => {
+  const { preference, setPreference } = useTheme();
+  const { unitSystem, setUnitSystem } = useUnits();
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -25,7 +42,15 @@ export const ProfilePage: React.FC = () => {
             <p className={styles.rowTitle}>Theme</p>
             <p className={styles.rowDescription}>The only place this lives now</p>
           </div>
-          <ThemeControl />
+          <SegmentedControl legend="Theme" name="theme" options={THEME_OPTIONS} value={preference} onChange={setPreference} />
+        </div>
+        <div className={styles.row}>
+          <div>
+            <p className={styles.rowTitle}>Units</p>
+            {/* "shown", not design 3c's "shown and stored": conversion is display-only (ADR-022). */}
+            <p className={styles.rowDescription}>How quantities are shown</p>
+          </div>
+          <SegmentedControl legend="Units" name="units" options={UNIT_OPTIONS} value={unitSystem} onChange={setUnitSystem} />
         </div>
       </section>
 

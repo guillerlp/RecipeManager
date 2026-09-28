@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `012` |
-| **Status** | PR 1 implemented 2026-09-26 (ADR-024) — frontend tests, typecheck, lint and build green locally; the new integration test needs Docker, so it is confirmed on CI. PR 2 not started |
+| **Status** | Implemented 2026-09-26 — PR 1 ([#65](https://github.com/guillerlp/RecipeManager/pull/65)) and PR 2 (units), ADR-024 |
 | **Author** | `00-leader` + `07-ux-ui` |
 | **Created** | `2026-09-26` |
 | **Branch** | `feat/recipe-detail-screen` (PR 1), then `feat/units-preference` (PR 2) |
@@ -44,12 +44,12 @@ Delivered as **two PRs**, decided with the user.
 
 **PR 2 — units**
 
-- [ ] `UnitSystem` preference (`'asWritten' | 'metric' | 'imperial'`, default `'asWritten'`), a `UnitsProvider`
+- [x] `UnitSystem` preference (`'asWritten' | 'metric' | 'imperial'`, default `'asWritten'`), a `UnitsProvider`
       context and `useUnits()` guard hook, persisted to `localStorage`
-- [ ] `ThemeControl` generalised into a shared `SegmentedControl` radio group, reused for Theme and Units
-- [ ] Units row in Settings (`ProfilePage`)
-- [ ] `utils/units.ts`: the conversion table over `Unit` (§8.5), applied between scaling and formatting
-- [ ] ADR-024 amended with the conversion policy; `R-18` deleted from the roadmap
+- [x] `ThemeControl` generalised into a shared `SegmentedControl` radio group, reused for Theme and Units
+- [x] Units row in Settings (`ProfilePage`)
+- [x] `utils/units.ts`: the conversion table over `Unit` (§8.5), applied between scaling and formatting
+- [x] ADR-024 amended with the conversion policy; `R-18` deleted from the roadmap
 
 ## 4. Out of scope
 
@@ -230,7 +230,7 @@ which contradicts ADR-022. Options **As written / Metric / Imperial**.
   3:1. A fill change (`--paper-2` on `--paper`, 1.09:1) and `--rule` (1.29:1) cannot carry it.
 - **Rail amounts in `--accent`** are measured on the rail's surface in both themes; if they fail 4.5:1, they use
   `--ink`.
-- **Settings Units control (PR 2):** a native radio group, the `ThemeControl` pattern.
+- **Settings Units control (PR 2):** a native radio group — `SegmentedControl`, generalised from `ThemeControl`.
 
 ### 8.7 Print
 
@@ -352,6 +352,10 @@ Existing tokens only. No new colour token.
   refuse to store.
 - Cups and fluid ounces are US customary.
 - The "Cooking" label replaces 3c's "In the oven".
+- *(PR 2, while planning)* `BUG-17` (the plural followed the unrounded amount) is fixed in PR 2 rather than
+  separately: conversion produced "1 cups" on its most common case, 250 ml in Imperial.
+- *(PR 2, while planning)* `ProfilePage` passes each preference straight to `SegmentedControl`; no
+  `ThemeControl`/`UnitsControl` wrapper, since each would have had one caller.
 
 ## 15. Follow-ups
 

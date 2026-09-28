@@ -2,3 +2,5 @@
 
 export * from './ThemeContext';
 export * from './ThemeProvider';
+export * from './UnitsContext';
+export * from './UnitsProvider';

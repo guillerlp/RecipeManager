@@ -13,7 +13,8 @@ running `npm test` directly (10 files, 77 passed). Backend test numbers re-measu
 installed on the author's machine, and Smart App Control intermittently blocks freshly-built assemblies there
 (`INFRA-06`), so CI is the only place these numbers can be taken honestly. Backend and frontend test rows
 re-measured on 2026-09-26 after `R-18` PR 1 from **CI run 36244824092**: 142 unit + 50 integration passed, 0 failed,
-0 skipped, and 139 frontend tests across 17 files.
+0 skipped, and 139 frontend tests across 17 files. The frontend row re-measured locally on 2026-09-26 after
+`R-18` PR 2 (20 files, 157 passed).
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -36,7 +37,7 @@ re-measured on 2026-09-26 after `R-18` PR 1 from **CI run 36244824092**: 142 uni
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
 | Frontend lint | `npm run lint` | **0 problems** — Oxlint, 159 rules: the 71 type-aware ones on `src/**` plus the `correctness` category everywhere (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
-| Frontend tests | `npm test` | 139 pass — Vitest + RTL under jsdom (ADR-018). Vitest does not process CSS, so an invalid CSS Module passes here and fails only `npm run build` |
+| Frontend tests | `npm test` | 157 pass — Vitest + RTL under jsdom (ADR-018). Vitest does not process CSS, so an invalid CSS Module passes here and fails only `npm run build` |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
@@ -75,7 +76,6 @@ kind of negative test.
 | [BUG-14](#bug-14) | Low | Caching | The cache still hands out shared entity instances; the write path no longer takes one |
 | [BUG-15](#bug-15) | Medium | API | A client-supplied ingredient id can trigger a duplicate-key 500 on create, on update, or within one payload |
 | [BUG-16](#bug-16) | Low | API | `"ingredients": [null]` reaches the handler and fails as a 500 instead of a 400 |
-| [BUG-17](#bug-17) | Low | Frontend | Unit plural follows the unrounded amount: "1 cups" |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [TEST-08](#test-08) | Low | Tests | Servings reset between recipes is not pinned by a test |
@@ -402,18 +402,6 @@ ingredient side was left alone because it predates that change (CLAUDE.md rule 9
 the matching validator test.
 
 **Owner:** `02-senior-csharp` · **Effort:** ~10 min
-
-### BUG-17
-**Unit plural follows the unrounded amount — Low**
-
-Found 2026-09-26 by the whole-branch review of `R-18` PR 1 ([#65](https://github.com/guillerlp/RecipeManager/pull/65)). `formatAmount` in `recipe-manager-frontend/src/utils/quantity.ts` picks
-the singular or plural unit name from the raw `value` (`value <= 1`), but the number it prints has already been
-rounded. 1.05 cups renders as `1 cups` (cups have no abbreviation, so the word is visible, not only spoken).
-
-**Fix.** Choose the word from the displayed number rather than the raw value, and pin `1.05 Cup → "1 cup"` in
-`quantity.test.ts`.
-
-**Owner:** `03-senior-react` · **Effort:** ~15 min
 
 ---
 
