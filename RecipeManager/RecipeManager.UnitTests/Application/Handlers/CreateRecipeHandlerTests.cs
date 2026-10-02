@@ -307,4 +307,33 @@ public class CreateRecipeHandlerTests
     }
 
     #endregion
+
+    #region Status (R-19)
+
+    [Fact]
+    public async Task Handle_WithDraftStatus_ShouldAddADraft()
+    {
+        var command = new CreateRecipeCommand("Half-written", null, null, null, null, [], [], RecipeStatus.Draft);
+
+        Result<RecipeDto> result = await _handler.Handle(command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        await _recipeRepository.Received(1).AddAsync(
+            Arg.Is<Recipe>(r => r.Status == RecipeStatus.Draft), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WithoutAStatus_ShouldAddAPublishedRecipe()
+    {
+        var command = new CreateRecipeCommand("Title", "Description", 10, 20, 4,
+            [new IngredientInputDto(null, null, null, "Flour", null)],
+            [StepInput("Mix")]);
+
+        await _handler.Handle(command, CancellationToken.None);
+
+        await _recipeRepository.Received(1).AddAsync(
+            Arg.Is<Recipe>(r => r.Status == RecipeStatus.Published), Arg.Any<CancellationToken>());
+    }
+
+    #endregion
 }

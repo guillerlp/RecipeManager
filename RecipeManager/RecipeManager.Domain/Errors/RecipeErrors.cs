@@ -19,6 +19,12 @@ public static class RecipeErrors
     public static Error CookingTimeNegative() =>
         Validation("Cooking time cannot be negative").Field("cookingTime");
 
+    public static Error PreparationTimeRequired() =>
+        Validation("Preparation time is required to publish").Field("preparationTime");
+
+    public static Error CookingTimeRequired() =>
+        Validation("Cooking time is required to publish").Field("cookingTime");
+
     public static Error BothTimesZero() =>
         Validation("At least one of preparation or cooking time must be greater than 0")
             .Field("preparationTime,cookingTime");
@@ -26,6 +32,9 @@ public static class RecipeErrors
     public static Error ServingsOutOfRange(int min) =>
         Validation($"Servings must be a least {min}")
             .Field("servings").WithMetadata("min", min);
+
+    public static Error ServingsRequired() =>
+        Validation("Servings are required to publish").Field("servings");
 
     public static Error IngredientsRequired() =>
         Validation("At least one ingredient is required").Field("ingredients");

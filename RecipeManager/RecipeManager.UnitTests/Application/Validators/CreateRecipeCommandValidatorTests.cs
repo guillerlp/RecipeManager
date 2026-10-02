@@ -2,6 +2,7 @@ using FluentValidation.TestHelper;
 using RecipeManager.Application.Commands.Recipes;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Validators.Recipes;
+using RecipeManager.Domain.Entities;
 
 namespace RecipeManager.UnitTests.Application.Validators;
 
@@ -20,5 +21,25 @@ public class CreateRecipeCommandValidatorTests
             [null!]);
 
         _validator.TestValidate(command).ShouldHaveValidationErrorFor("Instructions[0]");
+    }
+
+    [Fact]
+    public void Validate_ADraftWithOnlyATitle_ShouldPass()
+    {
+        var command = new CreateRecipeCommand("Title", null, null, null, null, [], [], RecipeStatus.Draft);
+
+        _validator.TestValidate(command).ShouldNotHaveAnyValidationErrors();
+    }
+
+    // Bounds are shape, so they still apply to a value that is present — in a draft too.
+    [Theory]
+    [InlineData(-1, null, null, "PreparationTime")]
+    [InlineData(null, 1440, null, "CookingTime")]
+    [InlineData(null, null, 0, "Servings")]
+    public void Validate_APresentValueOutOfBounds_ShouldFail(int? prep, int? cook, int? servings, string property)
+    {
+        var command = new CreateRecipeCommand("Title", null, prep, cook, servings, [], [], RecipeStatus.Draft);
+
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(property);
     }
 }

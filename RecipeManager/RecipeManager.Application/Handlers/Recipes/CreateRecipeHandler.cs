@@ -31,7 +31,8 @@ public class CreateRecipeHandler : ICommandHandler<CreateRecipeCommand, Result<R
             return Result.Fail<RecipeDto>(instructions.Errors);
 
         Result<Recipe> recipe = Recipe.Create(request.Title, request.Description, request.PreparationTime,
-            request.CookingTime, request.Servings, ingredients.Value, instructions.Value);
+            request.CookingTime, request.Servings, ingredients.Value, instructions.Value,
+            request.Status ?? RecipeStatus.Published);
 
         if (recipe.IsFailed)
             return Result.Fail<RecipeDto>(recipe.Errors);
