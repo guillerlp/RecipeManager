@@ -15,7 +15,9 @@ interface RecipeCardProps {
 export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
     const titleId = useId();
     const descriptionId = useId();
-    const totalMinutes = recipe.preparationTime + recipe.cookingTime;
+    // The list only ever receives published recipes (spec 013), which always have both times; the type
+    // cannot say so, hence the fallback.
+    const totalMinutes = (recipe.preparationTime ?? 0) + (recipe.cookingTime ?? 0);
 
     return (
         <Link
@@ -29,7 +31,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
             <div className={styles.info}>
                 <h3 id={titleId} className={styles.title}>{recipe.title}</h3>
                 <p id={descriptionId} className={styles.description}>
-                    {recipe.description || 'Delicious homemade recipe'}
+                    {recipe.description ?? 'Delicious homemade recipe'}
                 </p>
             </div>
 

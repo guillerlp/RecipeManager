@@ -31,6 +31,13 @@ export const recipeService = {
 
   deleteRecipe: (id: string): Promise<AxiosResponse<void>> =>
     api.delete<void>(`/Recipes/${encodeURIComponent(id)}`),
+
+  // Unused until R-21 wires the controls. Both return 204 No Content.
+  publishRecipe: (id: string): Promise<AxiosResponse<void>> =>
+    api.post<void>(`/Recipes/${encodeURIComponent(id)}/publish`),
+
+  unpublishRecipe: (id: string): Promise<AxiosResponse<void>> =>
+    api.post<void>(`/Recipes/${encodeURIComponent(id)}/unpublish`),
 };
 
 // Kept here so hooks and components can tell a missing recipe from a failure without importing axios.

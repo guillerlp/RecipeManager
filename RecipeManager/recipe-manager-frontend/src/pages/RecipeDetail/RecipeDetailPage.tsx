@@ -24,14 +24,19 @@ const Duration = ({ minutes }: { minutes: number }) => (
 
 const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
   // Local state: servings describes this visit, not the recipe. Never persisted, never sent.
-  const [servings, setServings] = useState(recipe.servings);
+  // A draft may have no servings, times or description yet (spec 013): an absent value renders nothing,
+  // not "0". The generated type allows undefined as well as null, so normalise once here.
+  const writtenServings = recipe.servings ?? null;
+  const [servings, setServings] = useState(writtenServings);
+  const prep = recipe.preparationTime ?? 0;
+  const cook = recipe.cookingTime ?? 0;
   const isMobile = useMediaQuery(MOBILE);
   const { unitSystem } = useUnits();
 
   const rail = (
     <IngredientRail
       ingredients={recipe.ingredients}
-      writtenServings={recipe.servings}
+      writtenServings={writtenServings}
       servings={servings}
       onServingsChange={setServings}
       unitSystem={unitSystem}
@@ -44,31 +49,36 @@ const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
       <BackLink />
 
       <header className={styles.header}>
+        {recipe.status === 'Draft' && <p className={styles.statLabel}>Draft</p>}
         <h1 className={styles.title}>{recipe.title}</h1>
-        <p className={styles.description}>{recipe.description}</p>
+        {recipe.description && <p className={styles.description}>{recipe.description}</p>}
 
         <dl className={styles.stats}>
-          <div>
-            <dt className={styles.statLabel}>Total</dt>
-            <dd className={styles.statValue}><Duration minutes={recipe.preparationTime + recipe.cookingTime} /></dd>
-          </div>
-          {recipe.preparationTime > 0 && (
+          {prep + cook > 0 && (
+            <div>
+              <dt className={styles.statLabel}>Total</dt>
+              <dd className={styles.statValue}><Duration minutes={prep + cook} /></dd>
+            </div>
+          )}
+          {prep > 0 && (
             <div>
               <dt className={styles.statLabel}>Hands on</dt>
-              <dd className={styles.statValue}><Duration minutes={recipe.preparationTime} /></dd>
+              <dd className={styles.statValue}><Duration minutes={prep} /></dd>
             </div>
           )}
-          {recipe.cookingTime > 0 && (
+          {cook > 0 && (
             <div>
               <dt className={styles.statLabel}>Cooking</dt>
-              <dd className={styles.statValue}><Duration minutes={recipe.cookingTime} /></dd>
+              <dd className={styles.statValue}><Duration minutes={cook} /></dd>
             </div>
           )}
-          <div>
-            <dt className={styles.statLabel}>Serves</dt>
-            {/* Follows the stepper, so the page never shows two different servings counts. */}
-            <dd className={styles.statValue} data-testid="serves">{servings}</dd>
-          </div>
+          {servings !== null && (
+            <div>
+              <dt className={styles.statLabel}>Serves</dt>
+              {/* Follows the stepper, so the page never shows two different servings counts. */}
+              <dd className={styles.statValue} data-testid="serves">{servings}</dd>
+            </div>
+          )}
         </dl>
       </header>
 

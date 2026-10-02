@@ -13,7 +13,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    status?: components["schemas"]["RecipeStatus"];
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -147,21 +149,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Recipes/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Recipes/{id}/unpublish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         CreateRecipeCommand: {
             title: string;
-            description: string;
+            description?: string | null;
             /** Format: int32 */
-            preparationTime: number;
+            preparationTime?: number | null;
             /** Format: int32 */
-            cookingTime: number;
+            cookingTime?: number | null;
             /** Format: int32 */
-            servings: number;
+            servings?: number | null;
             ingredients: components["schemas"]["IngredientInputDto"][];
             instructions: components["schemas"]["InstructionStepInputDto"][];
+            status?: components["schemas"]["RecipeStatus"] | null;
         };
         IngredientDto: {
             /** Format: uuid */
@@ -199,27 +272,30 @@ export interface components {
             /** Format: uuid */
             id: string;
             title: string;
-            description: string;
+            status: components["schemas"]["RecipeStatus"];
+            description?: string | null;
             /** Format: int32 */
-            preparationTime: number;
+            preparationTime?: number | null;
             /** Format: int32 */
-            cookingTime: number;
+            cookingTime?: number | null;
             /** Format: int32 */
-            servings: number;
+            servings?: number | null;
             ingredients: components["schemas"]["IngredientDto"][];
             instructions: components["schemas"]["InstructionStepDto"][];
         };
         /** @enum {string} */
+        RecipeStatus: "Draft" | "Published";
+        /** @enum {string} */
         Unit: "Gram" | "Kilogram" | "Ounce" | "Pound" | "Millilitre" | "Litre" | "Teaspoon" | "Tablespoon" | "Cup" | "FluidOunce" | "Piece" | "Clove" | "Pinch" | "Slice" | "Can" | "Bunch" | "Sprig";
         UpdateRecipeDto: {
             title: string;
-            description: string;
+            description?: string | null;
             /** Format: int32 */
-            preparationTime: number;
+            preparationTime?: number | null;
             /** Format: int32 */
-            cookingTime: number;
+            cookingTime?: number | null;
             /** Format: int32 */
-            servings: number;
+            servings?: number | null;
             ingredients: components["schemas"]["IngredientInputDto"][];
             instructions: components["schemas"]["InstructionStepInputDto"][];
         };

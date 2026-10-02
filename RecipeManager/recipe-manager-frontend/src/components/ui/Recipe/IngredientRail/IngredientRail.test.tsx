@@ -86,4 +86,12 @@ describe('IngredientRail', () => {
       "Scaled for 4. Change the number and every quantity follows. Converted from the recipe's own units.",
     )).toBeTruthy();
   });
+
+  it('shows quantities as written, with no stepper and no scaling note, when the recipe has no servings yet', () => {
+    render(<IngredientRail ingredients={ingredients} writtenServings={null} servings={null} onServingsChange={() => undefined} unitSystem="asWritten" />);
+
+    expect(screen.getByText('1.6 kg')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Increase servings' })).toBeNull();
+    expect(screen.queryByText(/Scaled for/)).toBeNull();
+  });
 });

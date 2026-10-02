@@ -6,8 +6,9 @@ import styles from './IngredientRail.module.css';
 
 interface IngredientRailProps {
   ingredients: Ingredient[];
-  writtenServings: number;
-  servings: number;
+  // Null for a draft that has no servings yet: there is no base to scale from, so amounts show as written.
+  writtenServings: number | null;
+  servings: number | null;
   onServingsChange: (next: number) => void;
   unitSystem: UnitSystem;
 }
@@ -19,7 +20,10 @@ export const IngredientRail = ({ ingredients, writtenServings, servings, onServi
   // scale → convert → format (spec 012 §8.5): conversion sees the scaled amount, so its thresholds
   // (1000 g, 1 lb, ¼ cup) apply to what the cook will actually measure.
   const rows = ingredients.map(ingredient => {
-    const shown = convertQuantity(scaleQuantity(ingredient.quantity, writtenServings, servings), ingredient.unit, unitSystem);
+    const scaled = writtenServings === null || servings === null
+      ? ingredient.quantity ?? null
+      : scaleQuantity(ingredient.quantity, writtenServings, servings);
+    const shown = convertQuantity(scaled, ingredient.unit, unitSystem);
     return { ingredient, amount: formatAmount(shown.quantity, shown.unit), converted: shown.converted };
   });
   const anyConverted = rows.some(row => row.converted);
@@ -28,7 +32,7 @@ export const IngredientRail = ({ ingredients, writtenServings, servings, onServi
     <aside className={styles.rail} aria-labelledby="ingredients-heading">
       <div className={styles.head}>
         <h2 id="ingredients-heading" className={styles.heading}>Ingredients</h2>
-        <ServingsStepper value={servings} onChange={onServingsChange} />
+        {servings !== null && <ServingsStepper value={servings} onChange={onServingsChange} />}
       </div>
 
       {/* role="list": see MethodSteps — list-style: none drops list semantics in VoiceOver. */}
@@ -59,10 +63,12 @@ export const IngredientRail = ({ ingredients, writtenServings, servings, onServi
         })}
       </ul>
 
-      <p className={styles.note}>
-        Scaled for {servings}. Change the number and every quantity follows.
-        {anyConverted && " Converted from the recipe's own units."}
-      </p>
+      {(servings !== null || anyConverted) && (
+        <p className={styles.note}>
+          {servings !== null && `Scaled for ${servings}. Change the number and every quantity follows.`}
+          {anyConverted && " Converted from the recipe's own units."}
+        </p>
+      )}
     </aside>
   );
 };

@@ -10,6 +10,15 @@
         "tags": [
           "Recipes"
         ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/RecipeStatus"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -172,18 +181,60 @@
           }
         }
       }
+    },
+    "/api/Recipes/{id}/publish": {
+      "post": {
+        "tags": [
+          "Recipes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Recipes/{id}/unpublish": {
+      "post": {
+        "tags": [
+          "Recipes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
       "CreateRecipeCommand": {
         "required": [
-          "cookingTime",
-          "description",
           "ingredients",
           "instructions",
-          "preparationTime",
-          "servings",
           "title"
         ],
         "type": "object",
@@ -192,19 +243,23 @@
             "type": "string"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "preparationTime": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "cookingTime": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "servings": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "ingredients": {
             "type": "array",
@@ -217,6 +272,14 @@
             "items": {
               "$ref": "#/components/schemas/InstructionStepInputDto"
             }
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecipeStatus"
+              }
+            ],
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -346,13 +409,10 @@
       },
       "RecipeDto": {
         "required": [
-          "cookingTime",
-          "description",
           "id",
           "ingredients",
           "instructions",
-          "preparationTime",
-          "servings",
+          "status",
           "title"
         ],
         "type": "object",
@@ -364,20 +424,27 @@
           "title": {
             "type": "string"
           },
+          "status": {
+            "$ref": "#/components/schemas/RecipeStatus"
+          },
           "description": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "preparationTime": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "cookingTime": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "servings": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "ingredients": {
             "type": "array",
@@ -393,6 +460,13 @@
           }
         },
         "additionalProperties": false
+      },
+      "RecipeStatus": {
+        "enum": [
+          "Draft",
+          "Published"
+        ],
+        "type": "string"
       },
       "Unit": {
         "enum": [
@@ -418,12 +492,8 @@
       },
       "UpdateRecipeDto": {
         "required": [
-          "cookingTime",
-          "description",
           "ingredients",
           "instructions",
-          "preparationTime",
-          "servings",
           "title"
         ],
         "type": "object",
@@ -432,19 +502,23 @@
             "type": "string"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "preparationTime": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "cookingTime": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "servings": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "ingredients": {
             "type": "array",

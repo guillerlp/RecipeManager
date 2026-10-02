@@ -51,7 +51,7 @@ describe('App routing to a recipe', () => {
   it('renders the detail screen inside the app shell for /recipes/:id', async () => {
     const id = '22222222-2222-2222-2222-222222222222';
     const recipe: Recipe = {
-      id, title: 'Cacio e Pepe', description: 'Three ingredients.', preparationTime: 5, cookingTime: 12,
+      id, title: 'Cacio e Pepe', status: 'Published', description: 'Three ingredients.', preparationTime: 5, cookingTime: 12,
       servings: 2, ingredients: [], instructions: [],
     };
     vi.mocked(recipeService.getRecipeById).mockResolvedValue({ data: recipe } as AxiosResponse<Recipe>);
