@@ -80,6 +80,7 @@ kind of negative test.
 | [BUG-15](#bug-15) | Medium | API | A client-supplied ingredient id can trigger a duplicate-key 500 on create, on update, or within one payload |
 | [BUG-16](#bug-16) | Low | API | `"ingredients": [null]` reaches the handler and fails as a 500 instead of a 400 |
 | [BUG-18](#bug-18) | Low | Frontend | A converted amount just under a unit threshold shows as the threshold in the smaller unit ("16 oz") |
+| [BUG-19](#bug-19) | Low | API | A publish racing a `PUT` can store a published recipe with null fields (no concurrency token) |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [TEST-08](#test-08) | Low | Tests | Servings reset between recipes is not pinned by a test |
@@ -443,6 +444,23 @@ inconsistent.
 just-below case at each of the four thresholds in `units.test.ts`.
 
 **Owner:** `03-senior-react` · **Effort:** ~30 min
+
+### BUG-19
+**A publish racing a `PUT` can store a published recipe with null fields — Low**
+
+Found in the `R-19` review (2026-10-02). There is no concurrency token on `Recipe` (known limitation #7). Request A
+(`POST …/publish`) loads a complete draft, validates it, and sets `Status`; request B (`PUT` on the same,
+still-draft recipe) passes the draft tier with `description: null`. EF writes only each request's changed columns,
+so both commits land: `Published` with `Description = NULL`. Until now a race only lost an update; with two rule
+tiers it can store a row that breaks the published invariants — the list shows the placeholder description and a
+"0 min" total, and every later `PUT` is rejected until the recipe is completed.
+
+Needs two clients racing on one recipe, so it cannot happen in today's single-user, undeployed app.
+
+**Fix.** Map PostgreSQL's `xmin` as a concurrency token (`UseXminAsConcurrencyToken()`) and turn
+`DbUpdateConcurrencyException` into a 409 — the same change limitation #7 already asks for, now with a second reason.
+
+**Owner:** `02-senior-csharp` · **Effort:** ~2 h
 
 ---
 

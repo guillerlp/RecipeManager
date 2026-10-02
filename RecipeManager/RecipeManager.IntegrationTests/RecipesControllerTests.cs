@@ -780,6 +780,29 @@ public class RecipesControllerTests : IntegrationTestBase
         (await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!.Status.Should().Be(RecipeStatus.Published);
     }
 
+    // JsonStringEnumConverter accepts integers by default, so without allowIntegerValues: false these bind to an
+    // undefined member: a status-5 recipe lands in neither list, and a unit-99 ingredient stores "99".
+    [SkippableTheory]
+    [InlineData("5", "null", "status")]
+    [InlineData("\"5\"", "null", "status")]
+    [InlineData("\"Draft\"", "99", "unit")]
+    public async Task CreateRecipe_WithANumericEnumValue_ShouldReturn400(string status, string unit, string field)
+    {
+        var json = new StringContent($$"""
+            {
+              "title": "Numeric enum", "status": {{status}},
+              "ingredients": [{ "id": null, "quantity": 1, "unit": {{unit}}, "name": "Flour", "notes": null }],
+              "instructions": []
+            }
+            """, System.Text.Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await Client.PostAsync("/api/recipes", json);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().ContainEquivalentOf(field);
+        DbContext.Recipes.Should().BeEmpty();
+    }
+
     [SkippableFact]
     public async Task CreateRecipe_PublishedWithNullServings_ShouldReturn422OnServings()
     {

@@ -218,7 +218,8 @@ references do **not** depend on the echo — they are re-resolved from indexes o
 checks that a supplied id actually belongs to the recipe being updated — [BUG-15](known-issues.md#bug-15).
 
 `Unit` crosses the wire as a string (`"Tablespoon"`), because `JsonStringEnumConverter` is registered in
-`RecipeManager.Api/Startup/ServiceInitializer.cs`. An unrecognised value is rejected at model binding with 400.
+`RecipeManager.Api/Startup/ServiceInitializer.cs`. An unrecognised value is rejected at model binding with 400 — integers too, `5` or `"5"`, because the converter is
+registered with `allowIntegerValues: false` (ADR-025): otherwise they bind to an undefined member and are stored.
 
 Mapping is the hand-written `RecipeMappingExtensions.MapToRecipeDto()` (plus `MapToIngredientDto()`). Entity →
 DTO only; the one exception is `IngredientMappingExtensions.ToIngredients()`, which turns a list of
