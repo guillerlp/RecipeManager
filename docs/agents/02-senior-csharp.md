@@ -57,7 +57,7 @@ Domain/Application/Infrastructure/Api, or backend test work.
 - [ ] Reads: `.AsNoTracking()`. Writes: `SaveChangesAsync(cancellationToken)` in the same method.
 - [ ] Cache keys in `RecipeManager.Infrastructure/Constants/CacheKeys.cs`, durations in `RecipeManager.Infrastructure/Constants/CacheDuration.cs`. No inline strings or
       `TimeSpan` literals.
-- [ ] Every write invalidates `recipes_all` **and** `recipe_{id}` (`InvalidateRecipeRelatedCaches`).
+- [ ] Every write invalidates every `recipes_{status}` list key **and** `recipe_{id}` (`InvalidateRecipeRelatedCaches`).
 - [ ] Cache failures are caught and logged as warnings — a cache problem must never fail the request.
 - [ ] Migration created with the EF CLI, and the migration + `.Designer.cs` + `AppDbContextModelSnapshot.cs`
       are committed together:

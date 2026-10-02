@@ -172,7 +172,7 @@ All covered in `RecipeManager.IntegrationTests/RecipeCacheTests.cs` (`R-08`, spe
 
 - [x] `GET` twice, with the row changed in the database between the two: the second response is stale, which
       proves it came from the cache. Without this test, every test below would pass with caching disabled.
-- [x] Create → `GET /api/recipes`: the new recipe appears (`recipes_all` was invalidated).
+- [x] Create → `GET /api/recipes`: the new recipe appears (the `recipes_Published` key was invalidated).
 - [x] Update → `GET /api/recipes`: new values. `GET /api/recipes/{id}` is asserted too, but does **not yet**
       detect a missing `recipe_{id}` invalidation. That used to be impossible — the handler mutated the cached
       instance in place, so the detail read passed either way. Since ADR-022 the write path loads through

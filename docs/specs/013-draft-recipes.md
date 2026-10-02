@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `013` |
-| **Status** | approved |
+| **Status** | shipped 2026-10-02 — ADR-025 |
 | **Author** | `00-leader` + `01-architect` |
 | **Created** | `2026-10-02` |
 | **Branch** | `feat/draft-recipes` |
@@ -98,7 +98,8 @@ invariants apply — through an explicit, reversible transition.
 - **Migration required:** yes — `AddRecipeStatus`, **non-destructive**: drops `NOT NULL` from `"Description"`,
   `"PreparationTime"`, `"CookingTime"`, `"Servings"`, and adds `"Status" varchar(20) NOT NULL DEFAULT
   'Published'`, which back-fills existing rows. Stored as the enum **name**, like `Unit` (ADR-022). Applied by
-  `app.MigrateDatabase()` at startup; reversible by its `Down` only while no draft holds a null.
+  `app.MigrateDatabase()` at startup. Its `Down` refuses to run while any draft exists: the scaffolded rollback
+  would otherwise rewrite drafts' nulls as `0` and `''` and succeed.
 - **Known limitations touched:** none of the ten; the "Also decided, not yet designed" Draft entry in
   [domain-model.md](../domain-model.md#target-model--where-the-domain-is-going) moves to current state.
 
@@ -230,8 +231,10 @@ invariants apply — through an explicit, reversible transition.
   `ChangeTracker.Clear()` before asserting after a write.
 - **Frontend (Vitest + RTL):** `RecipeDetailPage` with a draft fixture; `IngredientRail` with
   `writtenServings = null`.
-- **Not covered, and why:** the migration back-fill of **existing** rows — test databases start empty, so no
-  automated test sees pre-migration data. Covered by manual verification.
+- **Migration tests (`AddRecipeStatusMigrationTests`):** the back-fill — migrate to `StructureInstructions`, insert
+  a pre-`R-19` row, migrate up, assert `'Published'` (the `StructureInstructionsMigrationTests` pattern made the
+  manual-only plan unnecessary); and the guarded `Down` refusing while a draft exists.
+- **Not covered, and why:** nothing beyond the manual check below — it runs against real, pre-existing data.
 - **Manual verification:** on the local PostgreSQL (WSL2), with existing recipes, start the API and run
   `SELECT "Id", "Status" FROM "Recipes";` — every row `Published`. Then create a draft in Swagger, publish it,
   unpublish it, and open `/recipes/{id}` in the SPA.

@@ -151,7 +151,7 @@ of these, point at the file.
 
 The kind of answer this project wants, for a change as small as adding a cache to a new repository method:
 
-> **Decision:** invalidate both `recipes_all` and `recipe_{id}` inside `UpdateAsync`, rather than letting the
+> **Decision:** invalidate the list keys (`recipes_{status}`) and `recipe_{id}` inside `UpdateAsync`, rather than letting the
 > entries expire.
 >
 > **Why:** `CacheDuration.DefaultExpiration` is 10 minutes, so a stale list would survive an edit for up to ten

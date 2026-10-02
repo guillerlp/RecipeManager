@@ -69,7 +69,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     Directory.Build.props            TargetFramework/Nullable/ImplicitUsings + TreatWarningsAsErrors + EnforceCodeStyleInBuild, all projects
     Directory.Packages.props         every package version (central package management) — never version a .csproj
     contracts/                       OpenAPI snapshot + isolated TS generator (ADR-019)
-    RecipeManager.Domain/            Recipe aggregate, Ingredient + InstructionStep (owned) + Unit enum, Entity base, RecipeErrors, IRecipeRepository
+    RecipeManager.Domain/            Recipe aggregate, Ingredient + InstructionStep (owned) + Unit and RecipeStatus enums, Entity base, RecipeErrors, IRecipeRepository
     RecipeManager.Application/       Commands, Queries, Handlers, Dispatchers, DTOs, Validators, Mappings
     RecipeManager.Infrastructure/    AppDbContext + Context/Configurations, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
     RecipeManager.Api/               RecipesController, Startup/*, Startup/Swagger/*, Middlewares/*, Extensions/*

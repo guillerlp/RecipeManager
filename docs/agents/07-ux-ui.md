@@ -40,8 +40,9 @@ How to use it:
 - **It is the target, not the current state.** The rest of this file describes what exists. The design is where
   `R-16`–`R-24` in [../roadmap.md](../roadmap.md) are heading, and each item says which frames it implements.
 - **The design does not overrule the domain.** Where its copy or behaviour contradicts
-  [../domain-model.md](../domain-model.md), the domain wins until a roadmap item changes it. The known case is
-  `UX-05`: the design says only the title is required.
+  [../domain-model.md](../domain-model.md), the domain wins until a roadmap item changes it. The last known case,
+  "only the title is required" (`UX-05`), is true since `R-19` — for a **draft** (ADR-025); publishing still needs
+  the full invariants, and the Add/Edit helper text should say so when `R-21` is built.
 - **Its implementation choices are not decisions.** The design loads Newsreader and Material Symbols from Google
   Fonts. The project self-hosts fonts and keeps inline SVG icons instead (`R-16`).
 - **It is external and can change.** A frame's link can go stale or be edited. When a screen is specified from it,

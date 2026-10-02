@@ -131,7 +131,7 @@ Verified project references:
 4. Handler loads via `IRecipeRepository.GetByIdAsync` — the **`CachedRecipeRepository` decorator** answers first,
    falling through to `RecipeRepository`. Missing → `RecipeErrors.RecipeNotFound` (kind `NotFound` → **404**).
 5. `recipe.Update(...)` enforces domain invariants → failure returns `RecipeErrors.*` (kind `Validation` → **422**).
-6. `UpdateAsync` persists, then invalidates `recipes_all` and `recipe_{id}`.
+6. `UpdateAsync` persists, then invalidates every `recipes_{status}` list key and `recipe_{id}`.
 7. `result.ToActionResult()` → **204 No Content** on success, `ProblemDetails` otherwise.
 
 ## Cross-cutting concerns
@@ -168,9 +168,9 @@ Handlers do not need to order their errors. An error that is not a `DomainError`
 ### Caching
 
 - Registered as `services.AddScoped<IRecipeRepository, RecipeRepository>().Decorate<IRecipeRepository, CachedRecipeRepository>()` (Scrutor).
-- `GetAllAsync` → key `recipes_all`; `GetByIdAsync` → key `recipe_{guid}`. Durations from `CacheDuration`
+- `GetAllAsync(status)` → key `recipes_{status}` (ADR-025); `GetByIdAsync` → key `recipe_{guid}`. Durations from `CacheDuration`
   (default 10 min absolute / 5 min sliding; long 30 / 15 for freshly-added recipes).
-- Writes invalidate both `recipes_all` and the per-id key. `AddAsync` invalidates the list and warms the item.
+- Writes invalidate every `recipes_{status}` list key and the per-id key. `AddAsync` invalidates the lists and warms the item.
 - Cache set/remove failures are swallowed and logged as warnings — caching is best-effort and must never fail a
   request.
 - `GetByIdForUpdateAsync` deliberately neither reads nor writes the cache: a cached instance is detached and
@@ -865,6 +865,27 @@ endpoint is anonymous and every recipe is world-writable. See
   the first hand-written ARIA widget, guarded only by keyboard tests; print depends on overriding the shell's
   fixed-height scroll container and forcing light tokens in `@media print`; US customary cups read wrong to a
   UK or Australian cook, and a converted amount is rounded for display, so it is never exact.
+
+### ADR-025 — Draft recipes: a status selects the rule tier, transitions are their own commands
+
+- **Status:** accepted (2026-10-02). Full detail: [specs/013-draft-recipes.md](specs/013-draft-recipes.md).
+- **Context:** `R-19`/`UX-05`. The editorial design saves a recipe with only a title; `Recipe.ValidateProperties`
+  required everything. Settled 2026-09-19 as an explicit Draft/Published status.
+- **Decision:** `Recipe.Status` (`Draft | Published`, stored by name). `ValidateProperties` has two tiers: a value
+  that is present is always validated; completeness (description, both times, not both zero, servings, ≥ 1
+  ingredient and step) only for Published. `Description`, the times, and `Servings` become nullable columns;
+  `AddRecipeStatus` back-fills existing rows as Published, and its `Down` refuses to run while a draft exists.
+  `Publish()` (422 listing every gap) and `Unpublish()` are idempotent and exposed as
+  `POST /api/recipes/{id}/publish|unpublish`; `PUT` never changes status; `POST` takes an optional `status`
+  (default Published). `GET /api/recipes` filters by `?status=` (default Published, `EnumDataType`-guarded)
+  behind per-status cache keys, and every write clears all of them.
+- **Alternatives:** drafting in the browser only; a relaxed aggregate; a separate `RecipeDraft` aggregate; State
+  pattern classes; status in the `PUT` body; sentinel values; drafts in the default list; targeted cache
+  invalidation; a `oneOf` schema. Each is weighed in spec 013 §9.
+- **Consequences:** every reader handles nullable fields even for published recipes, because the type cannot say
+  "non-null when Published"; "save and publish" is two requests; the cache has more than one list key, the first
+  step toward `R-11`'s key strategy; drafts are not private until `R-14`; rolling the migration back needs every
+  draft published or deleted first.
 
 ---
 

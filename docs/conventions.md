@@ -56,7 +56,7 @@ Legend: **⚠ Target** marks a rule that the current code does not yet satisfy e
 | DTO | `<Purpose>Dto` | `RecipeDto`, `UpdateRecipeDto` |
 | Validator | `<BoundType>Validator` | `CreateRecipeCommandValidator`, `UpdateRecipeDtoValidator` |
 | Domain error factory | `RecipeErrors.<Condition>()` | `RecipeErrors.TitleRequired()` |
-| Cache key | `snake_case` string constant / format | `recipes_all`, `recipe_{0}` |
+| Cache key | `snake_case` string constant / format | `recipes_{0}`, `recipe_{0}` |
 
 ### Types
 
