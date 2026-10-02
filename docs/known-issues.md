@@ -14,7 +14,9 @@ installed on the author's machine, and Smart App Control intermittently blocks f
 (`INFRA-06`), so CI is the only place these numbers can be taken honestly. Backend and frontend test rows
 re-measured on 2026-09-26 after `R-18` PR 1 from **CI run 36244824092**: 142 unit + 50 integration passed, 0 failed,
 0 skipped, and 139 frontend tests across 17 files. The frontend row re-measured locally on 2026-09-26 after
-`R-18` PR 2 (20 files, 157 passed).
+`R-18` PR 2 (20 files, 157 passed). The backend rows reproduced **locally** for the first time on 2026-10-02, in
+WSL2 against `main` @ `01eeccc`: build 0 warnings, 142 unit + 50 integration passed, 0 skipped — the
+"CI is the only place" constraint above no longer holds for a WSL2 run (`INFRA-06`, [Settled](#settled)).
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -31,7 +33,7 @@ re-measured on 2026-09-26 after `R-18` PR 1 from **CI run 36244824092**: 142 uni
 | Check | Command | Result |
 | --- | --- | --- |
 | Backend build | `dotnet build RecipeManager.sln` | 0 errors, **0 warnings** — enforced by `TreatWarningsAsErrors` (ADR-010) |
-| Backend tests | `dotnet test RecipeManager.sln` | **192 passing** (142 unit + 50 integration), 0 failing, 0 skipped on CI. Of the 50 integration tests, **46 need Docker** and report as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need none, but on a Windows machine under Smart App Control (`INFRA-06`) they **fail** with `FileLoadException` rather than skip |
+| Backend tests | `dotnet test RecipeManager.sln` | **192 passing** (142 unit + 50 integration), 0 failing, 0 skipped on CI, and the same locally in WSL2. Of the 50 integration tests, **46 need Docker** and report as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need none, but on native Windows under Smart App Control (`INFRA-06`) they **fail** with `FileLoadException` rather than skip |
 | NuGet vulnerabilities | `dotnet list package --vulnerable --include-transitive` | **none**, all six projects clean |
 | Frontend type-check | `npm run typecheck` | **0 errors** |
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
@@ -61,6 +63,7 @@ kind of negative test.
 | ID | Severity | Area | Issue |
 | --- | --- | --- | --- |
 | [BUILD-06](#build-06) | Low | Tooling | `run-coverage.ps1` measures only the unit-test project |
+| [BUILD-11](#build-11) | Low | Tooling | The Vite `/api` proxy never runs in development; the SPA calls the API cross-origin |
 | [SEC-01](#sec-01) | **Critical** | Security | No authentication at all |
 | [SEC-02](#sec-02) | **Critical** | Security | No authorization / no recipe ownership |
 | [SEC-04](#sec-04) | **High** | Security | No rate limiting on unauthenticated write endpoints |
@@ -119,6 +122,27 @@ contribute nothing and the reported percentage understates real coverage — par
 limitation in `README.md`.
 
 **Owner:** `06-qa-tester` · **Effort:** ~30 min
+
+### BUILD-11
+**The Vite `/api` proxy never runs in development; the SPA calls the API cross-origin — Low**
+
+`recipe-manager-frontend/vite.config.ts` proxies `/api` to `https://localhost:7231` with `secure: false`, but
+`recipe-manager-frontend/src/services/recipeService.ts` only falls back to `/api` when `VITE_API_URL` is unset —
+and the committed `recipe-manager-frontend/.env.development` sets it to `https://localhost:7231/api`. So in
+development the browser calls the API directly, cross-origin, through the `AllowReactApp` CORS policy, and the
+proxy is unreachable configuration. Observed 2026-10-02 while verifying the WSL2 setup: the SPA's request went to
+`https://localhost:7231/api/Recipes`, not to `localhost:3000/api`.
+
+Two consequences. The browser, not the proxy, must trust the API's certificate — so `secure: false` buys nothing,
+and `CLAUDE.md`'s "Trust the dev certificate once or the Vite proxy and the browser will reject the API" is right
+about the browser and wrong about the proxy. And development exercises CORS while a same-origin deployment would
+not, so the two environments take different request paths.
+
+**Fix.** Choose one path and delete the other: either drop `VITE_API_URL` from `.env.development` so development
+goes same-origin through the proxy (no CORS, no browser certificate trust needed), or delete the proxy block and
+keep the cross-origin setup deliberately. Which one depends on how the app will be deployed (`INFRA-04`).
+
+**Owner:** `03-senior-react` · **Effort:** ~30 min, plus the deployment decision
 
 ---
 
@@ -781,7 +805,7 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | `BUILD-08` — `ts-node` was a devDependency nothing used | **Removed.** Lint, typecheck and build unchanged; installed packages 83 → 66. **Shipped 2026-09-16.** | — |
 | `BUILD-10` — root tooling files were linted by no rule and type-checked by nothing | **Fixed.** Oxlint's `correctness` category is on for every file (overrides cannot set categories, so it applies to `src/` too — 88 more rules, 0 findings), and `tsconfig.node.json` type-checks `vite.config.ts` with Node types kept out of `src/`. Verified by negative tests: `use-isnan` + `no-debugger` on a root probe file, `TS2769` on a bad `server.port`, `TS2591` still on `process` in `src/`. This also corrects the "root tooling files lint without type information" claim in the ESLint row below — that block enabled no rules. **Shipped 2026-09-16.** | ADR-016 (amended) |
 | `INFRA-01` — no CI pipeline | **Fixed.** `.github/workflows/ci.yml` runs build, test, typecheck, lint, and both vulnerability checks on every PR. Every gate verified by negative test. **Shipped 2026-08-08.** | ADR-013, `R-04`; residual `INFRA-07` |
-| `INFRA-06` — Smart App Control blocks the integration tests | **Resolved as designed.** The 14 integration tests that existed then run on a clean `ubuntu-latest` runner where no Application Control policy applies. It was always an environment constraint rather than a defect, so the fix was to run them somewhere the constraint does not exist. Local Windows runs remain unreliable straight after an Api change; CI is now the authority. **Corrected 2026-09-24** — the scope recorded above was too narrow. It is **not** limited to the contract tests, nor to the integration suite: Smart App Control intermittently blocks **any freshly-built assembly** on that machine, `dotnet ef` included, so migration scaffolding can fail the same way. It is not fixable while Smart App Control is on, and turning it off is permanent and irreversible on Windows — the repository owner has declined, which is a reasonable trade rather than a deferral. The consequence to plan around: **numbers and green runs are taken from CI, not from a local Windows run**, and a local failure naming `FileLoadException` is not evidence of a defect. | ADR-013, `R-04` |
+| `INFRA-06` — Smart App Control blocks the integration tests | **Resolved as designed.** The 14 integration tests that existed then run on a clean `ubuntu-latest` runner where no Application Control policy applies. It was always an environment constraint rather than a defect, so the fix was to run them somewhere the constraint does not exist. Local Windows runs remain unreliable straight after an Api change; CI is now the authority. **Corrected 2026-09-24** — the scope recorded above was too narrow. It is **not** limited to the contract tests, nor to the integration suite: Smart App Control intermittently blocks **any freshly-built assembly** on that machine, `dotnet ef` included, so migration scaffolding can fail the same way. It is not fixable while Smart App Control is on, and turning it off is permanent and irreversible on Windows — the repository owner has declined, which is a reasonable trade rather than a deferral. The consequence to plan around: **numbers and green runs are taken from CI, not from a local Windows run**, and a local failure naming `FileLoadException` is not evidence of a defect. **Updated 2026-10-02** — a local route now exists: the backend built and tested **inside WSL2** (Ubuntu 24.04, Docker Desktop with WSL integration, mirrored networking) never loads the DLLs through Windows code integrity, and reproduced CI exactly — 192 passed, 0 skipped — with the API in WSL2 serving the SPA on Windows. Smart App Control stays on. What changed is narrower than the original resolution: a **WSL2** run is now a faithful local reproduction whose numbers may be quoted with date and commit; a **native Windows** run is still not, and CI remains the authority for what merges. Setup in the README's "Windows with Smart App Control" section; the `Deterministic=false` rebuild is documented there as the unreliable native fallback. | ADR-013, `R-04`, [decisions-log 2026-10-02](decisions-log.md#2026-10-02--move-the-process-not-the-policy) |
 | `BUILD-07` — Node version not pinned | **Fixed.** `.nvmrc` (24) and `engines: { node: ">=20" }`. The workflow reads `node-version-file: .nvmrc`, so CI and a developer's machine cannot disagree — the two values say different things deliberately: what is *used* versus what is *supported*. | ADR-013, `R-04` |
 | Should CI build Release or Debug? | **Debug.** ADR-005 makes the `IntegrationTest` environment throw in RELEASE builds, so a Release CI build fails all 14 integration tests by design (measured: 84 → 70). `TreatWarningsAsErrors` is unconditional, so the warning gate is identical in Debug. | ADR-013, ADR-005 |
 | `SEC-03` — 68 open Dependabot alerts (13 npm advisories, `axios` the largest) | **Fixed** by `npm audit fix`. Every advisory resolved **within the declared semver ranges** — `package.json` did not change, only `package-lock.json`. The entry's fear that `react-router` and `vite` were "majors-adjacent" was wrong: all bumps were minor (`axios` 1.10→1.19, `react-router` 7.7→7.18, `vite` 7.0→7.3). Verified by clean `npm ci` + typecheck + lint + build, and by exercising routing, search, and theming in a browser against a live API. **Shipped 2026-08-08.** | — |
