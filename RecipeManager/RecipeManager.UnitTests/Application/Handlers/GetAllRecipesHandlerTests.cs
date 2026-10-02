@@ -69,7 +69,7 @@ public class GetAllRecipesHandlerTests
             recipe3Result.Value
         };
 
-        _recipeRepository.GetAllAsync(Arg.Any<CancellationToken>())
+        _recipeRepository.GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>())
             .Returns(recipes);
 
         var query = new GetAllRecipesQuery();
@@ -85,7 +85,7 @@ public class GetAllRecipesHandlerTests
         result.Should().Contain(r => r.Title == "Pasta");
         result.Should().Contain(r => r.Title == "Salad");
 
-        await _recipeRepository.Received(1).GetAllAsync(Arg.Any<CancellationToken>());
+        await _recipeRepository.Received(1).GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class GetAllRecipesHandlerTests
 
         var recipes = new List<Recipe> { recipeResult.Value };
 
-        _recipeRepository.GetAllAsync(Arg.Any<CancellationToken>())
+        _recipeRepository.GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>())
             .Returns(recipes);
 
         var query = new GetAllRecipesQuery();
@@ -125,7 +125,7 @@ public class GetAllRecipesHandlerTests
         // Arrange
         var emptyRecipes = new List<Recipe>();
 
-        _recipeRepository.GetAllAsync(Arg.Any<CancellationToken>())
+        _recipeRepository.GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>())
             .Returns(emptyRecipes);
 
         var query = new GetAllRecipesQuery();
@@ -137,7 +137,7 @@ public class GetAllRecipesHandlerTests
         result.Should().NotBeNull();
         result.Should().BeEmpty();
 
-        await _recipeRepository.Received(1).GetAllAsync(Arg.Any<CancellationToken>());
+        await _recipeRepository.Received(1).GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public class GetAllRecipesHandlerTests
 
         var recipes = new List<Recipe> { recipeResult.Value };
 
-        _recipeRepository.GetAllAsync(Arg.Any<CancellationToken>())
+        _recipeRepository.GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>())
             .Returns(recipes);
 
         var query = new GetAllRecipesQuery();
@@ -183,7 +183,7 @@ public class GetAllRecipesHandlerTests
     public async Task Handle_ShouldCallRepositoryGetAllAsync()
     {
         // Arrange
-        _recipeRepository.GetAllAsync(Arg.Any<CancellationToken>())
+        _recipeRepository.GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>())
             .Returns(new List<Recipe>());
 
         var query = new GetAllRecipesQuery();
@@ -192,7 +192,19 @@ public class GetAllRecipesHandlerTests
         await _handler.Handle(query, CancellationToken.None);
 
         // Assert
-        await _recipeRepository.Received(1).GetAllAsync(Arg.Any<CancellationToken>());
+        await _recipeRepository.Received(1).GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(RecipeStatus.Draft)]
+    [InlineData(RecipeStatus.Published)]
+    public async Task Handle_ShouldAskTheRepositoryForTheQueriedStatus(RecipeStatus status)
+    {
+        _recipeRepository.GetAllAsync(status, Arg.Any<CancellationToken>()).Returns(new List<Recipe>());
+
+        await _handler.Handle(new GetAllRecipesQuery(status), CancellationToken.None);
+
+        await _recipeRepository.Received(1).GetAllAsync(status, Arg.Any<CancellationToken>());
     }
 
     #endregion
@@ -203,7 +215,7 @@ public class GetAllRecipesHandlerTests
     public async Task Handle_WithCancellationToken_ShouldPassTokenToRepository()
     {
         // Arrange
-        _recipeRepository.GetAllAsync(Arg.Any<CancellationToken>())
+        _recipeRepository.GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>())
             .Returns(new List<Recipe>());
 
         var query = new GetAllRecipesQuery();
@@ -214,7 +226,7 @@ public class GetAllRecipesHandlerTests
 
         // Assert
         await _recipeRepository.Received(1).GetAllAsync(
-            Arg.Is<CancellationToken>(ct => ct == cancellationToken));
+            Arg.Any<RecipeStatus>(), Arg.Is<CancellationToken>(ct => ct == cancellationToken));
     }
 
     [Fact]
@@ -236,7 +248,7 @@ public class GetAllRecipesHandlerTests
             recipes.Add(recipeResult.Value);
         }
 
-        _recipeRepository.GetAllAsync(Arg.Any<CancellationToken>())
+        _recipeRepository.GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>())
             .Returns(recipes);
 
         var query = new GetAllRecipesQuery();
@@ -263,7 +275,7 @@ public class GetAllRecipesHandlerTests
 
         var recipes = new List<Recipe> { recipe1, recipe2, recipe3 };
 
-        _recipeRepository.GetAllAsync(Arg.Any<CancellationToken>())
+        _recipeRepository.GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>())
             .Returns(recipes);
 
         var query = new GetAllRecipesQuery();

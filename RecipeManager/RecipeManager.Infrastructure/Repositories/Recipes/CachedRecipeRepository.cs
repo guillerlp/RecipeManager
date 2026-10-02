@@ -20,17 +20,18 @@ public sealed class CachedRecipeRepository : IRecipeRepository
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Recipe>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IEnumerable<Recipe>> GetAllAsync(RecipeStatus status, CancellationToken cancellationToken)
     {
+        string cacheKey = CacheKeys.GetRecipesByStatusKey(status);
         IEnumerable<Recipe>? cachedRecipes =
-            await _cacheService.GetAsync<IEnumerable<Recipe>>(CacheKeys.AllRecipes, cancellationToken);
+            await _cacheService.GetAsync<IEnumerable<Recipe>>(cacheKey, cancellationToken);
 
         if (cachedRecipes is not null)
             return cachedRecipes;
 
-        List<Recipe> recipes = (await _recipeRepository.GetAllAsync(cancellationToken)).ToList();
+        List<Recipe> recipes = (await _recipeRepository.GetAllAsync(status, cancellationToken)).ToList();
 
-        await _cacheService.SetAsync(CacheKeys.AllRecipes, recipes, CacheDuration.DefaultExpiration,
+        await _cacheService.SetAsync(cacheKey, recipes, CacheDuration.DefaultExpiration,
             CacheDuration.DefaultSliding, cancellationToken);
 
         return recipes;
@@ -66,7 +67,7 @@ public sealed class CachedRecipeRepository : IRecipeRepository
     public async Task AddAsync(Recipe recipe, CancellationToken cancellationToken)
     {
         await _recipeRepository.AddAsync(recipe, cancellationToken);
-        await RemoveCache(CacheKeys.AllRecipes, cancellationToken);
+        await InvalidateRecipeLists(cancellationToken);
         await SetCache(CacheKeys.GetRecipeKey(recipe.Id), recipe, CacheDuration.LongExpiration,
             CacheDuration.LongSliding, cancellationToken);
     }
@@ -108,14 +109,14 @@ public sealed class CachedRecipeRepository : IRecipeRepository
         }
     }
 
-    private async Task InvalidateRecipeRelatedCaches(Guid recipeId, CancellationToken cancellationToken)
-    {
-        var tasks = new[]
-        {
-            RemoveCache(CacheKeys.AllRecipes, cancellationToken),
-            RemoveCache(CacheKeys.GetRecipeKey(recipeId), cancellationToken)
-        };
+    // Every list, not just the one the recipe is in: a write does not know the recipe's previous status
+    // without loading it again, and clearing two keys is trivially correct (spec 013 §9).
+    private Task InvalidateRecipeLists(CancellationToken cancellationToken) =>
+        Task.WhenAll(Enum.GetValues<RecipeStatus>()
+            .Select(status => RemoveCache(CacheKeys.GetRecipesByStatusKey(status), cancellationToken)));
 
-        await Task.WhenAll(tasks);
-    }
+    private Task InvalidateRecipeRelatedCaches(Guid recipeId, CancellationToken cancellationToken) =>
+        Task.WhenAll(
+            InvalidateRecipeLists(cancellationToken),
+            RemoveCache(CacheKeys.GetRecipeKey(recipeId), cancellationToken));
 }

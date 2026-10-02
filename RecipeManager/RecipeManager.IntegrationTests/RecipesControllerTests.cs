@@ -703,4 +703,34 @@ public class RecipesControllerTests : IntegrationTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    private static Recipe DraftRecipe(string title = "Half-written") =>
+        Recipe.Create(title, null, null, null, null, [], [], RecipeStatus.Draft).Value;
+
+    [SkippableFact]
+    public async Task DraftRecipe_ShouldBeStoredAsDraft_NotAsTheColumnDefault()
+    {
+        // The migration's column default is 'Published'. Were that default also declared in the EF model, EF
+        // would treat Draft (the enum's CLR default, 0) as "unset", omit it from the INSERT, and let the
+        // database store every draft as Published.
+        Recipe draft = DraftRecipe();
+        await SeedDatabase(draft);
+
+        string status = await DbContext.Database
+            .SqlQuery<string>($"""SELECT "Status" AS "Value" FROM "Recipes" WHERE "Id" = {draft.Id}""")
+            .SingleAsync();
+
+        status.Should().Be("Draft");
+    }
+
+    [SkippableFact]
+    public async Task GetAllRecipes_ShouldExcludeDrafts()
+    {
+        Recipe published = Recipe.Create("Published", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")]).Value;
+        await SeedDatabase(published, DraftRecipe());
+
+        List<RecipeDto>? recipes = await Client.GetFromJsonAsync<List<RecipeDto>>("/api/recipes", JsonOptions);
+
+        recipes.Should().ContainSingle().Which.Id.Should().Be(published.Id);
+    }
 }

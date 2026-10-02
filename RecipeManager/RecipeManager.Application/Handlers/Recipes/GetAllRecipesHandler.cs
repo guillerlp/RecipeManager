@@ -17,7 +17,7 @@ public class GetAllRecipesHandler : IQueryHandler<GetAllRecipesQuery, IEnumerabl
 
     public async Task<IEnumerable<RecipeDto>> Handle(GetAllRecipesQuery request, CancellationToken cancellationToken)
     {
-        var entities = await _recipeRepository.GetAllAsync(cancellationToken);
+        var entities = await _recipeRepository.GetAllAsync(request.Status, cancellationToken);
         return entities.Select(entity => entity.MapToRecipeDto()).ToList();
     }
 }

@@ -20,6 +20,11 @@ public sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         // resulting UPDATE affects 0 rows.
         builder.Property(r => r.Id).ValueGeneratedNever();
 
+        // Stored by name, like Unit. Deliberately no HasDefaultValue: EF would then treat Draft — the enum's CLR
+        // default — as "unset" and let the column default win, storing every draft as Published. The
+        // 'Published' default exists only in the AddRecipeStatus migration, to back-fill the existing rows.
+        builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
+
         builder.OwnsMany(r => r.Ingredients, ingredient =>
         {
             ingredient.ToTable("RecipeIngredients");

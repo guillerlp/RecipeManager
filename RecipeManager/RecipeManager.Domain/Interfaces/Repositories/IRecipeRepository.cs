@@ -4,7 +4,7 @@ namespace RecipeManager.Domain.Interfaces.Repositories;
 
 public interface IRecipeRepository
 {
-    Task<IEnumerable<Recipe>> GetAllAsync(CancellationToken cancellationToken);
+    Task<IEnumerable<Recipe>> GetAllAsync(RecipeStatus status, CancellationToken cancellationToken);
     Task<Recipe?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
     /// <summary>
