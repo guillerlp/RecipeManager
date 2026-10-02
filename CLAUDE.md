@@ -122,7 +122,9 @@ Current state: build succeeds with **0 warnings** and the suite has **192 tests*
 `R-18` PR 1, confirmed by **CI run 36244824092** on 2026-09-26: 192 passed, 0 failed, 0 skipped. Of the 50 integration tests, **46 need Docker** and are
 reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need no Docker, but on a
 Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip — and that machine can have
-any freshly-built assembly blocked, `dotnet ef` included, so **CI is the authority for these numbers**.
+any freshly-built assembly blocked, `dotnet ef` included. **CI is the authority for these numbers**; a run inside
+**WSL2** reproduces them faithfully (192 passed, 0 skipped on 2026-10-02 — README, "Windows with Smart App
+Control"), a native Windows run does not.
 The frontend has 157 Vitest tests across 20 files (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note. Code style is too: the root `.editorconfig` makes `IDE0055` formatting,

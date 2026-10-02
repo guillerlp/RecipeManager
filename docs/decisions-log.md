@@ -41,9 +41,9 @@ Jump to every entry touching a topic.
 | Caching | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
 | Domain modelling | [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
 | Persistence / EF Core | [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
-| Testing | [2026-09-26 Tests skip CSS](#2026-09-26--a-green-test-suite-said-nothing-about-the-stylesheet), [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
+| Testing | [2026-10-02 WSL2 for Smart App Control](#2026-10-02--move-the-process-not-the-policy), [2026-09-26 Tests skip CSS](#2026-09-26--a-green-test-suite-said-nothing-about-the-stylesheet), [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
-| Tooling / infrastructure | [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Tooling / infrastructure | [2026-10-02 WSL2 for Smart App Control](#2026-10-02--move-the-process-not-the-policy), [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Enforcement vs. convention | [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Dependency management | [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
 | Frontend / React | [2026-09-26 Row is a link](#2026-09-26--a-row-that-goes-somewhere-is-a-link-whatever-the-component-already-supports), [2026-09-26 Tests skip CSS](#2026-09-26--a-green-test-suite-said-nothing-about-the-stylesheet), [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
@@ -53,6 +53,48 @@ Jump to every entry touching a topic.
 ---
 
 ## Entries
+
+### 2026-10-02 — Move the process, not the policy
+
+**Context.** `INFRA-06` (Settled) ended with "CI is the authority": Smart App Control intermittently blocks every
+freshly built, unsigned assembly on the development machine, turning it off is irreversible, and the owner
+declined. That left no local route to a full green run — the 46 Testcontainers tests and the 4 contract tests
+could only be trusted on a runner, and the `-p:Deterministic=false` rebuild that sometimes got the API started
+needed several attempts. Installing Docker alone would not have helped: Testcontainers containerises PostgreSQL,
+but the test host still loads `RecipeManager.*.dll` on Windows.
+
+**Decision.** Run the backend inside WSL2 — a second clone in the Linux filesystem, the SDK installed by
+`dotnet-install.sh --jsonfile global.json`, Docker Desktop's WSL integration for Testcontainers, and
+`networkingMode=mirrored` so `localhost` means the same thing on both sides. The frontend stays on Windows.
+Verified 2026-10-02 against `main` @ `01eeccc`: 0 warnings, 192 passed / 0 skipped, SPA on Windows served by the
+API in WSL2. Documented as the recommended route in the README; the deterministic-hash rebuild stays as the native
+fallback.
+
+**Rejected.** Turning Smart App Control off — permanent, and a machine-wide security downgrade bought for one
+repo. Keeping the `Deterministic=false` rebuild as the answer — the new DLL is just as unsigned as the old one,
+and in practice it is a retry loop. NAT networking — workable, but the API in WSL would need the Windows host's changing IP, a
+`pg_hba.conf` rule for the WSL subnet, and a firewall opening on PostgreSQL. Ubuntu's `apt` .NET package —
+source-built SDKs ship only in the 1xx feature band, which `global.json`'s `10.0.302` refuses. A dev container or
+running `dotnet test` in an SDK container — both put Testcontainers inside Docker, needing the socket mounted
+and networking back out, for no gain over a WSL2 shell.
+
+**Cost.** Two clones to keep in step by push/pull, and a second copy of the database secret and dev certificate
+that drift if either changes on Windows. The API must never run on both sides at once — mirrored networking makes
+them compete for `localhost:7231`. Membership of the `docker` group is root-equivalent inside the distribution.
+And CI is still the authority for what merges; this changes what a local run *means*, not who decides.
+
+Two smaller lessons from doing it. The setup instructions were written before being run, and running them
+corrected two of them: `dotnet dev-certs https --import` is rejected without `--clean`, and a `user-secrets set`
+command carrying a plausible placeholder password got pasted verbatim — copying the existing `secrets.json` was
+the better instruction all along. And the end-to-end check found that the SPA never used the Vite proxy the plan
+relied on (`BUILD-11`), which made the certificate import essential rather than cosmetic.
+
+**Takeaway.** *When a constraint lives in the operating system, move the process to one where it does not apply
+instead of negotiating with it* — retries against a reputation check are not a fix, and "only CI can run it" is a
+workflow that excludes the person at the keyboard. And *run setup instructions before documenting them*: the
+version that was executed is the only one worth publishing.
+
+---
 
 ### 2026-09-26 — A row that goes somewhere is a link, whatever the component already supports
 

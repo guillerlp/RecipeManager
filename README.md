@@ -131,10 +131,13 @@ other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker
 **without it** you get 146 passed and 46 skipped, each naming Docker as the reason. The skip is deliberate — see
 the troubleshooting entry below — but it means a green run is only as complete as its skip count says. On a
 Windows machine with Smart App Control enabled, the 4 contract tests do not skip — they **fail** with
-`FileLoadException`, the same way the 46 integration tests do; see the Smart App Control entry below.
+`FileLoadException`, the same way the 46 integration tests do. On such a machine, run the backend in WSL2
+instead — see [Windows with Smart App Control](#windows-with-smart-app-control-run-the-backend-in-wsl2).
 
 The "with Docker" figure is confirmed by CI run 36244824092 (2026-09-26, `R-18` PR 1): 142 unit + 50 integration
-passed, 0 skipped. Treat CI as the authority for these numbers.
+passed, 0 skipped — and reproduced locally inside WSL2 on 2026-10-02 against `main` @ `01eeccc`: 192 passed,
+0 skipped. CI remains the authority for what merges; a WSL2 run is a faithful local reproduction of it, a native
+Windows run under Smart App Control is not.
 
 Unit tests with an HTML coverage report (requires `dotnet tool install --global dotnet-reportgenerator-globaltool`):
 
@@ -202,8 +205,10 @@ and commit both files. CI fails if either is stale. On PowerShell, set the varia
 `$env:UPDATE_OPENAPI_SNAPSHOT='1'` and remove it afterwards.
 
 If the snapshot test cannot run on your machine at all — Windows with Smart App Control enabled blocks it the
-same way it blocks the integration tests, see [Troubleshooting](#troubleshooting) — there is a second route that
-needs no local test run:
+same way it blocks the integration tests, see [Troubleshooting](#troubleshooting) — first prefer running the
+snapshot update inside [WSL2](#windows-with-smart-app-control-run-the-backend-in-wsl2), then committing
+`contracts/openapi.json` there and pulling it into the Windows clone before `npm run gen:api`. Without WSL2, there
+is a second route that needs no local test run:
 
 1. Push the change and let CI's **Backend** job fail on `OpenApiContractTests`.
 2. Download the `openapi-received` artifact it uploads on that failure:
@@ -215,6 +220,128 @@ needs no local test run:
 
 Either route ends the same way: `contracts/openapi.json` and `src/types/generated/api.ts` committed together.
 `src/types/recipe.ts` only aliases the generated schemas — never add a field there by hand.
+
+## Windows with Smart App Control: run the backend in WSL2
+
+**The recommended route on a Windows machine with Smart App Control on.** Smart App Control checks every
+executable image Windows loads, and a freshly built, unsigned DLL has no reputation, so it blocks them
+intermittently (see [Troubleshooting](#troubleshooting)). Docker alone does not help: Testcontainers puts only
+PostgreSQL in a container, while the test host still loads this repo's DLLs on Windows. The `dotnet` process
+itself has to run on Linux. WSL2 does that, and its loader is not subject to Windows code integrity — the same
+reason CI never sees the problem.
+
+The layout: a second clone inside the WSL filesystem runs `dotnet build`, `test`, and `run`; the existing Windows
+clone keeps running Node and Vite; Docker Desktop provides Docker to both. With mirrored networking the two share
+`localhost`, so nothing in the repo's configuration changes.
+
+Verified on 2026-10-02 against `main` @ `01eeccc` on Ubuntu 24.04, Docker Desktop 4.93: `dotnet build` 0 warnings,
+`dotnet test` 192 passed / 0 skipped, and the SPA served from Windows loading recipes from the API in WSL2.
+
+Steps marked **(admin)** need an elevated PowerShell; **(reboot)** means restart Windows afterwards.
+
+**1. Install WSL2 — (admin) (reboot).** In PowerShell:
+
+```bash
+wsl --install -d Ubuntu-24.04
+```
+
+If after the reboot `wsl -l -v` says there are no installed distributions, only the engine half finished. Run the
+same command again from a *normal* PowerShell (installing the distribution needs neither admin nor a reboot); add
+`--web-download` if the Store download stalls. Ubuntu 24.04 rather than a newer release: it is the one tested here.
+
+**2. Mirrored networking.** Mirrored mode makes WSL and Windows share `localhost`: the API in WSL reaches Windows
+PostgreSQL at `localhost:5432`, and the browser on Windows reaches the API at `localhost:7231`. Write the config
+file with an explicit encoding — Windows PowerShell's `>` writes UTF-16, which WSL cannot read:
+
+```bash
+Set-Content -Path "$env:USERPROFILE\.wslconfig" -Value "[wsl2]`nnetworkingMode=mirrored" -Encoding ascii
+```
+
+```bash
+wsl --shutdown
+```
+
+`ip -4 -br addr` inside Ubuntu should now show your Windows LAN address, not a `172.x` NAT one.
+
+**3. Docker Desktop — (admin).** In PowerShell, not in Ubuntu:
+
+```bash
+winget install Docker.DockerDesktop
+```
+
+In Docker Desktop, Settings → Resources → **WSL integration**: enable **Ubuntu-24.04** and *Apply & restart*. Do
+not install a Docker engine inside Ubuntu (`apt install docker.io`); it would compete with Docker Desktop for the
+socket. If `docker version` in Ubuntu then shows `permission denied … /var/run/docker.sock`, check
+`getent group docker`: if your user is listed, the shell simply predates the group change — run
+`wsl --terminate Ubuntu-24.04` from PowerShell and reopen Ubuntu; if it is not, `sudo usermod -aG docker $USER`
+first. Membership of `docker` is root-equivalent inside the distribution, which is the accepted norm for a
+single-user development VM.
+
+**4. Clone inside the Linux filesystem** — in Ubuntu, under `~`, never under `/mnt/c` (that is the Windows disk
+again, slow and subject to the same policy):
+
+```bash
+sudo apt update && sudo apt install -y git curl libicu74
+```
+
+```bash
+mkdir -p ~/src && cd ~/src && git clone https://github.com/guillerlp/RecipeManager.git
+```
+
+To push from WSL with your Windows Git credentials:
+
+```bash
+git config --global credential.helper "/mnt/c/Program\ Files/Git/mingw64/bin/git-credential-manager.exe"
+```
+
+**5. .NET SDK, exactly as `global.json` asks.** Do not use Ubuntu's `apt` package: Canonical builds .NET from
+source, and source-built SDKs ship only in the 1xx feature band, which `global.json`'s `10.0.302` with
+`rollForward: latestFeature` refuses. Microsoft's install script reads `global.json` the way CI's `setup-dotnet`
+does:
+
+```bash
+curl -sSL https://dot.net/v1/dotnet-install.sh -o ~/dotnet-install.sh && bash ~/dotnet-install.sh --jsonfile ~/src/RecipeManager/RecipeManager/global.json
+```
+
+```bash
+printf '\nexport DOTNET_ROOT="$HOME/.dotnet"\nexport PATH="$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH"\n' >> ~/.profile && source ~/.profile
+```
+
+`~/.profile`, not `~/.bashrc`: Ubuntu's `.bashrc` returns early in non-interactive shells, so
+`wsl -- bash -lc "dotnet test"` run from Windows would not find `dotnet`.
+
+**6. The database password.** User-secrets live in `~/.microsoft/usersecrets/` on Linux, so the Windows ones are
+not seen. Copy the Windows file rather than typing the password again — nothing to mistype, nothing in shell
+history:
+
+```bash
+d=~/.microsoft/usersecrets/3fd489a5-aeb3-47b7-bb4b-1fcf640ac7cc && mkdir -p "$d" && cp /mnt/c/Users/<windows-user>/AppData/Roaming/Microsoft/UserSecrets/3fd489a5-aeb3-47b7-bb4b-1fcf640ac7cc/secrets.json "$d/" && chmod 600 "$d/secrets.json"
+```
+
+The two copies drift apart if the password ever changes; copy again when it does.
+
+**7. The HTTPS certificate.** The SPA calls `https://localhost:7231` directly from the browser
+(`VITE_API_URL` in `recipe-manager-frontend/.env.development`), so the Windows browser must trust whatever
+certificate the API in WSL serves. Reuse the one Windows already trusts. In PowerShell:
+
+```bash
+dotnet dev-certs https --export-path "$env:USERPROFILE\rm-devcert.pfx" --password "<throwaway>"
+```
+
+Then in Ubuntu — `--import` is only accepted together with `--clean`, which removes the certificate the SDK
+generated on first run so Kestrel has exactly one to choose:
+
+```bash
+dotnet dev-certs https --clean --import /mnt/c/Users/<windows-user>/rm-devcert.pfx -p "<throwaway>" && rm /mnt/c/Users/<windows-user>/rm-devcert.pfx
+```
+
+`dotnet dev-certs https --check` in Ubuntu and `dotnet dev-certs https --check --trust` in PowerShell must print
+the same thumbprint.
+
+**Daily use.** From `~/src/RecipeManager/RecipeManager` in Ubuntu, the usual commands — `dotnet build
+RecipeManager.sln`, `dotnet test RecipeManager.sln`, `dotnet run --project RecipeManager.Api --launch-profile
+https` — and `npm run dev` from the Windows clone. Branches move between the two clones through `git push`/`pull`.
+Never run the API on Windows and in WSL at the same time: with mirrored networking both bind `localhost:7231`.
 
 ## Continuous integration
 
@@ -269,7 +396,7 @@ PostgreSQL folds unquoted identifiers to lowercase, and EF creates the tables as
 **Frontend requests fail with a certificate error**
 Run `dotnet dev-certs https --trust`.
 
-**The 29 integration tests are reported as skipped**
+**The 46 integration tests are reported as skipped**
 Docker is not running or not installed. The integration tests start a PostgreSQL container (ADR-017), and
 without a Docker endpoint they skip rather than fail, so the unit tests still give a usable result. The skip
 message names the endpoint it tried, e.g. `npipe://./pipe/docker_engine` on Windows. Start Docker Desktop and
@@ -291,13 +418,30 @@ The same policy can also block the **integration tests**: every one fails with
 `RecipeManager.IntegrationTests\bin\Debug\net10.0\RecipeManager.Api.dll`. Here the flag does not help — the
 blocked file is the DLL, not the launcher. This includes `OpenApiContractTests` (ADR-019): those 4 tests need no
 Docker, but they still boot the API, so they **fail** here rather than skip. The unit tests still run; for the
-integration tests and the contract tests, rely on CI, which runs all of them on Linux for every PR. If you need
-to accept a contract change from a machine in this state, see "Changing the API contract" above — it has a route
-that needs no local test run.
+integration tests and the contract tests, run the backend in
+[WSL2](#windows-with-smart-app-control-run-the-backend-in-wsl2) or rely on CI, which runs all of them on Linux
+for every PR. If you need to accept a contract change from a machine in this state, see "Changing the API
+contract" above.
 
 It is **not** limited to those two cases. The policy can block any freshly-built assembly, intermittently and
 without a pattern worth predicting — `dotnet ef` has been blocked mid-run while scaffolding a migration, which
-leaves no migration file rather than a broken one. There is no fix short of turning Smart App Control off, and
-Windows makes that irreversible: once off, it cannot be switched back on without reinstalling the OS. Declining
-that trade is reasonable. The consequence to plan around is that **CI is the authority** — quote its numbers,
-and treat a local `FileLoadException` as an environment fact rather than a defect.
+leaves no migration file rather than a broken one. Turning Smart App Control off is irreversible on Windows —
+once off, it cannot be switched back on without reinstalling the OS — and declining that trade is reasonable.
+The fix is to not load these DLLs on Windows at all: **run the backend in
+[WSL2](#windows-with-smart-app-control-run-the-backend-in-wsl2)**, the recommended route, which runs the full
+suite locally. A local `FileLoadException` on native Windows remains an environment fact, not a defect.
+
+**Fallback without WSL2** — unreliable, but sometimes enough to get the API running natively. Build
+non-deterministically so every DLL gets a fresh hash, skip the launcher, and run without rebuilding:
+
+```bash
+dotnet build RecipeManager.sln -p:Deterministic=false -p:UseAppHost=false
+```
+
+```bash
+dotnet run --project RecipeManager.Api --launch-profile https --no-build -p:UseAppHost=false
+```
+
+If it is blocked again, repeat both. It can take several attempts, and it never makes the suite trustworthy. Why a
+fresh hash sometimes gets through is not documented by Microsoft; what is certain is that the new, unsigned DLL
+has no more reputation than the old one, so treat this as retrying rather than fixing.
