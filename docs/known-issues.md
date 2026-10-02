@@ -79,6 +79,7 @@ kind of negative test.
 | [BUG-14](#bug-14) | Low | Caching | The cache still hands out shared entity instances; the write path no longer takes one |
 | [BUG-15](#bug-15) | Medium | API | A client-supplied ingredient id can trigger a duplicate-key 500 on create, on update, or within one payload |
 | [BUG-16](#bug-16) | Low | API | `"ingredients": [null]` reaches the handler and fails as a 500 instead of a 400 |
+| [BUG-18](#bug-18) | Low | Frontend | A converted amount just under a unit threshold shows as the threshold in the smaller unit ("16 oz") |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [TEST-08](#test-08) | Low | Tests | Servings reset between recipes is not pinned by a test |
@@ -100,6 +101,8 @@ kind of negative test.
 | [UX-12](#ux-12) | Low | UX | Recipe detail print output needs polish |
 | [UX-13](#ux-13) | Low | UX | The recipe list `<ul>` lacks `role="list"` |
 | [UX-14](#ux-14) | Low | UX | The ingredient rail note sets a font size outside the type scale |
+| [UX-15](#ux-15) | Low | UX | Decimals below 1 are spoken with a singular unit ("0.99 ounce") |
+| [UX-16](#ux-16) | Low | UX | Very small converted volumes read as ⅛ fl oz |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-07](#dec-07) | — | Decision | 24 h cap excludes slow-cooked and fermented recipes |
@@ -427,6 +430,21 @@ the matching validator test.
 
 **Owner:** `02-senior-csharp` · **Effort:** ~10 min
 
+### BUG-18
+**A converted amount just under a unit threshold shows as the threshold in the smaller unit — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-18` PR 2 ([#67](https://github.com/guillerlp/RecipeManager/pull/67)). `convertQuantity` in `recipe-manager-frontend/src/utils/units.ts` picks
+the larger unit by comparing the **unrounded** amount with the threshold; `formatAmount` rounds afterwards. So
+450–453.59 g in Imperial shows `16 oz` rather than `1 lb`, 999.9 g from ounces in Metric shows `1000 g` rather
+than `1 kg`, and 59.14 ml shows `2 fl oz` rather than `¼ cup`. Scaling can land a value a few floating-point
+ulps below 453.592 and produce the same `16 oz`. The quantity is always right; only the unit choice is
+inconsistent.
+
+**Fix.** Choose the unit from the rounded value (or compare with a small relative tolerance), and pin the
+just-below case at each of the four thresholds in `units.test.ts`.
+
+**Owner:** `03-senior-react` · **Effort:** ~30 min
+
 ---
 
 ## Testing gaps
@@ -743,6 +761,33 @@ and then overrides it with `font-size: 0.8125rem`, a size that is not a type-sca
 decides).
 
 **Owner:** `07-ux-ui` · **Effort:** ~10 min
+
+### UX-15
+**Decimals below 1 are spoken with a singular unit — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-18` PR 2 ([#67](https://github.com/guillerlp/RecipeManager/pull/67)). `formatAmount` in `recipe-manager-frontend/src/utils/quantity.ts`
+treats any shown number at or below 1 as singular, so 28 g in Imperial is spoken "0.99 ounce" and 1 g "0.035
+ounce"; English uses the plural for decimals ("0.5 ounces"). Only the spoken form is affected for abbreviated
+units; for unabbreviated ones (`cup`, `slice`) a visible "0.5 cup" would follow the same rule. The rule predates
+`R-18` PR 2, but conversion makes sub-1 decimals common.
+
+**Fix.** Singular only for a shown `1` or a lone fraction glyph (`½ cup`), and pin `0.99 ounces` in
+`quantity.test.ts`.
+
+**Owner:** `03-senior-react` · **Effort:** ~15 min
+
+### UX-16
+**Very small converted volumes read as ⅛ fl oz — Low**
+
+Found 2026-09-26 by the whole-branch review of `R-18` PR 2 ([#67](https://github.com/guillerlp/RecipeManager/pull/67)). Fluid ounces are a kitchen-fraction unit, and `toKitchenFraction`
+never shows 0 for a positive amount, so anything under about 3.7 ml converts to `⅛ fl oz`: 0.5 ml and 5 ml look
+the same, and 0.5 ml is overstated about seven times. Correct under the spec 012 §8.5 table, which sends small
+metric volumes to fluid ounces; recipes rarely hold such amounts.
+
+**Fix.** A decision for `07-ux-ui`: below a threshold, convert to teaspoons (US customary, 4.93 ml) instead of
+fluid ounces, or show the decimal. Amend spec 012 §8.5 and ADR-024 item 6 with whichever is chosen.
+
+**Owner:** `07-ux-ui` → `03-senior-react` · **Effort:** ~30 min
 
 ---
 
