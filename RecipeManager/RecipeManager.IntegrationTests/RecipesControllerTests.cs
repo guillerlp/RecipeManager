@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using RecipeManager.Application.Commands.Recipes;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Domain.Entities;
@@ -919,4 +920,148 @@ public class RecipesControllerTests : IntegrationTestBase
         (await publishedResponse.Content.ReadAsStringAsync()).Should().Contain("description");
         draftResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
+
+    #region Tags (R-20, spec 014)
+
+    private static CreateRecipeCommand Tagged(params string[] tags) =>
+        new("Tagged", null, null, null, null, [], [], [.. tags], RecipeStatus.Draft);
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithTags_ShouldStoreThemNormalisedAndInOrder()
+    {
+        RecipeDto created = await PostRecipe(Tagged("  Roast ", "roast", "Feeds   A Table"));
+
+        created.Tags.Should().Equal("roast", "feeds a table");
+
+        DbContext.ChangeTracker.Clear();
+        Recipe stored = await DbContext.Recipes.SingleAsync(r => r.Id == created.Id);
+        stored.Tags.Should().Equal("roast", "feeds a table");
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithNoTags_ShouldReturnAnEmptyList()
+    {
+        (await PostRecipe(Tagged())).Tags.Should().BeEmpty();
+    }
+
+    [SkippableTheory]
+    [InlineData("[null]")]
+    [InlineData("null")]
+    public async Task CreateRecipe_WithNullTags_ShouldReturn400(string tags)
+    {
+        var json = new StringContent($$"""
+            { "title": "Null tags", "status": "Draft", "ingredients": [], "instructions": [], "tags": {{tags}} }
+            """, System.Text.Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await Client.PostAsync("/api/recipes", json);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().ContainEquivalentOf("tags");
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithoutATagsKey_ShouldReturn400NamingTags()
+    {
+        // An old client's body. Which layer rejects it — MVC's implicit [Required] for a non-nullable reference,
+        // or FluentValidation's NotNull — is what this test pins; either way it must name the field.
+        var json = new StringContent("""
+            { "title": "No tags key", "status": "Draft", "ingredients": [], "instructions": [] }
+            """, System.Text.Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await Client.PostAsync("/api/recipes", json);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().ContainEquivalentOf("tags");
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithTwentyOneTags_ShouldReturn400()
+    {
+        string[] tags = [.. Enumerable.Range(0, 21).Select(i => $"tag{i}")];
+
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", Tagged(tags), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithAFortyOneCharacterTag_ShouldReturn400()
+    {
+        HttpResponseMessage response =
+            await Client.PostAsJsonAsync("/api/recipes", Tagged(new string('x', 41)), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithABlankTag_ShouldReturn422OnTags_EvenAsADraft()
+    {
+        HttpResponseMessage response =
+            await Client.PostAsJsonAsync("/api/recipes", Tagged("roast", "   "), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("tags");
+    }
+
+    [SkippableFact]
+    public async Task UpdateRecipe_WithTags_ShouldReplaceTheWholeList()
+    {
+        RecipeDto created = await PostRecipe(Tagged("roast", "chicken"));
+        var update = new UpdateRecipeDto("Tagged", null, null, null, null, [], [], ["Weeknight"]);
+
+        HttpResponseMessage response =
+            await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        DbContext.ChangeTracker.Clear();
+        (await DbContext.Recipes.SingleAsync(r => r.Id == created.Id)).Tags.Should().Equal("weeknight");
+    }
+
+    [SkippableFact]
+    public async Task UpdateRecipe_WithABlankTag_ShouldReturn422AndLeaveTheTagsUnchanged()
+    {
+        RecipeDto created = await PostRecipe(Tagged("roast"));
+        var update = new UpdateRecipeDto("Tagged", null, null, null, null, [], [], ["weeknight", " "]);
+
+        HttpResponseMessage response =
+            await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        DbContext.ChangeTracker.Clear();
+        (await DbContext.Recipes.SingleAsync(r => r.Id == created.Id)).Tags.Should().Equal("roast");
+    }
+
+    [SkippableFact]
+    public async Task SeededRecipe_WithoutTouchingTags_ShouldReadBackAnEmptyList()
+    {
+        // Stands in for a row that existed before AddRecipeTags: the suite always migrates to head, so the
+        // back-fill itself is checked by reading the generated migration, not here.
+        Recipe recipe = Recipe.Create("Old row", null, null, null, null, [], [], RecipeStatus.Draft).Value;
+        await SeedDatabase(recipe);
+
+        HttpResponseMessage response = await Client.GetAsync($"/api/recipes/{recipe.Id}");
+
+        (await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!.Tags.Should().BeEmpty();
+    }
+
+    // The one thing no unit test can see: that the bounds exist in the real schema, so a write that bypasses
+    // the API (psql, a future bulk import — R-24) still cannot store an oversize tag list.
+    [SkippableTheory]
+    [InlineData("ARRAY[repeat('x', 41)]", PostgresErrorCodes.StringDataRightTruncation)]
+    [InlineData("array_fill('t'::varchar, ARRAY[21])", PostgresErrorCodes.CheckViolation)]
+    public async Task RawSql_OverTheTagLimits_ShouldBeRejectedByPostgres(string tagsSql, string sqlState)
+    {
+        RecipeDto created = await PostRecipe(Tagged("roast"));
+
+        // The SQL fragment is a SQL expression from InlineData constants, not user input, so it cannot be a
+        // parameter; the id still is one.
+#pragma warning disable EF1003
+        Func<Task> act = () => DbContext.Database.ExecuteSqlRawAsync(
+            "UPDATE \"Recipes\" SET \"Tags\" = " + tagsSql + " WHERE \"Id\" = {0}", created.Id);
+#pragma warning restore EF1003
+
+        (await act.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(sqlState);
+    }
+
+    #endregion
 }
