@@ -41,7 +41,8 @@ public class CreateRecipeHandlerTests
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Cocoa", null)
             ],
-            Instructions: [StepInput("Mix"), StepInput("Bake")]
+            Instructions: [StepInput("Mix"), StepInput("Bake")],
+            Tags: []
         );
 
         // Act
@@ -75,7 +76,7 @@ public class CreateRecipeHandlerTests
                 new IngredientInputDto(null, null, null, "Pasta", null),
                 new IngredientInputDto(null, null, null, "Tomatoes", null)
             ],
-            [StepInput("Boil"), StepInput("Mix")]
+            [StepInput("Boil"), StepInput("Mix")], []
         );
 
         // Act
@@ -94,7 +95,7 @@ public class CreateRecipeHandlerTests
         var command = new CreateRecipeCommand(
             "Test Recipe", "Test Description", 5, 10, 2,
             [new IngredientInputDto(null, null, null, "Ingredient1", null)],
-            [StepInput("Step1")]
+            [StepInput("Step1")], []
         );
 
         Recipe? capturedRecipe = null;
@@ -130,7 +131,8 @@ public class CreateRecipeHandlerTests
             CookingTime: 20,
             Servings: 2,
             Ingredients: [new IngredientInputDto(null, null, null, "Flour", null)],
-            Instructions: [StepInput("Mix")]
+            Instructions: [StepInput("Mix")],
+            Tags: []
         );
 
         // Act
@@ -157,7 +159,8 @@ public class CreateRecipeHandlerTests
             CookingTime: -10,
             Servings: 0,
             Ingredients: new List<IngredientInputDto>(),
-            Instructions: []
+            Instructions: [],
+            Tags: []
         );
 
         // Act
@@ -179,7 +182,8 @@ public class CreateRecipeHandlerTests
         var command = new CreateRecipeCommand(
             "Valid Title", "Valid Description", 10, 20, 2,
             Ingredients: new List<IngredientInputDto>(),
-            Instructions: [StepInput("Step1")]
+            Instructions: [StepInput("Step1")],
+            Tags: []
         );
 
         // Act
@@ -197,7 +201,8 @@ public class CreateRecipeHandlerTests
         var command = new CreateRecipeCommand(
             "Valid Title", "Valid Description", 10, 20, 2,
             Ingredients: [new IngredientInputDto(null, null, null, "Flour", null)],
-            Instructions: []
+            Instructions: [],
+            Tags: []
         );
 
         // Act
@@ -218,7 +223,8 @@ public class CreateRecipeHandlerTests
             CookingTime: 0,
             Servings: 2,
             Ingredients: [new IngredientInputDto(null, null, null, "Flour", null)],
-            Instructions: [StepInput("Mix")]
+            Instructions: [StepInput("Mix")],
+            Tags: []
         );
 
         // Act
@@ -234,7 +240,7 @@ public class CreateRecipeHandlerTests
     public async Task Handle_WithInvalidIngredient_ShouldFailWithoutCallingTheRepository()
     {
         var command = new CreateRecipeCommand("Title", "Description", 10, 0, 1,
-            [new IngredientInputDto(null, null, Unit.Gram, "Flour", null)], [StepInput("Mix")]);
+            [new IngredientInputDto(null, null, Unit.Gram, "Flour", null)], [StepInput("Mix")], []);
 
         Result<RecipeDto> result = await _handler.Handle(command, CancellationToken.None);
 
@@ -253,7 +259,7 @@ public class CreateRecipeHandlerTests
         var command = new CreateRecipeCommand(
             "Title", "Description", 10, 20, 2,
             [new IngredientInputDto(null, null, null, "Flour", null)],
-            [StepInput("Mix")]
+            [StepInput("Mix")], []
         );
         var cancellationToken = new CancellationToken();
 
@@ -276,7 +282,8 @@ public class CreateRecipeHandlerTests
             CookingTime: 0, // No cooking needed
             Servings: 2,
             Ingredients: [new IngredientInputDto(null, null, null, "Lettuce", null)],
-            Instructions: [StepInput("Chop")]
+            Instructions: [StepInput("Chop")],
+            Tags: []
         );
 
         // Act
@@ -296,7 +303,8 @@ public class CreateRecipeHandlerTests
             CookingTime: 15,
             Servings: 2,
             Ingredients: [new IngredientInputDto(null, null, null, "Frozen pizza", null)],
-            Instructions: [StepInput("Bake")]
+            Instructions: [StepInput("Bake")],
+            Tags: []
         );
 
         // Act
@@ -313,7 +321,7 @@ public class CreateRecipeHandlerTests
     [Fact]
     public async Task Handle_WithDraftStatus_ShouldAddADraft()
     {
-        var command = new CreateRecipeCommand("Half-written", null, null, null, null, [], [], RecipeStatus.Draft);
+        var command = new CreateRecipeCommand("Half-written", null, null, null, null, [], [], [], RecipeStatus.Draft);
 
         Result<RecipeDto> result = await _handler.Handle(command, CancellationToken.None);
 
@@ -327,12 +335,27 @@ public class CreateRecipeHandlerTests
     {
         var command = new CreateRecipeCommand("Title", "Description", 10, 20, 4,
             [new IngredientInputDto(null, null, null, "Flour", null)],
-            [StepInput("Mix")]);
+            [StepInput("Mix")], []);
 
         await _handler.Handle(command, CancellationToken.None);
 
         await _recipeRepository.Received(1).AddAsync(
             Arg.Is<Recipe>(r => r.Status == RecipeStatus.Published), Arg.Any<CancellationToken>());
+    }
+
+    #endregion
+
+    #region Tags (R-20)
+
+    [Fact]
+    public async Task Handle_WithTags_ShouldNormaliseThemIntoTheReturnedDto()
+    {
+        var command = new CreateRecipeCommand("Title", null, null, null, null, [], [], ["  Roast ", "roast"],
+            RecipeStatus.Draft);
+
+        Result<RecipeDto> result = await _handler.Handle(command, CancellationToken.None);
+
+        result.Value.Tags.Should().Equal("roast");
     }
 
     #endregion

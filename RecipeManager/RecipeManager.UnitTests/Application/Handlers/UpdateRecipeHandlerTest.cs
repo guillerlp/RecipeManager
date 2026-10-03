@@ -60,7 +60,7 @@ public class UpdateRecipeHandlerTest
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Butter", null)
             ],
-            [StepInput("Cream"), StepInput("Mix")]
+            [StepInput("Cream"), StepInput("Mix")], []
         );
 
         // Act
@@ -107,7 +107,7 @@ public class UpdateRecipeHandlerTest
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Butter", null)
             ],
-            [StepInput("Cream"), StepInput("Mix")]
+            [StepInput("Cream"), StepInput("Mix")], []
         );
 
         // Act
@@ -152,7 +152,7 @@ public class UpdateRecipeHandlerTest
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Butter", null)
             ],
-            [StepInput("Cream"), StepInput("Mix")]
+            [StepInput("Cream"), StepInput("Mix")], []
         );
 
         // Act
@@ -194,7 +194,7 @@ public class UpdateRecipeHandlerTest
             25,
             4,
             new List<IngredientInputDto>(), // Invalid: empty ingredients
-            [StepInput("Cream"), StepInput("Mix")]
+            [StepInput("Cream"), StepInput("Mix")], []
         );
 
         // Act
@@ -231,7 +231,7 @@ public class UpdateRecipeHandlerTest
             25,
             4,
             [new IngredientInputDto(null, null, Unit.Gram, "Sugar", null)],
-            [StepInput("Cream"), StepInput("Mix")]
+            [StepInput("Cream"), StepInput("Mix")], []
         );
 
         // Act
@@ -280,7 +280,7 @@ public class UpdateRecipeHandlerTest
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Butter", null)
             ],
-            [StepInput("Cream"), StepInput("Mix")]
+            [StepInput("Cream"), StepInput("Mix")], []
         );
 
         // Act
@@ -326,7 +326,7 @@ public class UpdateRecipeHandlerTest
                 new IngredientInputDto(null, null, null, "Sugar", null),
                 new IngredientInputDto(null, null, null, "Butter", null)
             ],
-            [StepInput("Cream"), StepInput("Mix")]
+            [StepInput("Cream"), StepInput("Mix")], []
         );
 
         // Act
@@ -341,6 +341,27 @@ public class UpdateRecipeHandlerTest
                 r.PreparationTime == 0 &&
                 r.CookingTime == command.CookingTime),
             Arg.Any<CancellationToken>());
+    }
+
+    #endregion
+
+    #region Tags (R-20)
+
+    [Fact]
+    public async Task Handle_WithTags_ShouldPassThemNormalisedToTheRepository()
+    {
+        Guid recipeId = Guid.NewGuid();
+        Recipe existingRecipe = Recipe.Create("Title", null, null, null, null, [], [], RecipeStatus.Draft,
+            ["roast"]).Value;
+        _recipeRepository.GetByIdForUpdateAsync(recipeId, Arg.Any<CancellationToken>()).Returns(existingRecipe);
+
+        UpdateRecipeCommand command = new(recipeId, "Title", null, null, null, null, [], [], ["Weeknight"]);
+
+        Result result = await _handler.Handle(command, CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        await _recipeRepository.Received(1).UpdateAsync(
+            Arg.Is<Recipe>(r => r.Tags.SequenceEqual(new[] { "weeknight" })), Arg.Any<CancellationToken>());
     }
 
     #endregion

@@ -94,6 +94,7 @@ kind of negative test.
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
 | [QUAL-04](#qual-04) | Low | Quality | Routes, verbs, and status codes are still hand-typed on the client |
 | [QUAL-05](#qual-05) | Low | Quality | Frontend indentation is mixed and no formatter enforces it |
+| [QUAL-07](#qual-07) | Low | Quality | `ValidateIngredients`/`ValidateInstructions` throw on a null list instead of failing |
 | [UX-06](#ux-06) | Medium | UX | `--rule` is a decorative hairline, not a control boundary |
 | [UX-07](#ux-07) | Low | UX | No visual-regression tooling |
 | [UX-10](#ux-10) | Low | UX | Recipe detail Retry gives no in-progress feedback |
@@ -648,6 +649,20 @@ reach is one file, not the whole program), or import the CSS files as raw text (
 './light.css?raw'`) with `test: { css: true }` added to `vite.config.ts` — rejected for this PR because Vitest
 does not process CSS imports without that flag, and turning it on changes CSS handling for every test in the
 suite to fix one file's typing.
+
+### QUAL-07
+**`ValidateIngredients`/`ValidateInstructions` throw on a null list instead of failing — Low**
+
+`RecipeManager.Application/Validators/Recipes/RecipeValidationRules.cs` chains `.Must(list => list.Count <= 50)`
+after `.NotNull()` under FluentValidation's default `Continue` cascade, so a null list fails `NotNull` and then
+reaches `Must`, which throws `NullReferenceException`. Verified 2026-10-03 with a throwaway test calling
+`CreateRecipeCommandValidator` directly with `Ingredients: null`. Masked over HTTP today, because MVC's
+implicit-required check rejects a null non-nullable property before FluentValidation runs; reachable by any
+direct caller of the validator. Found while building `R-20`.
+
+**Fix.** Make each `Must` null-safe (`list is null || list.Count <= 50`), as `ValidateTags` does (spec 014), with
+a validator test per list. `Cascade(CascadeMode.Stop)` is not reachable from the `IRuleBuilder` these extension
+methods receive.
 
 ---
 

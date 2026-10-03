@@ -12,5 +12,6 @@ public record UpdateRecipeCommand(
     int? CookingTime,
     int? Servings,
     List<IngredientInputDto> Ingredients,
-    List<InstructionStepInputDto> Instructions
+    List<InstructionStepInputDto> Instructions,
+    List<string> Tags
 ) : ICommand<Result>;

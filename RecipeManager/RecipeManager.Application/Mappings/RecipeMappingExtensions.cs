@@ -16,7 +16,8 @@ public static class RecipeMappingExtensions
             recipe.CookingTime,
             recipe.Servings,
             recipe.Ingredients.Select(i => i.MapToIngredientDto()).ToList(),
-            recipe.Instructions.Select(s => s.MapToInstructionStepDto()).ToList());
+            recipe.Instructions.Select(s => s.MapToInstructionStepDto()).ToList(),
+            recipe.Tags.ToList());
     }
 
     public static InstructionStepDto MapToInstructionStepDto(this InstructionStep step)

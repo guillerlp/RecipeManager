@@ -36,7 +36,7 @@ public class UpdateRecipeHandler : ICommandHandler<UpdateRecipeCommand, Result>
             return instructions.ToResult();
 
         Result updateResult = recipeToUpdate.Update(request.Title, request.Description, request.PreparationTime,
-            request.CookingTime, request.Servings, ingredients.Value, instructions.Value, []);
+            request.CookingTime, request.Servings, ingredients.Value, instructions.Value, request.Tags);
 
         if (updateResult.IsFailed)
         {
