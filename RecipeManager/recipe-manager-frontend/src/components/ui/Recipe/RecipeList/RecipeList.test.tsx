@@ -23,6 +23,7 @@ const makeRecipe = (overrides: Partial<Recipe>): Recipe => ({
   servings: 2,
   ingredients: [],
   instructions: [],
+  tags: [],
   ...overrides,
 });
 

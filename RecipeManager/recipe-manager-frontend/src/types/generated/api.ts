@@ -234,6 +234,7 @@ export interface components {
             servings?: number | null;
             ingredients: components["schemas"]["IngredientInputDto"][];
             instructions: components["schemas"]["InstructionStepInputDto"][];
+            tags: string[];
             status?: components["schemas"]["RecipeStatus"] | null;
         };
         IngredientDto: {
@@ -282,6 +283,7 @@ export interface components {
             servings?: number | null;
             ingredients: components["schemas"]["IngredientDto"][];
             instructions: components["schemas"]["InstructionStepDto"][];
+            tags: string[];
         };
         /** @enum {string} */
         RecipeStatus: "Draft" | "Published";
@@ -298,6 +300,7 @@ export interface components {
             servings?: number | null;
             ingredients: components["schemas"]["IngredientInputDto"][];
             instructions: components["schemas"]["InstructionStepInputDto"][];
+            tags: string[];
         };
     };
     responses: never;

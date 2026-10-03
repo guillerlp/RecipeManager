@@ -25,6 +25,7 @@ const recipe = {
   preparationTime: 20,
   cookingTime: 85,
   servings: 4,
+  tags: [] as string[],
   ingredients: [
     { id: 'i1', quantity: 1.6, unit: 'Kilogram', name: 'whole chicken', notes: null },
     { id: 'i2', quantity: 2, unit: null, name: 'lemons', notes: 'one halved' },

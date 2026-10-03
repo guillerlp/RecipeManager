@@ -90,6 +90,7 @@ kind of negative test.
 | [INFRA-04](#infra-04) | Medium | CI/CD | No frontend deployment target |
 | [INFRA-08](#infra-08) | Medium | CI/CD | Dependabot NuGet PRs arrive red: lock files only partly updated (NU1004) |
 | [INFRA-05](#infra-05) | Low | DX | No seed data |
+| [INFRA-09](#infra-09) | Low | DX | `dotnet format --verify-no-changes` fails on a clean `main` |
 | [QUAL-01](#qual-01) | Low | Quality | `ILogger` called with interpolated strings |
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
 | [QUAL-04](#qual-04) | Low | Quality | Routes, verbs, and status codes are still hand-typed on the client |
@@ -225,6 +226,9 @@ key. Memory grows linearly with the recipe count with no ceiling. Pagination is 
 issues a full `GET /api/recipes` just to read `recipes.length`. Harmless today — TanStack Query shares the cache
 with the Recipes list, so Home's call effectively just prefetches it — but it means this endpoint gets expensive
 before the list screen does, not only when the list screen is opened.
+
+`R-20` (ADR-026) grows each row again: up to 20 tags of up to 40 characters per recipe, in every unpaginated
+payload.
 
 ### SEC-08
 **No length limits in the database — Medium**
@@ -592,6 +596,21 @@ Recommended: *(a)* now; *(b)* only if the manual step proves frequent enough to 
 The database starts empty and there is no seeder, so a fresh clone shows an empty app until recipes are created
 by hand through Swagger. Integration tests seed only into their own throwaway container database. A
 Development-only seeder is planned as `R-13`.
+
+### INFRA-09
+**`dotnet format --verify-no-changes` fails on a clean `main` — Low**
+
+Run in an LF checkout (CI-equivalent, inside WSL2) on 2026-10-03, `dotnet format RecipeManager.sln
+--verify-no-changes` exits 2 on `main` as well as on `feat/recipe-tags`, reporting `CS8618` on
+`AppDbContext.Recipes` (`RecipeManager.Infrastructure/Context/AppDbContext.cs`). `dotnet build` raises no such
+diagnostic — EF Core suppresses `CS8618` for `DbSet` properties, and `dotnet format`'s workspace evidently does not
+load that suppressor. `CLAUDE.md` tells agents to fix style errors with `dotnet format`, so its verify mode cannot be
+used as a gate today; `dotnet build` with `EnforceCodeStyleInBuild` (ADR-020) is the reliable one. Not
+investigated beyond reproducing it.
+
+**Fix.** Find whether a `dotnet format` option or SDK version loads the suppressor, or initialise the property
+(`=> Set<Recipe>()`) so there is nothing to suppress. Then make `--verify-no-changes` a CI step if it adds anything
+the build does not already catch.
 
 ---
 

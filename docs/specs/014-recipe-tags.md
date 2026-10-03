@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `014` |
-| **Status** | draft — awaiting user review |
+| **Status** | approved — PR 1 (backend + contract) in review; PR 2 (frontend) to follow |
 | **Author** | `00-leader` + `01-architect` |
 | **Created** | `2026-10-03` |
 | **Branch** | `feat/recipe-tags` |

@@ -4,7 +4,8 @@
 
 The domain today contains **exactly one aggregate root: `Recipe`**, with two **owned entities** inside it —
 `Ingredient` and `InstructionStep` — and two enums, `Unit` and `RecipeStatus` (ADR-022, ADR-023, ADR-025).
-There is no `Category`, `Tag`, or `User` entity. Do not assume otherwise.
+There is no `Category`, `Tag`, or `User` entity. Do not assume otherwise. Tags are plain strings on `Recipe`
+(ADR-026).
 
 Some of that is deliberate; some is a shortcut with a decided replacement. The
 [Target model](#target-model--where-the-domain-is-going) section at the end says which is which — read it
@@ -42,14 +43,17 @@ comparing unequal.
 | `Servings` | `int?` | `integer`, nullable | Count of portions. Null only in a draft |
 | `Ingredients` | `IReadOnlyList<Ingredient>` | child table `"RecipeIngredients"` | Owned collection over a private `List<Ingredient>` backing field, exposed sorted by `Position`. Genuinely read-only however it was obtained — the getter returns a fresh sorted copy |
 | `Instructions` | `IReadOnlyList<InstructionStep>` | child table `"RecipeInstructionSteps"` | Owned collection over a private `List<InstructionStep>` backing field, exposed sorted by `Position` — same shape as `Ingredients`, and just as genuinely read-only |
+| `Tags` | `IReadOnlyList<string>` | `character varying(40)[]`, `NOT NULL`, `CHECK (cardinality("Tags") <= 20)` | Normalised by the aggregate: trimmed, internal whitespace collapsed, lowercased, deduplicated keeping the first occurrence, so the author's order survives. A primitive collection over a private `List<string>`, returned as a read-only copy. Rows that existed before `AddRecipeTags` were back-filled `{}` (ADR-026) |
 
-Table: `"Recipes"` (quoted — PostgreSQL folds unquoted identifiers to lowercase). Five migrations:
+Table: `"Recipes"` (quoted — PostgreSQL folds unquoted identifiers to lowercase). Six migrations:
 `20260725173218_InitialCreate`, `20260924130146_StructureIngredients` (ADR-022),
 `20260924153243_SyncIdValueGeneration`, which carries no DDL and exists only to bring the model snapshot back in
 step with the corrected key metadata, `20260926113324_StructureInstructions` (`R-17`), which moved the old
 `text[]` into the steps table, and `20261002124316_AddRecipeStatus` (`R-19`, ADR-025), which relaxes `NOT NULL`
 on four columns and adds `"Status"`. Its `Down` refuses to run while any draft exists: the scaffolded rollback
-would otherwise rewrite a draft's nulls as `0` and `''`. No indexes on `"Recipes"` beyond the PK, no unique constraint on `Title` —
+would otherwise rewrite a draft's nulls as `0` and `''`. `20261003143025_AddRecipeTags` (`R-20`, ADR-026) adds
+`"Tags"` and its `CHECK`; its `Down` drops both, and the tags with them. No indexes on `"Recipes"` beyond the PK
+— not even on `"Tags"`, until `R-11` filters by it server-side — and no unique constraint on `Title` —
 **duplicate titles are allowed**.
 
 ## `Ingredient`
@@ -96,9 +100,11 @@ recipe — so that rule lives in `Recipe.ValidateProperties`.
 
 ### Lifecycle
 
-- `public static Result<Recipe> Create(title, description, preparationTime, cookingTime, servings, ingredients, instructions, status = RecipeStatus.Published)`
-  — the only way to build a valid recipe. Validates against the tier for `status` (below), then constructs.
-- `public Result Update(...)` — the same parameters minus id and status; validates against the recipe's
+- `public static Result<Recipe> Create(title, description, preparationTime, cookingTime, servings, ingredients, instructions, status = RecipeStatus.Published, tags = null)`
+  — the only way to build a valid recipe. Normalises the tags, validates against the tier for `status` (below),
+  then constructs. `tags` is optional and last because a new recipe with no tags is the truthful default.
+- `public Result Update(...)` — the same parameters minus id and status, with `tags` **required**: omitting it
+  would silently clear the recipe's tags. Validates against the recipe's
   **current** status, so a published recipe keeps the full rules on every edit, and **mutates nothing if
   validation fails** (verified by `Update_WithInvalidData_ShouldNotUpdatePropertiesAndReturnFailure`). It never
   changes the status.
@@ -135,6 +141,7 @@ operators — `null < 0` and `null == 0` are both `false` — so an absent value
 | At least one ingredient | published | `IngredientsRequired()` | `Validation` (422) | `ingredients` |
 | At least one instruction | published | `InstructionsRequired()` | `Validation` (422) | `instructions` |
 | Every step's `IngredientIds` is an id of **this** recipe's ingredients (reported once per recipe) | always | `InstructionIngredientNotFound()` | `Validation` (422) | `instructions` |
+| No tag is blank after normalising (reported once per recipe) | always | `TagRequired()` | `Validation` (422) | `tags` |
 | Recipe exists (repository-level, not in the entity) | — | `RecipeNotFound(id)` | `NotFound` (404) | `id` |
 
 Three further invariants live in `Ingredient.ValidateProperties`, because they are properties of one ingredient
@@ -175,28 +182,29 @@ Complementary to the invariants — bounds and null-safety only, applied **befor
 | `Servings` | `> 0`, `< 1000` when present |
 | `Ingredients` | List: `NotNull`, at most 50 items. Per item (`IngredientInputDtoValidator`): `Name` `NotNull` + `MaximumLength(200)`, `Notes` `MaximumLength(200)`, `Quantity` `InclusiveBetween(0, 100000)` when present |
 | `Instructions` | List: `NotNull`, at most 50 items. Per item (`InstructionStepInputDtoValidator`): `Text` `NotNull` + `MaximumLength(2000)`; `DurationMinutes` `>= 0` and `< 1440` when present; `IngredientIndexes` `NotNull`, at most 50 items, each `>= 0`, no duplicates |
+| `Tags` | List: `NotNull`, at most 20 items. Per item: `NotNull`, `MaximumLength(40)` — on the **raw** input, before the domain normalises it (spec 014) |
 
 Consequence to remember: `Title = ""` passes FluentValidation (`NotNull` is satisfied) and is rejected by the
 **domain** with 422. `Title = null` is rejected by FluentValidation with 400. The same split applies to
 `DurationMinutes = 0` (422 from the domain) versus `-1` (400 from the validator): "positive" is a business rule,
 the bound is shape. The `Title`/`Description` caps (200/1000) exist only in FluentValidation, not in the
-database — those columns are unbounded `text` ([SEC-08](known-issues.md#sec-08)). The ingredient and step caps
-are the exception: they are enforced in both places. "Required to publish" is a domain rule, not shape: a missing
+database — those columns are unbounded `text` ([SEC-08](known-issues.md#sec-08)). The ingredient, step, and tag
+caps are the exception: they are enforced in both places. "Required to publish" is a domain rule, not shape: a missing
 `servings` on a published `POST` is a 422 from the domain, while `servings: 0` is a 400 here — in a draft too.
 
 ## Application-layer types
 
 | Type | Shape | Used by |
 | --- | --- | --- |
-| `CreateRecipeCommand` | Title, `string?` Description, `int?` PreparationTime, `int?` CookingTime, `int?` Servings, `List<IngredientInputDto>` Ingredients, `List<InstructionStepInputDto>` Instructions, `RecipeStatus? Status = null` (null means Published) → `Result<RecipeDto>` | `POST /api/recipes` request body |
-| `UpdateRecipeCommand` | `Guid Id` + the same seven content fields, **no status** → `Result` | built in the controller from route id + `UpdateRecipeDto` |
+| `CreateRecipeCommand` | Title, `string?` Description, `int?` PreparationTime, `int?` CookingTime, `int?` Servings, `List<IngredientInputDto>` Ingredients, `List<InstructionStepInputDto>` Instructions, `List<string>` Tags, `RecipeStatus? Status = null` (null means Published) → `Result<RecipeDto>` | `POST /api/recipes` request body |
+| `UpdateRecipeCommand` | `Guid Id` + the same eight content fields, **no status** → `Result` | built in the controller from route id + `UpdateRecipeDto` |
 | `DeleteRecipeCommand` | `Guid Id` → `Result` | `DELETE /api/recipes/{id:guid}` |
 | `PublishRecipeCommand` | `Guid Id` → `Result` | `POST /api/recipes/{id:guid}/publish` |
 | `UnpublishRecipeCommand` | `Guid Id` → `Result` | `POST /api/recipes/{id:guid}/unpublish` |
 | `GetAllRecipesQuery` | `RecipeStatus Status = Published` → `IEnumerable<RecipeDto>` | `GET /api/recipes?status=` |
 | `GetRecipeByIdQuery` | `Guid Id` → `Result<RecipeDto>` | `GET /api/recipes/{id}` |
-| `RecipeDto` | `Id`, `Title`, `RecipeStatus Status`, then the nullable content fields, with `List<IngredientDto>` Ingredients and `List<InstructionStepDto>` Instructions | every response body |
-| `UpdateRecipeDto` | the seven content fields, no id, no status; `List<IngredientInputDto>` Ingredients, `List<InstructionStepInputDto>` Instructions | `PUT /api/recipes/{id:guid}` request body |
+| `RecipeDto` | `Id`, `Title`, `RecipeStatus Status`, then the nullable content fields, with `List<IngredientDto>` Ingredients, `List<InstructionStepDto>` Instructions, and `List<string>` Tags (normalised, never null) | every response body |
+| `UpdateRecipeDto` | the eight content fields, no id, no status; `List<IngredientInputDto>` Ingredients, `List<InstructionStepInputDto>` Instructions, `List<string>` Tags | `PUT /api/recipes/{id:guid}` request body |
 | `IngredientDto` | `(Guid Id, decimal? Quantity, Unit? Unit, string Name, string? Notes)` | inside every response body |
 | `IngredientInputDto` | `(Guid? Id, decimal? Quantity, Unit? Unit, string Name, string? Notes)` | inside `POST`/`PUT` request bodies |
 | `InstructionStepDto` | `(Guid Id, string Text, int? DurationMinutes, List<Guid> IngredientIds)` | inside every response body |
@@ -302,7 +310,8 @@ Read these before proposing any recipe feature.
    them with `?status=Draft`, publish, or unpublish them (ADR-025).
 4. **No versioning, no soft delete, no audit fields** (`CreatedAt`, `UpdatedAt` do not exist).
 5. **No images.** `RecipeDto` has no image field and there is no upload endpoint.
-6. **No categories, tags, ratings, or favourites.**
+6. **No categories, ratings, or favourites.** Tags exist (ADR-026), but cannot be filtered server-side until
+   `R-11`; the SPA filters them in the browser.
 7. **No concurrency control.** No `xmin`/`RowVersion` mapping; concurrent `PUT`s are last-write-wins.
 8. **No pagination** on `GET /api/recipes`; every recipe of the requested status is loaded, mapped, and cached in
    one memory entry per status.
@@ -336,7 +345,6 @@ mode's "For this step" and "Already used" lists (`R-23`) are built from. Draft r
 Brought in by the editorial design ([agents/07-ux-ui.md](agents/07-ux-ui.md#canonical-design-reference)). None
 of these exists today. Each needs its own ADR before code:
 
-- **Tags** (`R-20`): freeform labels on a recipe.
 - **Cook log** (`R-22`): a record of each time a recipe was cooked. If it becomes a separate aggregate, it forces
   the unit-of-work decision (ADR-006).
 
