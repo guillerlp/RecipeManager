@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using RecipeManager.Application.Commands.Recipes;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Domain.Entities;
@@ -39,7 +40,8 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(null, null, null, "Cocoa powder", null),
                 new IngredientInputDto(null, null, null, "Eggs", null)
             ],
-            Instructions: [StepInput("Mix dry ingredients"), StepInput("Add wet ingredients"), StepInput("Bake at 350°F for 30 minutes")]
+            Instructions: [StepInput("Mix dry ingredients"), StepInput("Add wet ingredients"), StepInput("Bake at 350°F for 30 minutes")],
+            Tags: []
         );
 
         // ==================== ACT ====================
@@ -76,7 +78,8 @@ public class RecipesControllerTests : IntegrationTestBase
             CookingTime: 20,
             Servings: 4,
             Ingredients: [new IngredientInputDto(null, null, null, "Ingredient 1", null)],
-            Instructions: [StepInput("Step 1")]
+            Instructions: [StepInput("Step 1")],
+            Tags: []
         );
 
         // ==================== ACT ====================
@@ -215,7 +218,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(null, null, null, "Ingredient A1", null),
                 new IngredientInputDto(null, null, null, "Ingredient B1", null)
             ],
-            [StepInput("Step 1B"), StepInput("Step 2B")]);
+            [StepInput("Step 1B"), StepInput("Step 2B")], []);
 
         var currentId = currentRecipeResult.Value.Id;
 
@@ -323,7 +326,8 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(null, 3m, null, "Eggs", null),
                 new IngredientInputDto(null, null, null, "Salt to taste", null),
             ],
-            Instructions: [StepInput("Melt"), StepInput("Whisk")]
+            Instructions: [StepInput("Melt"), StepInput("Whisk")],
+            Tags: []
         );
 
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
@@ -371,7 +375,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(null, 2m, Unit.Cup, "B", null),
                 new IngredientInputDto(null, 3m, Unit.Cup, "C", null),
             ],
-            [StepInput("Step")]);
+            [StepInput("Step")], []);
 
         HttpResponseMessage createResponse = await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions);
         RecipeDto created = (await createResponse.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
@@ -386,7 +390,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(a.Id, a.Quantity, a.Unit, a.Name, a.Notes),
                 new IngredientInputDto(b.Id, b.Quantity, b.Unit, b.Name, b.Notes),
             ],
-            [StepInput("Step")]);
+            [StepInput("Step")], []);
 
         HttpResponseMessage updateResponse = await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions);
         updateResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -402,7 +406,7 @@ public class RecipesControllerTests : IntegrationTestBase
     public async Task UpdateRecipe_WithANullId_ShouldMintANewIdAndKeepTheOthers()
     {
         var create = new CreateRecipeCommand("Add one", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, 1m, Unit.Cup, "Existing", null)], [StepInput("Step")]);
+            [new IngredientInputDto(null, 1m, Unit.Cup, "Existing", null)], [StepInput("Step")], []);
 
         RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions))
             .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
@@ -413,7 +417,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(existingId, 1m, Unit.Cup, "Existing", null),
                 new IngredientInputDto(null, 2m, Unit.Cup, "Brand new", null),
             ],
-            [StepInput("Step")]);
+            [StepInput("Step")], []);
 
         await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions);
 
@@ -431,7 +435,7 @@ public class RecipesControllerTests : IntegrationTestBase
         // rows itself), not the database's: it would still pass even with no ON DELETE CASCADE at all.
         // The database-level guarantee is exercised separately below, bypassing EF entirely.
         var create = new CreateRecipeCommand("Delete me", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], [StepInput("Step")]);
+            [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], [StepInput("Step")], []);
 
         RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions))
             .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
@@ -463,7 +467,7 @@ public class RecipesControllerTests : IntegrationTestBase
         // entirely, so this is the test that actually exercises "RecipeIngredients"."RecipeId" ON DELETE
         // CASCADE rather than relying on application code to clean up.
         var create = new CreateRecipeCommand("Delete me via SQL", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], [StepInput("Step")]);
+            [new IngredientInputDto(null, 1m, Unit.Cup, "Doomed", null)], [StepInput("Step")], []);
 
         RecipeDto created = (await (await Client.PostAsJsonAsync("/api/recipes", create, JsonOptions))
             .Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!;
@@ -500,7 +504,7 @@ public class RecipesControllerTests : IntegrationTestBase
         string name)
     {
         var command = new CreateRecipeCommand("Bad ingredient", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, (decimal?)quantity, Enum.Parse<Unit>(unit), name, null)], [StepInput("Step")]);
+            [new IngredientInputDto(null, (decimal?)quantity, Enum.Parse<Unit>(unit), name, null)], [StepInput("Step")], []);
 
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
@@ -513,7 +517,7 @@ public class RecipesControllerTests : IntegrationTestBase
     {
         // SEC-09, ingredient half: the cap is in FluentValidation *and* in the database.
         var command = new CreateRecipeCommand("Long name", "Description", 5, 5, 2,
-            [new IngredientInputDto(null, 1m, Unit.Gram, new string('x', 201), null)], [StepInput("Step")]);
+            [new IngredientInputDto(null, 1m, Unit.Gram, new string('x', 201), null)], [StepInput("Step")], []);
 
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
@@ -530,7 +534,8 @@ public class RecipesControllerTests : IntegrationTestBase
               "title": "Bad unit", "description": "Description",
               "preparationTime": 5, "cookingTime": 5, "servings": 2,
               "ingredients": [{ "id": null, "quantity": 1, "unit": "Furlong", "name": "Flour", "notes": null }],
-              "instructions": [{ "text": "Step", "durationMinutes": null, "ingredientIndexes": [] }]
+              "instructions": [{ "text": "Step", "durationMinutes": null, "ingredientIndexes": [] }],
+              "tags": []
             }
             """, System.Text.Encoding.UTF8, "application/json");
 
@@ -555,7 +560,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(null, 200m, Unit.Gram, "Flour", null),
                 new IngredientInputDto(null, 100m, Unit.Gram, "Butter", "cold"),
             ],
-            [.. steps]);
+            [.. steps], []);
 
     [SkippableFact]
     public async Task CreateRecipe_WithStepReferences_ShouldResolveIndexesToIngredientIdsInOrder()
@@ -608,7 +613,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(butter.Id, butter.Quantity, butter.Unit, butter.Name, butter.Notes),
                 new IngredientInputDto(flour.Id, flour.Quantity, flour.Unit, flour.Name, flour.Notes),
             ],
-            [StepInput("Rub in", 0)]);
+            [StepInput("Rub in", 0)], []);
 
         (await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -630,7 +635,7 @@ public class RecipesControllerTests : IntegrationTestBase
                 new IngredientInputDto(null, 200m, Unit.Gram, "Flour", null),
                 new IngredientInputDto(null, 100m, Unit.Gram, "Butter", "cold"),
             ],
-            [StepInput("Rub in", 1)]);
+            [StepInput("Rub in", 1)], []);
 
         (await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions))
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -750,7 +755,7 @@ public class RecipesControllerTests : IntegrationTestBase
     [SkippableFact]
     public async Task CreateRecipe_AsADraftWithOnlyATitle_ShouldReturn201AndStayOutOfTheDefaultList()
     {
-        var command = new CreateRecipeCommand("Half-written", null, null, null, null, [], [], RecipeStatus.Draft);
+        var command = new CreateRecipeCommand("Half-written", null, null, null, null, [], [], [], RecipeStatus.Draft);
 
         RecipeDto created = await PostRecipe(command);
 
@@ -770,7 +775,8 @@ public class RecipesControllerTests : IntegrationTestBase
               "title": "Back-compat", "description": "Description",
               "preparationTime": 5, "cookingTime": 5, "servings": 2,
               "ingredients": [{ "id": null, "quantity": null, "unit": null, "name": "Flour", "notes": null }],
-              "instructions": [{ "text": "Step", "durationMinutes": null, "ingredientIndexes": [] }]
+              "instructions": [{ "text": "Step", "durationMinutes": null, "ingredientIndexes": [] }],
+              "tags": []
             }
             """, System.Text.Encoding.UTF8, "application/json");
 
@@ -792,7 +798,7 @@ public class RecipesControllerTests : IntegrationTestBase
             {
               "title": "Numeric enum", "status": {{status}},
               "ingredients": [{ "id": null, "quantity": 1, "unit": {{unit}}, "name": "Flour", "notes": null }],
-              "instructions": []
+              "instructions": [], "tags": []
             }
             """, System.Text.Encoding.UTF8, "application/json");
 
@@ -807,7 +813,7 @@ public class RecipesControllerTests : IntegrationTestBase
     public async Task CreateRecipe_PublishedWithNullServings_ShouldReturn422OnServings()
     {
         var command = new CreateRecipeCommand("Title", "Description", 10, 20, null,
-            [new IngredientInputDto(null, null, null, "Flour", null)], [StepInput("Mix")]);
+            [new IngredientInputDto(null, null, null, "Flour", null)], [StepInput("Mix")], []);
 
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
@@ -818,7 +824,7 @@ public class RecipesControllerTests : IntegrationTestBase
     [SkippableFact]
     public async Task CreateRecipe_DraftWithZeroServings_ShouldReturn400()
     {
-        var command = new CreateRecipeCommand("Draft", null, null, null, 0, [], [], RecipeStatus.Draft);
+        var command = new CreateRecipeCommand("Draft", null, null, null, 0, [], [], [], RecipeStatus.Draft);
 
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
 
@@ -903,7 +909,7 @@ public class RecipesControllerTests : IntegrationTestBase
         Recipe draft = CompleteDraft();
         await SeedDatabase(published, draft);
         var update = new UpdateRecipeDto("Title", null, 10, 20, 4,
-            [new IngredientInputDto(null, null, null, "Flour", null)], [StepInput("Mix")]);
+            [new IngredientInputDto(null, null, null, "Flour", null)], [StepInput("Mix")], []);
 
         HttpResponseMessage publishedResponse =
             await Client.PutAsJsonAsync($"/api/recipes/{published.Id}", update, JsonOptions);
@@ -914,4 +920,135 @@ public class RecipesControllerTests : IntegrationTestBase
         (await publishedResponse.Content.ReadAsStringAsync()).Should().Contain("description");
         draftResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
+
+    #region Tags (R-20, spec 014)
+
+    private static CreateRecipeCommand Tagged(params string[] tags) =>
+        new("Tagged", null, null, null, null, [], [], [.. tags], RecipeStatus.Draft);
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithTags_ShouldStoreThemNormalisedAndInOrder()
+    {
+        RecipeDto created = await PostRecipe(Tagged("  Roast ", "roast", "Feeds   A Table"));
+
+        created.Tags.Should().Equal("roast", "feeds a table");
+
+        DbContext.ChangeTracker.Clear();
+        Recipe stored = await DbContext.Recipes.SingleAsync(r => r.Id == created.Id);
+        stored.Tags.Should().Equal("roast", "feeds a table");
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithNoTags_ShouldReturnAnEmptyList()
+    {
+        (await PostRecipe(Tagged())).Tags.Should().BeEmpty();
+    }
+
+    [SkippableTheory]
+    [InlineData("[null]")]
+    [InlineData("null")]
+    public async Task CreateRecipe_WithNullTags_ShouldReturn400(string tags)
+    {
+        var json = new StringContent($$"""
+            { "title": "Null tags", "status": "Draft", "ingredients": [], "instructions": [], "tags": {{tags}} }
+            """, System.Text.Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await Client.PostAsync("/api/recipes", json);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().ContainEquivalentOf("tags");
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithoutATagsKey_ShouldReturn400NamingTags()
+    {
+        // An old client's body. Which layer rejects it — MVC's implicit [Required] for a non-nullable reference,
+        // or FluentValidation's NotNull — is what this test pins; either way it must name the field.
+        var json = new StringContent("""
+            { "title": "No tags key", "status": "Draft", "ingredients": [], "instructions": [] }
+            """, System.Text.Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await Client.PostAsync("/api/recipes", json);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().ContainEquivalentOf("tags");
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithTwentyOneTags_ShouldReturn400()
+    {
+        string[] tags = [.. Enumerable.Range(0, 21).Select(i => $"tag{i}")];
+
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", Tagged(tags), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithAFortyOneCharacterTag_ShouldReturn400()
+    {
+        HttpResponseMessage response =
+            await Client.PostAsJsonAsync("/api/recipes", Tagged(new string('x', 41)), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithABlankTag_ShouldReturn422OnTags_EvenAsADraft()
+    {
+        HttpResponseMessage response =
+            await Client.PostAsJsonAsync("/api/recipes", Tagged("roast", "   "), JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("tags");
+    }
+
+    [SkippableFact]
+    public async Task UpdateRecipe_WithTags_ShouldReplaceTheWholeList()
+    {
+        RecipeDto created = await PostRecipe(Tagged("roast", "chicken"));
+        var update = new UpdateRecipeDto("Tagged", null, null, null, null, [], [], ["Weeknight"]);
+
+        HttpResponseMessage response =
+            await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        DbContext.ChangeTracker.Clear();
+        (await DbContext.Recipes.SingleAsync(r => r.Id == created.Id)).Tags.Should().Equal("weeknight");
+    }
+
+    [SkippableFact]
+    public async Task UpdateRecipe_WithABlankTag_ShouldReturn422AndLeaveTheTagsUnchanged()
+    {
+        RecipeDto created = await PostRecipe(Tagged("roast"));
+        var update = new UpdateRecipeDto("Tagged", null, null, null, null, [], [], ["weeknight", " "]);
+
+        HttpResponseMessage response =
+            await Client.PutAsJsonAsync($"/api/recipes/{created.Id}", update, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        DbContext.ChangeTracker.Clear();
+        (await DbContext.Recipes.SingleAsync(r => r.Id == created.Id)).Tags.Should().Equal("roast");
+    }
+
+    // The one thing no unit test can see: that the bounds exist in the real schema, so a write that bypasses
+    // the API (psql, a future bulk import — R-24) still cannot store an oversize tag list.
+    [SkippableTheory]
+    [InlineData("ARRAY[repeat('x', 41)]", PostgresErrorCodes.StringDataRightTruncation)]
+    [InlineData("array_fill('t'::varchar, ARRAY[21])", PostgresErrorCodes.CheckViolation)]
+    public async Task RawSql_OverTheTagLimits_ShouldBeRejectedByPostgres(string tagsSql, string sqlState)
+    {
+        RecipeDto created = await PostRecipe(Tagged("roast"));
+
+        // The SQL fragment is a SQL expression from InlineData constants, not user input, so it cannot be a
+        // parameter; the id still is one.
+#pragma warning disable EF1003
+        Func<Task> act = () => DbContext.Database.ExecuteSqlRawAsync(
+            "UPDATE \"Recipes\" SET \"Tags\" = " + tagsSql + " WHERE \"Id\" = {0}", created.Id);
+#pragma warning restore EF1003
+
+        (await act.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(sqlState);
+    }
+
+    #endregion
 }

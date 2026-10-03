@@ -14,5 +14,6 @@ public class UpdateRecipeDtoValidator : AbstractValidator<UpdateRecipeDto>
         RuleFor(x => x.Servings).ValidateServings();
         RuleFor(x => x.Ingredients).ValidateIngredients();
         RuleFor(x => x.Instructions).ValidateInstructions();
+        RuleFor(x => x.Tags).ValidateTags();
     }
 }

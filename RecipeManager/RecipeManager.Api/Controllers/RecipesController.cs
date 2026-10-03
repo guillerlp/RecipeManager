@@ -86,7 +86,7 @@ public class RecipesController : ControllerBase
         _logger.LogInformation($"Updating recipe with ID {id}...");
 
         UpdateRecipeCommand command = new(id, dto.Title, dto.Description, dto.PreparationTime, dto.CookingTime,
-            dto.Servings, dto.Ingredients, dto.Instructions);
+            dto.Servings, dto.Ingredients, dto.Instructions, dto.Tags);
 
         Result result = await _commandDispatcher.Dispatch<UpdateRecipeCommand, Result>(command, cancellationToken);
 

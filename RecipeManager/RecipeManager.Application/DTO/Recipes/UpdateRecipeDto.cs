@@ -7,5 +7,6 @@ public record UpdateRecipeDto(
     int? CookingTime,
     int? Servings,
     List<IngredientInputDto> Ingredients,
-    List<InstructionStepInputDto> Instructions
+    List<InstructionStepInputDto> Instructions,
+    List<string> Tags
 );

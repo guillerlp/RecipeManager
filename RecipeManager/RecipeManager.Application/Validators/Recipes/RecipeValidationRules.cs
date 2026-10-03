@@ -66,4 +66,20 @@ public static class RecipeValidationRules
                 .NotNull().WithMessage("Instruction steps cannot be null")
                 .SetValidator(new InstructionStepInputDtoValidator()));
     }
+
+    // Limits apply to the raw input: normalising is the domain's rule (spec 014 §6), and a validator that
+    // normalised first would duplicate it. The Must is null-safe because rules here run with the default
+    // Continue cascade (Cascade() is not reachable from an IRuleBuilder), so a null list still reaches it after
+    // failing NotNull; ForEach skips a null collection. Per item, NotNull for the reason ValidateInstructions
+    // gives: MVC's implicit-required check covers properties, not list elements.
+    public static IRuleBuilderOptions<T, IEnumerable<string>> ValidateTags<T>(
+        this IRuleBuilder<T, List<string>> ruleBuilder)
+    {
+        return ruleBuilder
+            .NotNull().WithMessage("Tags list cannot be null")
+            .Must(list => list is null || list.Count <= 20).WithMessage("Cannot exceed 20 tags")
+            .ForEach(tag => tag
+                .NotNull().WithMessage("Tags cannot be null")
+                .MaximumLength(40).WithMessage("A tag cannot exceed 40 characters"));
+    }
 }

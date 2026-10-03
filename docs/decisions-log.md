@@ -39,11 +39,11 @@ Jump to every entry touching a topic.
 | Layering / dependency direction | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain) |
 | Error handling | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
 | Caching | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
-| Domain modelling | [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
-| Persistence / EF Core | [2026-10-02 Enum default](#2026-10-02--an-enums-first-member-is-everybodys-default), [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Domain modelling | [2026-10-03 Tags storage](#2026-10-03--choose-storage-by-the-query-you-will-run-and-write-down-the-one-that-would-reverse-it), [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
+| Persistence / EF Core | [2026-10-03 Tags storage](#2026-10-03--choose-storage-by-the-query-you-will-run-and-write-down-the-one-that-would-reverse-it), [2026-10-02 Enum default](#2026-10-02--an-enums-first-member-is-everybodys-default), [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Testing | [2026-10-02 WSL2 for Smart App Control](#2026-10-02--move-the-process-not-the-policy), [2026-09-26 Tests skip CSS](#2026-09-26--a-green-test-suite-said-nothing-about-the-stylesheet), [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
-| Tooling / infrastructure | [2026-10-02 WSL2 for Smart App Control](#2026-10-02--move-the-process-not-the-policy), [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Tooling / infrastructure | [2026-10-03 Style gate line endings](#2026-10-03--a-style-gate-must-see-the-same-bytes-ci-sees), [2026-10-02 WSL2 for Smart App Control](#2026-10-02--move-the-process-not-the-policy), [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Enforcement vs. convention | [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Dependency management | [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
 | Frontend / React | [2026-09-26 Row is a link](#2026-09-26--a-row-that-goes-somewhere-is-a-link-whatever-the-component-already-supports), [2026-09-26 Tests skip CSS](#2026-09-26--a-green-test-suite-said-nothing-about-the-stylesheet), [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
@@ -53,6 +53,52 @@ Jump to every entry touching a topic.
 ---
 
 ## Entries
+
+### 2026-10-03 — Choose storage by the query you will run, and write down the one that would reverse it
+
+**Context.** `R-20` (ADR-026, [spec 014](specs/014-recipe-tags.md)) adds freeform tags to `Recipe`. The roadmap
+framed the choice as ADR-022's again: a `text[]` primitive collection or an owned child table.
+
+**Decision.** A `character varying(40)[]` on `"Recipes"` with `CHECK (cardinality("Tags") <= 20)`, normalised
+inside the aggregate (trim, collapse whitespace, lowercase, dedupe keeping the first). Filtering by tag stays
+client-side until `R-11`.
+
+**Rejected.** An owned `"RecipeTags"` child table — what `Ingredients` and `Instructions` use — buys a B-tree index
+and a database-enforced unique constraint. A competent engineer choosing it would be optimising for "every recipe
+tagged roast" as a SQL query. That query is not being run: the owner chose client-side filtering for now, and
+ADR-022's own test for a table (each element needs fields of its own) is not met by a plain string. A GIN index
+"for later" was rejected too: it costs on every write for a query nothing issues yet.
+
+**Cost.** The count limit lives in a `CHECK` because PostgreSQL silently ignores array dimensions —
+`varchar(40)[20]` is accepted and enforces nothing — so EF knows the rule only by its name. When the server-side
+filter arrives it needs a GIN index, not an ordinary one, and renaming a tag everywhere is `array_replace` outside
+the aggregate.
+
+**Takeaway.** *Pick storage by the queries you will actually run, and record the specific query that would reverse
+the choice.* Here it is "filter by tag on the server" — so `R-11` is where this is re-checked with evidence, not
+re-litigated from taste.
+
+### 2026-10-03 — A style gate must see the same bytes CI sees
+
+**Context.** Building `R-20` on Windows under Smart App Control meant running `dotnet` from WSL2 against the
+Windows checkout through `/mnt/c`. The build failed with `IDE0055` on lines nobody had touched.
+
+**Decision.** That checkout is CRLF (`core.autocrlf=true`), and Roslyn on Linux reports some of those CRs, next to
+comment trivia, as formatting errors that CI — an LF checkout — never sees. Tests run against `/mnt/c` with
+`-p:EnforceCodeStyleInBuild=false`; the style gate (`dotnet build` with code style enforced) runs on the committed
+branch in a throwaway LF clone inside WSL. The route the README documents — a separate WSL clone — avoids this by
+construction.
+
+**Rejected.** Treating the errors as real and reformatting: that would have "fixed" correct files into whatever the
+CRLF-confused analyser wanted, and produced a diff CI would then flag. Switching `core.autocrlf` off: a machine-wide
+setting changed to suit one workflow.
+
+**Cost.** Two places to run things, and a style error surfaces only after commit. Also found on the way:
+`dotnet format --verify-no-changes` fails on `main` with a spurious `CS8618` on `AppDbContext.Recipes`, so the
+build, not `dotnet format`, is the reliable style gate today.
+
+**Takeaway.** *A gate is only as good as its likeness to the gate that matters.* When a check fails on code nobody
+changed, first ask what differs between where it ran and where CI runs it — here, the line endings on disk.
 
 ### 2026-10-02 — An enum's first member is everybody's default
 

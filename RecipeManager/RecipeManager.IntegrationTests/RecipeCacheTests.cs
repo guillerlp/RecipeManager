@@ -58,7 +58,8 @@ public class RecipeCacheTests : IntegrationTestBase
             CookingTime: 20,
             Servings: 2,
             Ingredients: [new IngredientInputDto(null, null, null, "Ingredient A", null)],
-            Instructions: [StepInput("Step 1")]);
+            Instructions: [StepInput("Step 1")],
+            Tags: []);
 
         // ==================== ACT ====================
         HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
@@ -90,7 +91,7 @@ public class RecipeCacheTests : IntegrationTestBase
             25,
             3,
             [new IngredientInputDto(null, null, null, "Ingredient B", null)],
-            [StepInput("Step 1B")]);
+            [StepInput("Step 1B")], []);
 
         // ==================== ACT ====================
         HttpResponseMessage response = await Client.PutAsJsonAsync($"/api/recipes/{recipe.Id}", update, JsonOptions);

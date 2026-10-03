@@ -235,6 +235,7 @@
         "required": [
           "ingredients",
           "instructions",
+          "tags",
           "title"
         ],
         "type": "object",
@@ -271,6 +272,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InstructionStepInputDto"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           },
           "status": {
@@ -413,6 +420,7 @@
           "ingredients",
           "instructions",
           "status",
+          "tags",
           "title"
         ],
         "type": "object",
@@ -457,6 +465,12 @@
             "items": {
               "$ref": "#/components/schemas/InstructionStepDto"
             }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "additionalProperties": false
@@ -494,6 +508,7 @@
         "required": [
           "ingredients",
           "instructions",
+          "tags",
           "title"
         ],
         "type": "object",
@@ -530,6 +545,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InstructionStepInputDto"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           }
         },

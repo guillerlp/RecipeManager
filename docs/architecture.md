@@ -887,6 +887,28 @@ endpoint is anonymous and every recipe is world-writable. See
   step toward `R-11`'s key strategy; drafts are not private until `R-14`; rolling the migration back needs every
   draft published or deleted first.
 
+### ADR-026 — Tags are a bounded `varchar[]` on `"Recipes"`, normalised in the domain
+
+- **Status:** accepted (2026-10-03). Full detail: [specs/014-recipe-tags.md](specs/014-recipe-tags.md).
+- **Context:** `R-20`. The editorial design shows freeform tags on list rows, the detail kicker, and the form;
+  `Recipe` had nowhere to keep them (known limitation #6). Filtering by tag stays client-side until `R-11`.
+- **Decision:** `Recipe.Tags` is an `IReadOnlyList<string>` primitive collection mapped to
+  `character varying(40)[] NOT NULL`, with `CHECK (cardinality("Tags") <= 20)`; `ElementType(...).HasMaxLength(40)`
+  was enough for Npgsql to emit the bounded element type. `Recipe.Create`/`Update` normalise (trim, collapse
+  whitespace, lowercase, dedupe keeping the first) and reject a blank tag (`TagRequired`, 422, both tiers).
+  FluentValidation caps the raw input at 20 × 40 (400). `tags` is required on `POST`/`PUT`; in the domain it is
+  optional on `Create` (none is the truthful default) and required on `Update` (omission would clear it).
+- **Alternatives:** an owned `"RecipeTags"` child table (B-tree index and database-enforced dedupe — a third join
+  on every read for plain strings, and its index only pays off with server-side filtering); the same column plus a
+  GIN index now (write cost for a query nothing runs — `R-11` adds it with `?tag=`); a `Tag` aggregate or
+  catalogue (forces ADR-006's unit of work, contradicts "no ingredient catalogue"); a `Tag` value object (a value
+  converter per array element for one normaliser's worth of safety).
+- **Consequences:** one column, order for free, no join, bounded in the database from day one, so it adds nothing
+  to `SEC-08`. Harder: "every recipe tagged X" in SQL is `= ANY("Tags")`, a sequential scan until a GIN index
+  exists; renaming a tag everywhere needs `array_replace` outside the aggregate; the count cap is a `CHECK` EF
+  knows only by name, so changing it is a migration and a validator change in step. Capitalised tags ("BBQ") are
+  impossible by design. A request without `tags` is now a 400.
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001
