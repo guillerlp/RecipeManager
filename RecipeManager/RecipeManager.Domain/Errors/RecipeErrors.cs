@@ -60,6 +60,9 @@ public static class RecipeErrors
     public static Error InstructionIngredientNotFound() =>
         Validation("An instruction step references an ingredient that is not in this recipe").Field("instructions");
 
+    public static Error TagRequired() =>
+        Validation("Tags cannot be blank").Field("tags");
+
     private static Error Validation(string message) => new DomainError(message, ErrorKind.Validation);
 
     private static Error NotFound(string message) => new DomainError(message, ErrorKind.NotFound);

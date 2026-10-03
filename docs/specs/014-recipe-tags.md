@@ -67,9 +67,11 @@ shows on the list and detail screens and can filter by.
 - **New property on `Recipe`:** `Tags: IReadOnlyList<string>` over a private `List<string>` backing field,
   returned as a read-only copy (the `InstructionStep.IngredientIds` shape). Never null; existing rows get an
   empty list.
-- **Lifecycle:** `Create(..., IEnumerable<string> tags, RecipeStatus status = Published)` and
-  `Update(..., IEnumerable<string> tags)`. `Update` still mutates nothing when validation fails. `Publish` and
-  `Unpublish` do not touch tags.
+- **Lifecycle:** `Create(..., IEnumerable<InstructionStep> instructions, RecipeStatus status = Published,
+  IEnumerable<string>? tags = null)` — tags optional and last, because a new recipe with no tags is the truthful
+  default and 89 test call sites stay untouched; `Update(..., IEnumerable<string> tags)` — **required**, because an
+  omitted argument there would silently clear the tags. `Update` still mutates nothing when validation fails.
+  `Publish` and `Unpublish` do not touch tags.
 - **Normalisation** — a private static method on `Recipe`, applied before validation and storage, in this order:
   1. trim;
   2. collapse every run of internal whitespace to one space;
