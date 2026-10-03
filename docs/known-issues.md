@@ -81,6 +81,7 @@ kind of negative test.
 | [BUG-16](#bug-16) | Low | API | `"ingredients": [null]` reaches the handler and fails as a 500 instead of a 400 |
 | [BUG-18](#bug-18) | Low | Frontend | A converted amount just under a unit threshold shows as the threshold in the smaller unit ("16 oz") |
 | [BUG-19](#bug-19) | Low | API | A publish racing a `PUT` can store a published recipe with null fields (no concurrency token) |
+| [BUG-20](#bug-20) | Low | API | A NUL character in any text field returns 500 |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [TEST-08](#test-08) | Low | Tests | Servings reset between recipes is not pinned by a test |
@@ -466,6 +467,20 @@ Needs two clients racing on one recipe, so it cannot happen in today's single-us
 `DbUpdateConcurrencyException` into a 409 — the same change limitation #7 already asks for, now with a second reason.
 
 **Owner:** `02-senior-csharp` · **Effort:** ~2 h
+
+### BUG-20
+**A NUL character in any text field returns 500 — Low**
+
+Found in the `R-20` review (2026-10-03) and reproduced with a throwaway integration test: `POST /api/recipes`
+with `"title": "a\u0000b"`, or a tag `"a\u0000b"`, returns **500** with a `DbUpdateException` body. PostgreSQL
+rejects U+0000 in any `text`/`varchar` value, and nothing upstream rejects it first — FluentValidation checks only
+null and length. Every string field is affected (title, description, ingredient name and notes, step text, tags),
+and the 500 also leaks the exception type (`SEC-05`). A client error reported as a server error.
+
+**Fix.** One shared FluentValidation rule rejecting control characters (at least U+0000) on every string the API
+binds, returning 400 — shape, not a business rule.
+
+**Owner:** `02-senior-csharp` · **Effort:** ~1 h
 
 ---
 

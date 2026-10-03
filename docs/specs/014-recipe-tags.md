@@ -227,12 +227,13 @@ shows on the list and detail screens and can filter by.
 - **Integration tests** (`RecipesControllerTests`, Testcontainers): the round trip, the 400/422 cases, the `PUT`
   replacement, and a raw-SQL insert proving the element bound and the `CHECK` exist in the real schema —
   the one thing no unit test can see. Existing payload builders gain `tags`.
+- **Migration test** (`AddRecipeTagsMigrationTests`, the `AddRecipeStatusMigrationTests` pattern): migrate to
+  `AddRecipeStatus`, insert a row with raw SQL, migrate to head, and read it back through EF as `tags: []`.
 - **Contract test:** `OpenApiContractTests` snapshot regenerated.
 - **Vitest:** `RecipeCard` (first tag shown, none when empty), `RecipeDetailPage` (kicker links, encoded href,
   absent when empty), `RecipePage`/`RecipeList` (`?tag=` filter, AND with search, clear, search matches tags).
-- **Not covered, and why:** the back-fill of pre-existing rows is tested by reading a recipe seeded without
-  touching tags, not by running the migration against a pre-migration database — the suite always migrates to
-  head.
+- **Not covered, and why:** Unicode normalisation (NFC) and zero-width-only tags — deferred minors from the PR 1
+  review, not rules this spec sets.
 - **Manual verification:** create a tagged recipe through Swagger against local PostgreSQL; `\d "Recipes"` in
   psql shows `character varying(40)[]` and the check constraint; click a detail kicker tag in the SPA.
 

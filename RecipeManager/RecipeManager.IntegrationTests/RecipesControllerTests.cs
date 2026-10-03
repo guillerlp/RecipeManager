@@ -1031,19 +1031,6 @@ public class RecipesControllerTests : IntegrationTestBase
         (await DbContext.Recipes.SingleAsync(r => r.Id == created.Id)).Tags.Should().Equal("roast");
     }
 
-    [SkippableFact]
-    public async Task SeededRecipe_WithoutTouchingTags_ShouldReadBackAnEmptyList()
-    {
-        // Stands in for a row that existed before AddRecipeTags: the suite always migrates to head, so the
-        // back-fill itself is checked by reading the generated migration, not here.
-        Recipe recipe = Recipe.Create("Old row", null, null, null, null, [], [], RecipeStatus.Draft).Value;
-        await SeedDatabase(recipe);
-
-        HttpResponseMessage response = await Client.GetAsync($"/api/recipes/{recipe.Id}");
-
-        (await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!.Tags.Should().BeEmpty();
-    }
-
     // The one thing no unit test can see: that the bounds exist in the real schema, so a write that bypasses
     // the API (psql, a future bulk import — R-24) still cannot store an oversize tag list.
     [SkippableTheory]
