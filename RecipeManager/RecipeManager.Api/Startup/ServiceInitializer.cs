@@ -109,10 +109,12 @@ public static class ServiceInitializer
 
     public static IServiceCollection RegisterBuildersServices(this IServiceCollection services)
     {
+        // allowIntegerValues: false — the contract says enums are member names; accepting 5 or "5" would bind an
+        // undefined member (a status-5 recipe in neither list, a unit stored as "99") instead of returning 400.
         services.AddControllers()
             .AddJsonOptions(options =>
                 options.JsonSerializerOptions.Converters.Add(
-                    new JsonStringEnumConverter())
+                    new JsonStringEnumConverter(allowIntegerValues: false))
             );
         services.AddFluentValidationAutoValidation();
         return services;

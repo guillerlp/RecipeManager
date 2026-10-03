@@ -133,6 +133,45 @@ public class RecipeCacheTests : IntegrationTestBase
         recipes.Should().BeEmpty();
     }
 
+    [SkippableFact]
+    public async Task PublishRecipe_AfterBothListsWereCached_ShouldMoveItBetweenThem()
+    {
+        // ==================== ARRANGE ====================
+        Recipe draft = Recipe.Create("Ready", "Description", 10, 15, 4, [Ing("Ingredient A")], [Step("Step 1")],
+            RecipeStatus.Draft).Value;
+        await SeedDatabase(draft);
+
+        (await GetAllRecipes()).Should().BeEmpty();
+        (await GetAllRecipes("?status=Draft")).Should().ContainSingle();
+
+        // ==================== ACT ====================
+        HttpResponseMessage response = await Client.PostAsync($"/api/recipes/{draft.Id}/publish", null);
+
+        // ==================== ASSERT ====================
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await GetAllRecipes()).Should().ContainSingle().Which.Id.Should().Be(draft.Id);
+        (await GetAllRecipes("?status=Draft")).Should().BeEmpty();
+    }
+
+    [SkippableFact]
+    public async Task UnpublishRecipe_AfterBothListsWereCached_ShouldMoveItBetweenThem()
+    {
+        // ==================== ARRANGE ====================
+        Recipe recipe = CreateRecipe("Published");
+        await SeedDatabase(recipe);
+
+        (await GetAllRecipes()).Should().ContainSingle();
+        (await GetAllRecipes("?status=Draft")).Should().BeEmpty();
+
+        // ==================== ACT ====================
+        HttpResponseMessage response = await Client.PostAsync($"/api/recipes/{recipe.Id}/unpublish", null);
+
+        // ==================== ASSERT ====================
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await GetAllRecipes()).Should().BeEmpty();
+        (await GetAllRecipes("?status=Draft")).Should().ContainSingle().Which.Id.Should().Be(recipe.Id);
+    }
+
     private static Recipe CreateRecipe(string title) =>
         Recipe.Create(title, "Description", 10, 15, 4, [Ing("Ingredient A")], [Step("Step 1")]).Value;
 
@@ -143,9 +182,9 @@ public class RecipeCacheTests : IntegrationTestBase
     private static InstructionStepInputDto StepInput(string text, params int[] ingredientIndexes) =>
         new(text, null, [.. ingredientIndexes]);
 
-    private async Task<List<RecipeDto>> GetAllRecipes()
+    private async Task<List<RecipeDto>> GetAllRecipes(string query = "")
     {
-        HttpResponseMessage response = await Client.GetAsync("/api/recipes");
+        HttpResponseMessage response = await Client.GetAsync($"/api/recipes{query}");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         List<RecipeDto>? recipes = await response.Content.ReadFromJsonAsync<List<RecipeDto>>(JsonOptions);

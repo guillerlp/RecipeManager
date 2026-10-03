@@ -16,6 +16,7 @@ const getAllRecipes = vi.mocked(recipeService.getAllRecipes);
 const makeRecipe = (overrides: Partial<Recipe>): Recipe => ({
   id: '00000000-0000-0000-0000-000000000000',
   title: 'Untitled',
+  status: 'Published',
   description: '',
   preparationTime: 10,
   cookingTime: 20,

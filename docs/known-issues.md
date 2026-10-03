@@ -80,6 +80,7 @@ kind of negative test.
 | [BUG-15](#bug-15) | Medium | API | A client-supplied ingredient id can trigger a duplicate-key 500 on create, on update, or within one payload |
 | [BUG-16](#bug-16) | Low | API | `"ingredients": [null]` reaches the handler and fails as a 500 instead of a 400 |
 | [BUG-18](#bug-18) | Low | Frontend | A converted amount just under a unit threshold shows as the threshold in the smaller unit ("16 oz") |
+| [BUG-19](#bug-19) | Low | API | A publish racing a `PUT` can store a published recipe with null fields (no concurrency token) |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [TEST-08](#test-08) | Low | Tests | Servings reset between recipes is not pinned by a test |
@@ -93,7 +94,6 @@ kind of negative test.
 | [QUAL-02](#qual-02) | Low | Quality | `Console.WriteLine` used for startup logging |
 | [QUAL-04](#qual-04) | Low | Quality | Routes, verbs, and status codes are still hand-typed on the client |
 | [QUAL-05](#qual-05) | Low | Quality | Frontend indentation is mixed and no formatter enforces it |
-| [UX-05](#ux-05) | Medium | UX | The canonical design says only the title is required; the domain requires more |
 | [UX-06](#ux-06) | Medium | UX | `--rule` is a decorative hairline, not a control boundary |
 | [UX-07](#ux-07) | Low | UX | No visual-regression tooling |
 | [UX-10](#ux-10) | Low | UX | Recipe detail Retry gives no in-progress feedback |
@@ -445,6 +445,23 @@ just-below case at each of the four thresholds in `units.test.ts`.
 
 **Owner:** `03-senior-react` · **Effort:** ~30 min
 
+### BUG-19
+**A publish racing a `PUT` can store a published recipe with null fields — Low**
+
+Found in the `R-19` review (2026-10-02). There is no concurrency token on `Recipe` (known limitation #7). Request A
+(`POST …/publish`) loads a complete draft, validates it, and sets `Status`; request B (`PUT` on the same,
+still-draft recipe) passes the draft tier with `description: null`. EF writes only each request's changed columns,
+so both commits land: `Published` with `Description = NULL`. Until now a race only lost an update; with two rule
+tiers it can store a row that breaks the published invariants — the list shows the placeholder description and a
+"0 min" total, and every later `PUT` is rejected until the recipe is completed.
+
+Needs two clients racing on one recipe, so it cannot happen in today's single-user, undeployed app.
+
+**Fix.** Map PostgreSQL's `xmin` as a concurrency token (`UseXminAsConcurrencyToken()`) and turn
+`DbUpdateConcurrencyException` into a 409 — the same change limitation #7 already asks for, now with a second reason.
+
+**Owner:** `02-senior-csharp` · **Effort:** ~2 h
+
 ---
 
 ## Testing gaps
@@ -636,21 +653,6 @@ suite to fix one file's typing.
 
 ## UX & accessibility
 
-### UX-05
-**The canonical design states a validation rule the domain does not enforce — Medium**
-
-The editorial design's Add/Edit screen (3d, see [agents/07-ux-ui.md](agents/07-ux-ui.md#canonical-design-reference))
-says: "Nothing here is required except the title — the same rule your validator already enforces." That is
-false. `Recipe.ValidateProperties` also requires a description, at least one non-zero time, `Servings >= 1`, and
-at least one ingredient and one instruction ([domain-model.md](domain-model.md#invariants-recipevalidateproperties)).
-A form built to the design as drawn would let the user save something the API rejects with 422.
-
-This is contract drift of a new kind. It sits between the design and the domain rather than between the C# and
-TypeScript types, so neither `R-09`'s generated types nor any test can catch it.
-
-**Fix.** `R-19` (draft recipes) makes the claim true for drafts. Until it ships, `R-21` must not be built to the
-design's copy. Update the design's helper text when `R-19` lands, so it describes drafts and publishing.
-
 ### UX-06
 **`--rule` is a decorative hairline, not a control boundary — Medium**
 
@@ -836,7 +838,7 @@ Decisions that were open and are now answered, kept so they are not re-litigated
 | Ingredients: keep free text or structure them? | **Structure them.** The `string[]` shape was an acknowledged temporary shortcut. **Shipped 2026-09-24** as `R-10`, which is consequently gone from the roadmap. | ADR-022, [spec 010](specs/010-structured-ingredients.md) |
 | Ingredients: shared catalogue or owned by the recipe? | **Owned by the recipe.** No second aggregate, so ADR-006 (no unit of work) still holds. The cost is that "tomato" and "tomatoes" are unrelated names. Settled 2026-09-19; **shipped 2026-09-24**. Note the wording "as value objects" recorded here was superseded before it was built: ADR-022 made `Ingredient` an owned **entity** with its own `Guid Id`, because indices are not stable references for `R-17`'s steps. Ownership was the part that was settled; the value-object phrasing was not. | ADR-022, [spec 010](specs/010-structured-ingredients.md) |
 | `DEC-06` — follow the OS colour-scheme preference on first visit? | **Yes, as an explicit choice, and now implemented.** Settled 2026-09-19 by the editorial design (screen 3e); **implemented the same day in PR 1 of `R-16`**: `ThemePreference` (`light`/`dark`/`system`, persisted) is now separate from the derived `Theme` (`light`/`dark`, rendered), `ThemeProvider` subscribes to `prefers-color-scheme` so `system` follows the OS live, and a visitor with nothing stored defaults to `system` rather than `light`. The segmented Light/Dark/System control itself, and its move into Settings, **shipped 2026-09-20 in `R-16` PR 3**: `ThemeControl` (three native radios in a `role="radiogroup"` fieldset) now lives in `ProfilePage`, the footer's binary switch is deleted, and `toggleTheme` is gone from the context. | ADR-021, `R-16` |
-| Only a title required (design) vs. full invariants (domain)? | **Draft recipes**: an explicit Draft/Published status, where drafts need only a title. Chosen over drafting only in the browser, and over relaxing the aggregate. Settled 2026-09-19. | `R-19`, `UX-05` |
+| Only a title required (design) vs. full invariants (domain)? | **Draft recipes**: an explicit Draft/Published status, where drafts need only a title. Chosen over drafting only in the browser, and over relaxing the aggregate. Settled 2026-09-19; **shipped 2026-10-02**, closing `UX-05`. | ADR-025, [spec 013](specs/013-draft-recipes.md) |
 | CQRS: hand-rolled or MediatR? | **Keep hand-rolled**, and remove its one real drawback by auto-registering handlers with Scrutor (already a dependency). **Shipped 2026-08-03.** | ADR-001, ADR-008 |
 | Integration tests: EF InMemory or a real database? | **Testcontainers with real PostgreSQL.** Deferred until CI existed, since it needs Docker in both places; ADR-013 provided it. **Shipped 2026-09-17**, closing `TEST-06`: one container per test assembly, a database per test class, schema by `Database.Migrate()`, and a skip rather than a failure when Docker is missing. | ADR-017, `R-06` |
 | `BUILD-01`, `BUILD-02` — 7 backend build warnings | **Fixed**, and made unrepeatable by `TreatWarningsAsErrors` in `Directory.Build.props`. **Shipped 2026-08-04.** | ADR-010 |

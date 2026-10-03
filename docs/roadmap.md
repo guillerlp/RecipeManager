@@ -86,6 +86,10 @@ payload** and responses carry ids. `R-23` is now waiting only on `R-22`.
 `BUG-07` and `BUG-10`; then the As written / Metric / Imperial preference and client-side conversion, closing
 `BUG-17`. Its entry is gone from this file.
 
+`R-19` (draft recipes) shipped 2026-10-02 as **ADR-025** ([spec 013](specs/013-draft-recipes.md)), closing
+`UX-05`: a Draft/Published status that selects the rule tier, `publish`/`unpublish` endpoints, and `?status=` on
+the list. Its entry is gone from this file.
+
 Build order. Each item names what it waits on, so a later item can move up if its dependencies are met:
 
 | Order | Item | Waits on |
@@ -93,9 +97,9 @@ Build order. Each item names what it waits on, so a later item can move up if it
 | ~~1~~ | ~~`R-10` Structured ingredients~~ — **shipped 2026-09-24**, ADR-022 | — |
 | ~~2~~ | ~~`R-17` Structured instructions~~ — **shipped 2026-09-26**, ADR-023 | — |
 | ~~3~~ | ~~`R-18` Recipe detail screen~~ — **shipped 2026-09-26**, ADR-024 | — |
-| 4 | `R-19` Draft recipes | ~~`R-10`~~ — none |
+| ~~4~~ | ~~`R-19` Draft recipes~~ — **shipped 2026-10-02**, ADR-025 | — |
 | 5 | `R-20` Tags | — |
-| 6 | `R-21` Add/edit form | ~~`R-10`~~, ~~`R-17`~~, `R-19`, `R-20` |
+| 6 | `R-21` Add/edit form | ~~`R-10`~~, ~~`R-17`~~, ~~`R-19`~~, `R-20` |
 | 7 | `R-22` Cook log | — |
 | 8 | `R-23` Cooking mode | ~~`R-17`~~, `R-22` |
 | 9 | `R-24` Export and import | `SEC-08`, ~~`SEC-09`~~ |
@@ -103,19 +107,6 @@ Build order. Each item names what it waits on, so a later item can move up if it
 `R-11`, `R-12`, `R-13`, and `R-14` keep their IDs and are unordered relative to the list above; each notes what
 the design asks of it. `R-13` is worth doing early, since every screen above is easier to check against realistic
 data.
-
-### R-19
-**Draft recipes** · `01-architect` (ADR required) → `02-senior-csharp` → full stack · ~1 day
-
-The design lets a recipe be saved with only a title and finished later. Today `Recipe.ValidateProperties`
-also requires a description, a non-zero time, servings, and at least one ingredient and one step (`UX-05`).
-Decided 2026-09-19: add an explicit Draft/Published status. A draft needs only a title. The full invariants
-apply on publish and on every update to a published recipe.
-
-The ADR must decide whether drafts appear in `GET /api/recipes` (and the `recipes_all` cache key), whether a
-published recipe can return to draft, and what the existing rows become (published, since they already
-satisfy the full invariants). The rejected alternatives were keeping the rules and drafting in the browser
-only, and relaxing the aggregate to require only a title.
 
 ### R-20
 **Tags** · `01-architect` → full stack · ~1 day
@@ -142,8 +133,11 @@ references are sent as indexes, read as ids** (ADR-023): at submit time, transla
 ingredient ids into indexes into the exact `ingredients` array being sent in that request. `number[]` against
 `string[]` stops a direct copy, but nothing stops an index computed against a stale array. It should echo each
 ingredient's `id` so ingredients keep their identity, though step references no longer depend on it. And it must
-not invent ids, because nothing server-side validates that one belongs to the recipe (`BUG-15`). "Draft saved" in the design depends on `R-19`. The photo field depends on
-`R-12`.
+not invent ids, because nothing server-side validates that one belongs to the recipe (`BUG-15`). "Draft saved" is
+backed by `R-19` (ADR-025): create with `status: "Draft"`, `PUT` freely while it is a draft, then
+`POST /api/recipes/{id}/publish` — a 422 from publish lists every missing field, so the form can mark them all.
+Wire the existing `publishRecipe`/`unpublishRecipe` service methods, and update the design's helper text to
+describe drafts and publishing (`UX-05`'s follow-up). The photo field depends on `R-12`.
 
 ### R-22
 **Cook log** · `01-architect` (ADR required) → full stack · ~1–2 days
@@ -187,9 +181,9 @@ after `R-11`, or accept that cost explicitly. Split out of `R-18` on 2026-09-26 
 `GET /api/recipes` returns the entire table, unpaginated, mapped in full, cached under a single `IMemoryCache`
 key (`SEC-07`), and the SPA filters it in the browser. This is fine at 20 recipes and untenable at 2,000.
 
-Design the pagination contract and the cache-key strategy **together** — paginating invalidates the current
-single-key `recipes_all` approach. Ingredient search is now a join against the `"RecipeIngredients"` child table
-(ADR-022) rather than an array scan, so it is an ordinary indexable SQL query — which is precisely why ADR-022
+Design the pagination contract and the cache-key strategy **together** — paginating multiplies the current
+per-status `recipes_{status}` keys (ADR-025), and `?status=` is already the first filter on the endpoint.
+Ingredient search is now a join against the `"RecipeIngredients"` child table (ADR-022) rather than an array scan, so it is an ordinary indexable SQL query — which is precisely why ADR-022
 rejected `jsonb`. Note that `R-10` **worsened `SEC-07` in degree**: each recipe's payload grew, and this
 endpoint is still unpaginated.
 
@@ -245,7 +239,9 @@ definition of ready-to-deploy. Re-read this list before the first deployment.
 `R-14` **Authentication and ownership** · `01-architect` + `05-security-reviewer` · ~3–5 days — the largest
 single item on this list. Requires choosing the identity source (ASP.NET Core Identity vs. an external IdP),
 adding a `User` aggregate, adding `OwnerId` to `Recipe` with a migration for existing rows, filtering every
-query, and wiring auth through the SPA. Do not start it as a side effect of another feature. The editorial
+query, and wiring auth through the SPA. The ownership filter must combine with `R-19`'s status filter, not sit
+beside it: until then drafts are listable by anyone with `?status=Draft` (ADR-025), and the per-status cache keys
+become per-owner-and-status. Do not start it as a side effect of another feature. The editorial
 design reserves an "Account" block in Profile & settings (design screen 3e), shown disabled until this exists.
 
 ---

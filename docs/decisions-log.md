@@ -40,7 +40,7 @@ Jump to every entry touching a topic.
 | Error handling | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
 | Caching | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
 | Domain modelling | [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
-| Persistence / EF Core | [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Persistence / EF Core | [2026-10-02 Enum default](#2026-10-02--an-enums-first-member-is-everybodys-default), [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Testing | [2026-10-02 WSL2 for Smart App Control](#2026-10-02--move-the-process-not-the-policy), [2026-09-26 Tests skip CSS](#2026-09-26--a-green-test-suite-said-nothing-about-the-stylesheet), [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
 | Tooling / infrastructure | [2026-10-02 WSL2 for Smart App Control](#2026-10-02--move-the-process-not-the-policy), [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
@@ -48,11 +48,41 @@ Jump to every entry touching a topic.
 | Dependency management | [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies) |
 | Frontend / React | [2026-09-26 Row is a link](#2026-09-26--a-row-that-goes-somewhere-is-a-link-whatever-the-component-already-supports), [2026-09-26 Tests skip CSS](#2026-09-26--a-green-test-suite-said-nothing-about-the-stylesheet), [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-09-13 Remove MUI](#2026-09-13--remove-a-dependency-whose-footprint-is-smaller-than-its-upgrade), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
 | Accessibility | [2026-09-26 Row is a link](#2026-09-26--a-row-that-goes-somewhere-is-a-link-whatever-the-component-already-supports), [2026-09-20 Two-file convention](#2026-09-20--a-convention-that-spans-two-files-cannot-be-reviewed-in-one), [2026-09-20 Design file as proposal](#2026-09-20--a-design-file-is-a-proposal-about-colour-not-a-verdict), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical) |
-| API contract | [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript) |
+| API contract | [2026-10-02 Enum default](#2026-10-02--an-enums-first-member-is-everybodys-default), [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript) |
 
 ---
 
 ## Entries
+
+### 2026-10-02 — An enum's first member is everybody's default
+
+**Context.** `R-19` (ADR-025) added `RecipeStatus { Draft, Published }` and a migration that back-fills existing
+rows as `'Published'`. Two places would have used a default silently: an EF `HasDefaultValue(Published)` in the
+model, and an unbound `?status=` query parameter.
+
+**Decision.** The `'Published'` default lives only in the migration SQL, never in the EF model, and the list
+action's parameter carries an explicit `= RecipeStatus.Published` plus `EnumDataType`. All three cases are pinned
+by tests: `DraftRecipe_ShouldBeStoredAsDraft_NotAsTheColumnDefault`, `GetAllRecipes_ShouldExcludeDrafts`, and
+`GetRecipes_WithUnknownStatus_ShouldReturn400` (`"Archived"` and `"5"`).
+
+**Rejected.** Declaring the default in the model "to match the database" — EF then treats the CLR default
+(`Draft` = 0) as "not set", omits it from the `INSERT`, and the column default stores every draft as Published.
+Reordering the enum so `Published` is 0 — it moves the trap rather than removing it: a forgotten assignment would
+then publish something unfinished.
+
+**Cost.** The model snapshot and the database disagree about the column default, on purpose; a reader comparing
+them needs the comment in `RecipeConfiguration` to know why.
+
+A second lesson from the same migration. The plan said its `Down` would *fail* once a draft held a null. Generating
+the SQL showed the opposite: Npgsql's scaffolded rollback first runs `UPDATE … SET "Servings" = 0 WHERE
+"Servings" IS NULL` (and `''` for the description), then restores `NOT NULL` — so it would have *succeeded*,
+turning every draft into a "complete" recipe with 0 servings and no status. `Down` now raises while any draft
+exists, pinned by a test that watched the unguarded version succeed.
+
+**Takeaway.** *`default(T)` for an enum is its first member, and frameworks reach for it whenever a value is
+"missing"* — an ORM sentinel, an unbound parameter, a deserialised absent field. Decide what "missing" means at
+each boundary explicitly, and test the absent case, not just the present one. And *read the SQL a migration
+generates before writing down what it does* — a scaffolded `Down` is a guess about your data, not a rollback plan.
 
 ### 2026-10-02 — Move the process, not the policy
 

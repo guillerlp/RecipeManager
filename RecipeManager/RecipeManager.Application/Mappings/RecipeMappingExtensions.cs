@@ -10,6 +10,7 @@ public static class RecipeMappingExtensions
         return new RecipeDto(
             recipe.Id,
             recipe.Title,
+            recipe.Status,
             recipe.Description,
             recipe.PreparationTime,
             recipe.CookingTime,

@@ -1,10 +1,12 @@
-﻿using FluentResults;
+﻿using System.ComponentModel.DataAnnotations;
+using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using RecipeManager.Api.Extensions;
 using RecipeManager.Application.Commands.Recipes;
 using RecipeManager.Application.Common.Interfaces.Messaging;
 using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Application.Queries.Recipes;
+using RecipeManager.Domain.Entities;
 
 namespace RecipeManager.Api.Controllers;
 
@@ -25,12 +27,15 @@ public class RecipesController : ControllerBase
         _commandDispatcher = commandDispatcher;
     }
 
+    // The default matters: an unbound enum would be default(RecipeStatus) = Draft, making the public list the
+    // draft list. EnumDataType rejects ?status=5, which would otherwise bind as an undefined member.
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<RecipeDto>>> Get(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<RecipeDto>>> Get(CancellationToken cancellationToken,
+        [FromQuery, EnumDataType(typeof(RecipeStatus))] RecipeStatus status = RecipeStatus.Published)
     {
         _logger.LogInformation("Fetching all recipes...");
 
-        GetAllRecipesQuery query = new();
+        GetAllRecipesQuery query = new(status);
         IEnumerable<RecipeDto> recipes =
             await _queryDispatcher.Dispatch<GetAllRecipesQuery, IEnumerable<RecipeDto>>(query, cancellationToken);
 
@@ -84,6 +89,28 @@ public class RecipesController : ControllerBase
             dto.Servings, dto.Ingredients, dto.Instructions);
 
         Result result = await _commandDispatcher.Dispatch<UpdateRecipeCommand, Result>(command, cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    [HttpPost("{id:guid}/publish")]
+    public async Task<IActionResult> Publish([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation($"Publishing recipe with ID {id}...");
+
+        Result result = await _commandDispatcher.Dispatch<PublishRecipeCommand, Result>(
+            new PublishRecipeCommand(id), cancellationToken);
+
+        return result.ToActionResult();
+    }
+
+    [HttpPost("{id:guid}/unpublish")]
+    public async Task<IActionResult> Unpublish([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation($"Unpublishing recipe with ID {id}...");
+
+        Result result = await _commandDispatcher.Dispatch<UnpublishRecipeCommand, Result>(
+            new UnpublishRecipeCommand(id), cancellationToken);
 
         return result.ToActionResult();
     }

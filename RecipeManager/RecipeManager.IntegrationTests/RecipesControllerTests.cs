@@ -703,4 +703,215 @@ public class RecipesControllerTests : IntegrationTestBase
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    private static Recipe DraftRecipe(string title = "Half-written") =>
+        Recipe.Create(title, null, null, null, null, [], [], RecipeStatus.Draft).Value;
+
+    [SkippableFact]
+    public async Task DraftRecipe_ShouldBeStoredAsDraft_NotAsTheColumnDefault()
+    {
+        // The migration's column default is 'Published'. Were that default also declared in the EF model, EF
+        // would treat Draft (the enum's CLR default, 0) as "unset", omit it from the INSERT, and let the
+        // database store every draft as Published.
+        Recipe draft = DraftRecipe();
+        await SeedDatabase(draft);
+
+        string status = await DbContext.Database
+            .SqlQuery<string>($"""SELECT "Status" AS "Value" FROM "Recipes" WHERE "Id" = {draft.Id}""")
+            .SingleAsync();
+
+        status.Should().Be("Draft");
+    }
+
+    [SkippableFact]
+    public async Task GetAllRecipes_ShouldExcludeDrafts()
+    {
+        Recipe published = Recipe.Create("Published", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")]).Value;
+        await SeedDatabase(published, DraftRecipe());
+
+        List<RecipeDto>? recipes = await Client.GetFromJsonAsync<List<RecipeDto>>("/api/recipes", JsonOptions);
+
+        recipes.Should().ContainSingle().Which.Id.Should().Be(published.Id);
+    }
+
+    private static Recipe CompleteDraft() =>
+        Recipe.Create("Ready", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")], RecipeStatus.Draft).Value;
+
+    private static Recipe PublishedRecipe() =>
+        Recipe.Create("Published", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")]).Value;
+
+    private async Task<List<RecipeDto>> GetList(string query = "")
+    {
+        HttpResponseMessage response = await Client.GetAsync($"/api/recipes{query}");
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        return (await response.Content.ReadFromJsonAsync<List<RecipeDto>>(JsonOptions))!;
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_AsADraftWithOnlyATitle_ShouldReturn201AndStayOutOfTheDefaultList()
+    {
+        var command = new CreateRecipeCommand("Half-written", null, null, null, null, [], [], RecipeStatus.Draft);
+
+        RecipeDto created = await PostRecipe(command);
+
+        created.Status.Should().Be(RecipeStatus.Draft);
+        created.Servings.Should().BeNull();
+        (await GetList()).Should().BeEmpty();
+        (await GetList("?status=Draft")).Should().ContainSingle().Which.Id.Should().Be(created.Id);
+        (await Client.GetAsync($"/api/recipes/{created.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_WithoutAStatusField_ShouldBePublished()
+    {
+        // Raw JSON, so the request genuinely has no "status" key — today's clients send exactly this.
+        var json = new StringContent("""
+            {
+              "title": "Back-compat", "description": "Description",
+              "preparationTime": 5, "cookingTime": 5, "servings": 2,
+              "ingredients": [{ "id": null, "quantity": null, "unit": null, "name": "Flour", "notes": null }],
+              "instructions": [{ "text": "Step", "durationMinutes": null, "ingredientIndexes": [] }]
+            }
+            """, System.Text.Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await Client.PostAsync("/api/recipes", json);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await response.Content.ReadFromJsonAsync<RecipeDto>(JsonOptions))!.Status.Should().Be(RecipeStatus.Published);
+    }
+
+    // JsonStringEnumConverter accepts integers by default, so without allowIntegerValues: false these bind to an
+    // undefined member: a status-5 recipe lands in neither list, and a unit-99 ingredient stores "99".
+    [SkippableTheory]
+    [InlineData("5", "null", "status")]
+    [InlineData("\"5\"", "null", "status")]
+    [InlineData("\"Draft\"", "99", "unit")]
+    public async Task CreateRecipe_WithANumericEnumValue_ShouldReturn400(string status, string unit, string field)
+    {
+        var json = new StringContent($$"""
+            {
+              "title": "Numeric enum", "status": {{status}},
+              "ingredients": [{ "id": null, "quantity": 1, "unit": {{unit}}, "name": "Flour", "notes": null }],
+              "instructions": []
+            }
+            """, System.Text.Encoding.UTF8, "application/json");
+
+        HttpResponseMessage response = await Client.PostAsync("/api/recipes", json);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await response.Content.ReadAsStringAsync()).Should().ContainEquivalentOf(field);
+        DbContext.Recipes.Should().BeEmpty();
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_PublishedWithNullServings_ShouldReturn422OnServings()
+    {
+        var command = new CreateRecipeCommand("Title", "Description", 10, 20, null,
+            [new IngredientInputDto(null, null, null, "Flour", null)], [StepInput("Mix")]);
+
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await response.Content.ReadAsStringAsync()).Should().Contain("servings");
+    }
+
+    [SkippableFact]
+    public async Task CreateRecipe_DraftWithZeroServings_ShouldReturn400()
+    {
+        var command = new CreateRecipeCommand("Draft", null, null, null, 0, [], [], RecipeStatus.Draft);
+
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/api/recipes", command, JsonOptions);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableTheory]
+    [InlineData("Archived")]
+    [InlineData("5")] // parses as an undefined enum value unless EnumDataType rejects it
+    public async Task GetRecipes_WithUnknownStatus_ShouldReturn400(string status)
+    {
+        HttpResponseMessage response = await Client.GetAsync($"/api/recipes?status={status}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [SkippableFact]
+    public async Task PublishRecipe_IncompleteDraft_ShouldReturn422WithEveryGapAndStayDraft()
+    {
+        Recipe draft = DraftRecipe();
+        await SeedDatabase(draft);
+
+        HttpResponseMessage response = await Client.PostAsync($"/api/recipes/{draft.Id}/publish", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        string body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("description").And.Contain("servings").And.Contain("ingredients");
+        DbContext.ChangeTracker.Clear();
+        (await DbContext.Recipes.SingleAsync(r => r.Id == draft.Id)).Status.Should().Be(RecipeStatus.Draft);
+    }
+
+    [SkippableFact]
+    public async Task PublishRecipe_CompleteDraft_ShouldReturn204AndMoveToTheDefaultList()
+    {
+        Recipe draft = CompleteDraft();
+        await SeedDatabase(draft);
+
+        HttpResponseMessage response = await Client.PostAsync($"/api/recipes/{draft.Id}/publish", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await GetList()).Should().ContainSingle().Which.Id.Should().Be(draft.Id);
+        (await GetList("?status=Draft")).Should().BeEmpty();
+    }
+
+    [SkippableFact]
+    public async Task PublishRecipe_AlreadyPublished_ShouldReturn204()
+    {
+        Recipe recipe = PublishedRecipe();
+        await SeedDatabase(recipe);
+
+        (await Client.PostAsync($"/api/recipes/{recipe.Id}/publish", null)).StatusCode
+            .Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [SkippableFact]
+    public async Task UnpublishRecipe_Published_ShouldReturn204AndMoveToDrafts()
+    {
+        Recipe recipe = PublishedRecipe();
+        await SeedDatabase(recipe);
+
+        HttpResponseMessage response = await Client.PostAsync($"/api/recipes/{recipe.Id}/unpublish", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await GetList()).Should().BeEmpty();
+        (await GetList("?status=Draft")).Should().ContainSingle().Which.Id.Should().Be(recipe.Id);
+    }
+
+    [SkippableTheory]
+    [InlineData("publish")]
+    [InlineData("unpublish")]
+    public async Task Transition_UnknownId_ShouldReturn404(string transition)
+    {
+        HttpResponseMessage response = await Client.PostAsync($"/api/recipes/{Guid.NewGuid()}/{transition}", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [SkippableFact]
+    public async Task UpdateRecipe_WithANullDescription_ShouldReturn422ForPublishedAnd204ForADraft()
+    {
+        Recipe published = PublishedRecipe();
+        Recipe draft = CompleteDraft();
+        await SeedDatabase(published, draft);
+        var update = new UpdateRecipeDto("Title", null, 10, 20, 4,
+            [new IngredientInputDto(null, null, null, "Flour", null)], [StepInput("Mix")]);
+
+        HttpResponseMessage publishedResponse =
+            await Client.PutAsJsonAsync($"/api/recipes/{published.Id}", update, JsonOptions);
+        HttpResponseMessage draftResponse =
+            await Client.PutAsJsonAsync($"/api/recipes/{draft.Id}", update, JsonOptions);
+
+        publishedResponse.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await publishedResponse.Content.ReadAsStringAsync()).Should().Contain("description");
+        draftResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
 }

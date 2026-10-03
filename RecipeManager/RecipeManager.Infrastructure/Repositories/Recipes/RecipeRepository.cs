@@ -26,9 +26,13 @@ public sealed class RecipeRepository : IRecipeRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Recipe>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<IEnumerable<Recipe>> GetAllAsync(RecipeStatus status, CancellationToken cancellationToken)
     {
-        return await _context.Recipes.AsNoTracking().ToListAsync(cancellationToken);
+        // Filtered in SQL, not in memory: WHERE "Status" = 'Published' (the converter turns the enum into its name).
+        return await _context.Recipes
+            .AsNoTracking()
+            .Where(r => r.Status == status)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<Recipe?> GetByIdAsync(Guid id, CancellationToken cancellationToken)

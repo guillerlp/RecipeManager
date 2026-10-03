@@ -27,6 +27,9 @@ public class RecipeErrorsTests
             RecipeErrors.DescriptionRequired(),
             RecipeErrors.PreparationTimeNegative(),
             RecipeErrors.CookingTimeNegative(),
+            RecipeErrors.PreparationTimeRequired(),
+            RecipeErrors.CookingTimeRequired(),
+            RecipeErrors.ServingsRequired(),
             RecipeErrors.BothTimesZero(),
             RecipeErrors.ServingsOutOfRange(1),
             RecipeErrors.IngredientsRequired(),
@@ -40,7 +43,7 @@ public class RecipeErrorsTests
         ];
 
         // Assert
-        errors.Should().HaveCount(14).And.AllSatisfy(error =>
+        errors.Should().HaveCount(17).And.AllSatisfy(error =>
             error.Should().BeOfType<DomainError>()
                 .Which.Kind.Should().Be(ErrorKind.Validation));
     }

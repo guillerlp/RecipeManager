@@ -52,7 +52,7 @@ required — then security reviews after code review.
       — `CqrsHandlerRegistrationTests` should catch it; confirm that test ran.
 - [ ] New `IRecipeRepository` member implemented in `RecipeRepository` but **not** in `CachedRecipeRepository`
       (or vice versa).
-- [ ] A write path that does not invalidate both `recipes_all` and `recipe_{id}`.
+- [ ] A write path that does not invalidate every `recipes_{status}` list key and `recipe_{id}`.
 - [ ] Repository returning `null` handled with `!` or a throw instead of
       `Result.Fail(RecipeErrors.RecipeNotFound(id))`.
 - [ ] A new `RecipeErrors` entry built as a plain `Error` instead of a `DomainError` — it maps to 400 and

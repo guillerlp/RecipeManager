@@ -17,9 +17,10 @@ vi.mock('@/services', async importOriginal => ({
 const getRecipeById = vi.mocked(recipeService.getRecipeById);
 const ID = '11111111-1111-1111-1111-111111111111';
 
-const recipe: Recipe = {
+const recipe = {
   id: ID,
   title: 'Sunday Lemon Roast Chicken',
+  status: 'Published',
   description: 'The one that makes the whole flat smell like Sunday.',
   preparationTime: 20,
   cookingTime: 85,
@@ -33,7 +34,7 @@ const recipe: Recipe = {
     { id: 's1', text: 'Heat the oven to 200°C fan.', durationMinutes: null, ingredientIds: [] },
     { id: 's2', text: 'Roast for 1h 25min.', durationMinutes: 85, ingredientIds: ['i1'] },
   ],
-};
+} satisfies Recipe;
 
 const notFound = () =>
   new AxiosError('Not Found', 'ERR_BAD_REQUEST', undefined, undefined, { status: 404 } as AxiosResponse);
@@ -193,5 +194,36 @@ describe('RecipeDetailPage populated', () => {
     renderPage();
 
     expect(await screen.findByText('3.5 lb')).toBeTruthy();
+  });
+});
+
+describe('RecipeDetailPage with a draft', () => {
+  const draft: Recipe = {
+    ...recipe,
+    status: 'Draft',
+    description: null,
+    preparationTime: null,
+    cookingTime: null,
+    servings: null,
+  };
+
+  it('marks the draft and renders nothing for values it does not have yet', async () => {
+    getRecipeById.mockResolvedValue({ data: draft } as AxiosResponse<Recipe>);
+    renderPage();
+
+    expect(await screen.findByText('Draft')).toBeTruthy();
+    expect(screen.queryByText(recipe.description)).toBeNull();
+    expect(screen.queryByText('Total')).toBeNull();
+    expect(screen.queryByTestId('serves')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Increase servings' })).toBeNull();
+    expect(screen.getByText('1.6 kg')).toBeTruthy();
+  });
+
+  it('does not mark a published recipe as a draft', async () => {
+    getRecipeById.mockResolvedValue({ data: recipe } as AxiosResponse<Recipe>);
+    renderPage();
+
+    expect(await screen.findByText(recipe.title)).toBeTruthy();
+    expect(screen.queryByText('Draft')).toBeNull();
   });
 });

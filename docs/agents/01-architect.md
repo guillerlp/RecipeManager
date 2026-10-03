@@ -59,7 +59,7 @@ These were settled on 2026-07-26. Implement towards them; do not re-litigate the
 | Ingredients | Owned entities with a `Guid Id` in a `RecipeIngredients` child table; `Unit` a closed enum; conversion is a presentation concern (**shipped** 2026-09-24) | ADR-022, [spec 010](../specs/010-structured-ingredients.md) |
 | Ingredient catalogue | None — ingredients are owned by their recipe (2026-09-19, **shipped**) | ADR-022 |
 | Instructions | `InstructionStep` owned entities in a `RecipeInstructionSteps` child table — `Position`, `Text`, `DurationMinutes int?`, `IngredientIds` `uuid[]`; requests reference ingredients by payload index (**shipped** 2026-09-26) | ADR-022, ADR-023, [spec 011](../specs/011-structured-instructions.md) |
-| "Only a title required" | Draft recipes with a Draft/Published status, not a relaxed aggregate (2026-09-19) | `R-19` |
+| "Only a title required" | Draft recipes with a Draft/Published status, not a relaxed aggregate (**shipped** 2026-10-02) | ADR-025, [spec 013](../specs/013-draft-recipes.md) |
 | Fonts and icons | Self-hosted; icons stay inline SVG (ADR-014), no runtime Google Fonts (2026-09-19) | `R-16` |
 | Integration tests | Testcontainers with real PostgreSQL — **unblocked**, CI now provides Docker (ADR-013) | `R-06` |
 | Frontend tests | Vitest + React Testing Library (**shipped**) | ADR-018, `R-07` |
@@ -83,7 +83,7 @@ Do not defer these silently — each will be forced by a feature request sooner 
   is requested, choose between audit columns, an event log, or a `RecipeVersion` child entity — very different
   migration costs. Adding plain audit columns early is cheap and worth considering pre-emptively.
 - **Scaling reads.** Decide the pagination contract *and* the cache-key strategy together — paginating
-  invalidates the single-key `recipes_all` approach. `R-11`.
+  invalidates the per-status list keys (`recipes_{status}`, ADR-025). `R-11`.
 - **Concurrency.** No `xmin` mapping, so concurrent `PUT`s are last-write-wins. This must be resolved before
   multi-user editing exists; Npgsql maps PostgreSQL's `xmin` system column to a concurrency token cheaply.
 - **Distributed deployment.** `IMemoryCache` is per-process; more than one instance means stale reads. Swapping

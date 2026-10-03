@@ -506,4 +506,158 @@ public class RecipeTests
     }
 
     #endregion
+
+    #region Drafts and publishing (R-19, spec 013)
+
+    private static Recipe Draft(string title = "Half-written") =>
+        Recipe.Create(title, null, null, null, null, [], [], RecipeStatus.Draft).Value;
+
+    private static Recipe Published() =>
+        Recipe.Create("Title", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")]).Value;
+
+    private static readonly object[] EveryCompletenessField =
+        ["description", "preparationTime", "cookingTime", "servings", "ingredients", "instructions"];
+
+    [Fact]
+    public void Create_DraftWithOnlyATitle_ShouldSucceedWithNothingElseSet()
+    {
+        Result<Recipe> result = Recipe.Create("Half-written", null, null, null, null, [], [], RecipeStatus.Draft);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Status.Should().Be(RecipeStatus.Draft);
+        result.Value.Description.Should().BeNull();
+        result.Value.PreparationTime.Should().BeNull();
+        result.Value.CookingTime.Should().BeNull();
+        result.Value.Servings.Should().BeNull();
+        result.Value.Ingredients.Should().BeEmpty();
+        result.Value.Instructions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Create_WithoutAStatus_ShouldBePublished()
+    {
+        Published().Status.Should().Be(RecipeStatus.Published);
+    }
+
+    [Fact]
+    public void Create_DraftWithABlankTitle_ShouldFail()
+    {
+        Result<Recipe> result = Recipe.Create("  ", null, null, null, null, [], [], RecipeStatus.Draft);
+
+        result.Errors.Should().ContainSingle().Which.Metadata["field"].Should().Be("title");
+    }
+
+    // A draft is unfinished, never wrong: a value that is present must still be valid.
+    [Theory]
+    [InlineData(-1, null, null, "preparationTime")]
+    [InlineData(null, -1, null, "cookingTime")]
+    [InlineData(null, null, 0, "servings")]
+    public void Create_DraftWithAPresentButInvalidValue_ShouldFail(int? prep, int? cook, int? servings, string field)
+    {
+        Result<Recipe> result = Recipe.Create("Draft", null, prep, cook, servings, [], [], RecipeStatus.Draft);
+
+        result.Errors.Should().ContainSingle().Which.Metadata["field"].Should().Be(field);
+    }
+
+    [Fact]
+    public void Create_DraftWithBothTimesZero_ShouldSucceed_BecauseThatIsACompletenessRule()
+    {
+        Recipe.Create("Draft", null, 0, 0, null, [], [], RecipeStatus.Draft).IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Create_DraftWithAStepReferencingAnotherRecipesIngredient_ShouldFail()
+    {
+        Ingredient foreign = Ing("Elsewhere");
+
+        Result<Recipe> result = Recipe.Create("Draft", null, null, null, null,
+            [Ing("Flour")], [StepUsing("Mix", foreign)], RecipeStatus.Draft);
+
+        result.Errors.Should().ContainSingle().Which.Metadata["field"].Should().Be("instructions");
+    }
+
+    [Fact]
+    public void Create_PublishedWithNothingButATitle_ShouldReportEveryMissingField()
+    {
+        Result<Recipe> result = Recipe.Create("Title", null, null, null, null, [], [], RecipeStatus.Published);
+
+        result.Errors.Select(e => e.Metadata["field"]).Should().BeEquivalentTo(EveryCompletenessField);
+    }
+
+    [Fact]
+    public void Update_Draft_ShouldStayLenient()
+    {
+        Recipe draft = Draft();
+
+        Result result = draft.Update("Still a draft", null, 5, null, null, [], []);
+
+        result.IsSuccess.Should().BeTrue();
+        draft.Title.Should().Be("Still a draft");
+        draft.PreparationTime.Should().Be(5);
+        draft.Status.Should().Be(RecipeStatus.Draft);
+    }
+
+    [Fact]
+    public void Update_PublishedWithANullDescription_ShouldFailAndChangeNothing()
+    {
+        Recipe recipe = Published();
+
+        Result result = recipe.Update("New title", null, 10, 20, 4, [Ing("Flour")], [Step("Mix")]);
+
+        result.Errors.Should().ContainSingle().Which.Metadata["field"].Should().Be("description");
+        recipe.Title.Should().Be("Title");
+        recipe.Description.Should().Be("Description");
+    }
+
+    [Fact]
+    public void Publish_IncompleteDraft_ShouldReportEveryGapAndStayDraft()
+    {
+        Recipe draft = Draft();
+
+        Result result = draft.Publish();
+
+        result.Errors.Select(e => e.Metadata["field"]).Should().BeEquivalentTo(EveryCompletenessField);
+        draft.Status.Should().Be(RecipeStatus.Draft);
+    }
+
+    [Fact]
+    public void Publish_CompleteDraft_ShouldBecomePublished()
+    {
+        Recipe draft = Recipe.Create("Title", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")],
+            RecipeStatus.Draft).Value;
+
+        draft.Publish().IsSuccess.Should().BeTrue();
+        draft.Status.Should().Be(RecipeStatus.Published);
+    }
+
+    [Fact]
+    public void Publish_AlreadyPublished_ShouldSucceedAndChangeNothing()
+    {
+        Recipe recipe = Published();
+
+        recipe.Publish().IsSuccess.Should().BeTrue();
+        recipe.Status.Should().Be(RecipeStatus.Published);
+    }
+
+    [Fact]
+    public void Unpublish_ShouldReturnToDraft_AndBeIdempotent()
+    {
+        Recipe recipe = Published();
+
+        recipe.Unpublish();
+        recipe.Unpublish();
+
+        recipe.Status.Should().Be(RecipeStatus.Draft);
+    }
+
+    [Fact]
+    public void Update_AfterUnpublish_ShouldApplyTheDraftRules()
+    {
+        Recipe recipe = Published();
+        recipe.Unpublish();
+
+        recipe.Update("Reworking", null, null, null, null, [], []).IsSuccess.Should().BeTrue();
+    }
+
+    #endregion
 }
