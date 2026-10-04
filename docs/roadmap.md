@@ -98,7 +98,7 @@ Build order. Each item names what it waits on, so a later item can move up if it
 | ~~2~~ | ~~`R-17` Structured instructions~~ — **shipped 2026-09-26**, ADR-023 | — |
 | ~~3~~ | ~~`R-18` Recipe detail screen~~ — **shipped 2026-09-26**, ADR-024 | — |
 | ~~4~~ | ~~`R-19` Draft recipes~~ — **shipped 2026-10-02**, ADR-025 | — |
-| 5 | `R-20` Tags | — |
+| 5 | `R-20` Tags — **PR 1 shipped 2026-10-04** (ADR-026, #73); PR 2 (frontend) open | — |
 | 6 | `R-21` Add/edit form | ~~`R-10`~~, ~~`R-17`~~, ~~`R-19`~~, `R-20` |
 | 7 | `R-22` Cook log | — |
 | 8 | `R-23` Cooking mode | ~~`R-17`~~, `R-22` |
@@ -119,6 +119,11 @@ the ADR. ADR-022's reasoning transfers: a `text[]` is cheaper and keeps order fo
 makes "every recipe tagged *roast*" an indexable SQL query rather than a client-side scan. Comes before `R-21`
 so the form is built once.
 
+Decided 2026-10-03 as **ADR-026** ([spec 014](specs/014-recipe-tags.md)): a `character varying(40)[]` with a
+cardinality `CHECK` (≤ 20), normalised in the aggregate, filtered client-side until `R-11`. **PR 1 (domain,
+migration, contract)** shipped 2026-10-04 in #73. **PR 2 (the first tag on list rows, the detail kicker, and a
+client-side `?tag=` filter) remains**, after which this entry is deleted. Editing tags is `R-21`'s.
+
 ### R-21
 **Add/edit form** · `07-ux-ui` → `03-senior-react` · ~2 days
 
@@ -137,7 +142,9 @@ not invent ids, because nothing server-side validates that one belongs to the re
 backed by `R-19` (ADR-025): create with `status: "Draft"`, `PUT` freely while it is a draft, then
 `POST /api/recipes/{id}/publish` — a 422 from publish lists every missing field, so the form can mark them all.
 Wire the existing `publishRecipe`/`unpublishRecipe` service methods, and update the design's helper text to
-describe drafts and publishing (`UX-05`'s follow-up). The photo field depends on `R-12`.
+describe drafts and publishing (`UX-05`'s follow-up). The photo field depends on `R-12`. Tags (`R-20`,
+ADR-026) are edited as chips and sent as `tags: string[]` on **every** `POST` and `PUT` — the field is required, so
+omitting it is a 400 — and the server normalises them, so the form need not.
 
 ### R-22
 **Cook log** · `01-architect` (ADR required) → full stack · ~1–2 days
@@ -190,6 +197,10 @@ endpoint is still unpaginated.
 The editorial design asks for "Load the rest" on the Recipes screen, and three saved views on Home ("under 30
 minutes", "feeds a table", "never cooked yet"). Design the query contract so those are filters on the same
 endpoint, not three new endpoints. The last one needs `R-22`.
+
+`?tag=` belongs here too (ADR-026): tags are a `character varying(40)[]`, so the server-side filter is
+`'roast' = ANY("Tags")` and needs a **GIN** index on `"Tags"`, added in the same migration — a B-tree cannot serve
+an array-membership query. Until then the SPA filters by tag in the browser (`R-20` PR 2).
 
 ### R-12
 **Recipe images** · `01-architect` + `05-security-reviewer` (both required) → full stack · ~1 day
