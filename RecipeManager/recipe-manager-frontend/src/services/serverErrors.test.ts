@@ -62,3 +62,10 @@ describe('readServerErrors', () => {
     expect(readServerErrors(new Error('boom'))).toEqual(generic);
   });
 });
+
+describe('readServerErrors action', () => {
+  it('names the action that failed', () => {
+    expect(readServerErrors(new AxiosError('Network Error', 'ERR_NETWORK'), 'delete'))
+      .toEqual({ fields: {}, form: ["Couldn't delete. Check your connection and try again."] });
+  });
+});

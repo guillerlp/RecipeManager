@@ -1,4 +1,4 @@
-import { useState, type Dispatch } from 'react';
+import { useEffect, useState, type Dispatch } from 'react';
 import { FIELD_IDS, emptyStep, parseRow, type FormAction, type IngredientRow, type StepRow } from './recipeForm';
 import styles from './RecipeFormPage.module.css';
 
@@ -16,6 +16,18 @@ export const StepsEditor = ({ steps, ingredients, dispatch, error }: StepsEditor
     const parsed = parseRow(row);
     return parsed?.ok ? [{ key: row.key, name: parsed.value.name }] : [];
   });
+
+  // Same as IngredientsEditor: a removed step's × unmounts with it, so focus moves to a neighbour or Add step.
+  const [refocus, setRefocus] = useState<{ id: string } | null>(null);
+  useEffect(() => {
+    if (refocus) document.getElementById(refocus.id)?.focus();
+  }, [refocus]);
+
+  const removeStep = (index: number) => {
+    const neighbour = steps[index + 1] ?? steps[index - 1];
+    setRefocus({ id: neighbour ? `step-${neighbour.key}` : 'add-step' });
+    dispatch({ type: 'removeStep', key: steps[index].key });
+  };
 
   const add = () => {
     const step = emptyStep();
@@ -41,6 +53,7 @@ export const StepsEditor = ({ steps, ingredients, dispatch, error }: StepsEditor
               <span className={styles.stepNumber} aria-hidden="true">{n}</span>
               <div className={styles.stepBody}>
                 <textarea
+                  id={`step-${step.key}`}
                   className={styles.stepText}
                   value={step.text}
                   rows={3}
@@ -84,7 +97,7 @@ export const StepsEditor = ({ steps, ingredients, dispatch, error }: StepsEditor
                 type="button"
                 className={styles.remove}
                 aria-label={`Remove step ${n}`}
-                onClick={() => dispatch({ type: 'removeStep', key: step.key })}
+                onClick={() => removeStep(index)}
               >
                 ×
               </button>
@@ -93,7 +106,7 @@ export const StepsEditor = ({ steps, ingredients, dispatch, error }: StepsEditor
         })}
       </ol>
 
-      <button type="button" className={styles.add} onClick={add}>Add step</button>
+      <button id="add-step" type="button" className={styles.add} onClick={add}>Add step</button>
     </section>
   );
 };

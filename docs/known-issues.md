@@ -19,7 +19,7 @@ WSL2 against `main` @ `01eeccc`: build 0 warnings, 142 unit + 50 integration pas
 "CI is the only place" constraint above no longer holds for a WSL2 run (`INFRA-06`, [Settled](#settled)). Re-measured
 on 2026-10-03 after `R-20` PR 1 from **CI run 37130641536**: 195 unit + 87 integration passed, 0 skipped, and 160 frontend
 tests across 20 files. The frontend row re-measured locally on 2026-10-04 after `R-20` PR 2 (21 files,
-174 passed), and again after `R-21` PR 1 (26 files, 275 passed).
+174 passed), and again after `R-21` PR 1 (26 files, 280 passed).
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -42,7 +42,7 @@ tests across 20 files. The frontend row re-measured locally on 2026-10-04 after 
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
 | Frontend lint | `npm run lint` | **0 problems** — Oxlint, 159 rules: the 71 type-aware ones on `src/**` plus the `correctness` category everywhere (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
-| Frontend tests | `npm test` | 275 pass — Vitest + RTL under jsdom (ADR-018). Vitest does not process CSS, so an invalid CSS Module passes here and fails only `npm run build` |
+| Frontend tests | `npm test` | 280 pass — Vitest + RTL under jsdom (ADR-018). Vitest does not process CSS, so an invalid CSS Module passes here and fails only `npm run build` |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets

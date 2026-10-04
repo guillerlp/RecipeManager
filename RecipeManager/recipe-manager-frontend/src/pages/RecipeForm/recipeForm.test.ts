@@ -187,3 +187,12 @@ describe('fromServerErrors', () => {
     })).toEqual({ title: ['t'], times: ['z'], instructions: ['i'], form: ['offline', 'gone'] });
   });
 });
+
+describe('validate — a step with content but no text', () => {
+  // Dropping it would silently throw away the timer or the picked ingredients the user set.
+  it('is an error, not a blank row to drop', () => {
+    const state = formReducer(emptyForm(), { type: 'setField', field: 'title', value: 'Toast' });
+    const withTimer = formReducer(state, { type: 'setStep', key: state.steps[0].key, duration: '5' });
+    expect(validate(withTimer, 'draft')).toEqual({ instructions: ['Give every step some text, or remove it'] });
+  });
+});

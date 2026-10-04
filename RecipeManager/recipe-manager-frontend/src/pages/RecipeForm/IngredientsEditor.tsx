@@ -1,4 +1,4 @@
-import { useState, type Dispatch } from 'react';
+import { useEffect, useState, type Dispatch } from 'react';
 import { describeIngredient } from '@/utils/ingredientLine';
 import { FIELD_IDS, emptyIngredient, parseRow, type FormAction, type IngredientRow } from './recipeForm';
 import styles from './RecipeFormPage.module.css';
@@ -14,6 +14,19 @@ interface IngredientsEditorProps {
 export const IngredientsEditor = ({ rows, dispatch, error }: IngredientsEditorProps) => {
   // The row to focus when it mounts; autoFocus only fires on mount, so existing rows are unaffected.
   const [focusKey, setFocusKey] = useState<string | null>(null);
+
+  // Where focus goes after a remove: the removed row's × unmounts with it, and focus would fall to <body> (WCAG
+  // 2.4.3). A new object each time, so removing twice towards the same target still refocuses.
+  const [refocus, setRefocus] = useState<{ id: string } | null>(null);
+  useEffect(() => {
+    if (refocus) document.getElementById(refocus.id)?.focus();
+  }, [refocus]);
+
+  const removeRow = (index: number) => {
+    const neighbour = rows[index + 1] ?? rows[index - 1];
+    setRefocus({ id: neighbour ? `ingredient-${neighbour.key}` : 'add-ingredient' });
+    dispatch({ type: 'removeIngredient', key: rows[index].key });
+  };
 
   const add = (after?: string) => {
     const row = emptyIngredient();
@@ -38,6 +51,7 @@ export const IngredientsEditor = ({ rows, dispatch, error }: IngredientsEditorPr
           return (
             <li key={row.key} className={styles.row}>
               <input
+                id={`ingredient-${row.key}`}
                 className={styles.line}
                 value={row.text}
                 autoFocus={row.key === focusKey}
@@ -55,7 +69,7 @@ export const IngredientsEditor = ({ rows, dispatch, error }: IngredientsEditorPr
                 type="button"
                 className={styles.remove}
                 aria-label={`Remove ${label}`}
-                onClick={() => dispatch({ type: 'removeIngredient', key: row.key })}
+                onClick={() => removeRow(index)}
               >
                 ×
               </button>
@@ -69,7 +83,7 @@ export const IngredientsEditor = ({ rows, dispatch, error }: IngredientsEditorPr
         })}
       </ul>
 
-      <button type="button" className={styles.add} onClick={() => add()}>Add ingredient</button>
+      <button id="add-ingredient" type="button" className={styles.add} onClick={() => add()}>Add ingredient</button>
       <p className={styles.footnote}>Stored as quantity · unit · name, so the recipe page can rescale them.</p>
     </section>
   );

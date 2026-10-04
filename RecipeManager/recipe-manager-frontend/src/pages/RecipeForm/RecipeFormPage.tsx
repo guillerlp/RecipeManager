@@ -18,7 +18,9 @@ import { TagsEditor } from './TagsEditor';
 import styles from './RecipeFormPage.module.css';
 
 type Intent = 'draft' | 'publish' | 'save' | 'unpublish';
-type Verb = 'saving' | 'publishing';
+type Action = 'save' | 'publish' | 'delete';
+
+const VERBING: Record<Action, string> = { save: 'saving', publish: 'publishing', delete: 'deleting' };
 
 const WHOLE = /^\d+$/;
 const minutes = (value: string): number | null => (WHOLE.test(value.trim()) ? Number(value) : null);
@@ -44,7 +46,7 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
   const location = useLocation();
   const [state, dispatch] = useReducer(formReducer, recipe, initial => (initial ? fromRecipe(initial) : emptyForm()));
   const [errors, setErrors] = useState<FormErrors>({});
-  const [verb, setVerb] = useState<Verb>('saving');
+  const [action, setAction] = useState<Action>('save');
   // The first draft save redirects here from /recipes/new and remounts this component; the time travels in state.
   const [savedAt, setSavedAt] = useState<number | null>((location.state as { savedAt?: number } | null)?.savedAt ?? null);
   const [saving, setSaving] = useState(false);
@@ -67,9 +69,9 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
     if (failures > 0) summaryRef.current?.focus();
   }, [failures]);
 
-  const fail = (next: FormErrors, nextVerb: Verb) => {
+  const fail = (next: FormErrors, nextAction: Action) => {
     setErrors(next);
-    setVerb(nextVerb);
+    setAction(nextAction);
     setFailures(count => count + 1);
   };
 
@@ -77,10 +79,10 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
     if (busy.current) return;
     // A published recipe is held to the published tier on every save (ADR-025), so Save checks what Publish does.
     const rules: Rules = intent === 'draft' || intent === 'unpublish' ? 'draft' : 'publish';
-    const nextVerb: Verb = intent === 'publish' ? 'publishing' : 'saving';
+    const nextAction: Action = intent === 'publish' ? 'publish' : 'save';
     const local = validate(state, rules);
     if (hasErrors(local)) {
-      fail(local, nextVerb);
+      fail(local, nextAction);
       return;
     }
 
@@ -109,7 +111,7 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
         void navigate(`/recipes/${recipe.id}`);
       }
     } catch (error) {
-      fail(fromServerErrors(readServerErrors(error)), nextVerb);
+      fail(fromServerErrors(readServerErrors(error, nextAction)), nextAction);
     } finally {
       busy.current = false;
       setSaving(false);
@@ -125,7 +127,7 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
       void navigate('/recipes', { replace: true });
     } catch (error) {
       deleteDialog.current?.close();
-      fail(fromServerErrors(readServerErrors(error)), 'saving');
+      fail(fromServerErrors(readServerErrors(error, 'delete')), 'delete');
     } finally {
       busy.current = false;
       setSaving(false);
@@ -187,7 +189,10 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
       {errorCount > 0 && (
         <section ref={summaryRef} tabIndex={-1} className={styles.summary} aria-labelledby="error-summary-heading">
           <h2 id="error-summary-heading" className={styles.summaryHeading}>
-            Fix {errorCount} {errorCount === 1 ? 'thing' : 'things'} before {verb}
+            {/* Only field errors are the user's to fix; a network failure or a 500 is a "try again". */}
+            {fieldMessages.length > 0
+              ? `Fix ${errorCount} ${errorCount === 1 ? 'thing' : 'things'} before ${VERBING[action]}`
+              : `Couldn't ${action}`}
           </h2>
           <ul className={styles.summaryList}>
             {formMessages.map(message => <li key={message}>{message}</li>)}

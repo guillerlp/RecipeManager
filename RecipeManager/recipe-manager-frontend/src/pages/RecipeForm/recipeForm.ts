@@ -245,6 +245,10 @@ export const validate = (state: RecipeFormState, rules: Rules): FormErrors => {
   if (steps.some(step => !blank(step.duration) && !inRange(step.duration, 1, 1439))) {
     add('instructions', 'A step timer is whole minutes, 1–1439');
   }
+  // A step with a timer or picked ingredients but no text would otherwise be dropped as blank, silently losing them.
+  if (state.steps.some(step => blank(step.text) && (!blank(step.duration) || step.ingredientKeys.length > 0))) {
+    add('instructions', 'Give every step some text, or remove it');
+  }
   if (state.tags.length > 20) add('tags', 'Up to 20 tags');
 
   if (rules === 'publish') {

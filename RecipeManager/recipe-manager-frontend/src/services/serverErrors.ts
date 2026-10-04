@@ -21,11 +21,14 @@ interface ValidationProblem {
   errors?: Record<string, string[]>;
 }
 
-const GENERIC = "Couldn't save. Check your connection and try again.";
+/** What the user was doing, so a failure message names it: "Couldn't delete", not "Couldn't save". */
+export type ServerAction = 'save' | 'publish' | 'delete';
+
+const generic = (action: ServerAction): string => `Couldn't ${action}. Check your connection and try again.`;
 
 const lowerFirst = (value: string): string => value.charAt(0).toLowerCase() + value.slice(1);
 
-export const readServerErrors = (error: unknown): ServerErrors => {
+export const readServerErrors = (error: unknown, action: ServerAction = 'save'): ServerErrors => {
   const result: ServerErrors = { fields: {}, form: [] };
   const add = (field: string | null | undefined, message: string) => {
     if (field) (result.fields[field] ??= []).push(message);
@@ -36,7 +39,7 @@ export const readServerErrors = (error: unknown): ServerErrors => {
   if (response?.status === 422) {
     const body = response.data as DomainProblem;
     if (body.errors) body.errors.forEach(entry => add(entry.field, entry.message));
-    else add(body.field, body.detail ?? GENERIC);
+    else add(body.field, body.detail ?? generic(action));
     return result;
   }
 
@@ -46,11 +49,11 @@ export const readServerErrors = (error: unknown): ServerErrors => {
       const field = lowerFirst(path.replace(/^\$\./, '').split(/[.[]/)[0] ?? '');
       messages.forEach(message => add(field, message));
     }
-    if (result.form.length === 0 && Object.keys(result.fields).length === 0) add(null, GENERIC);
+    if (result.form.length === 0 && Object.keys(result.fields).length === 0) add(null, generic(action));
     return result;
   }
 
   // Never the server's own text past this point: a 500 can carry exception detail (SEC-05).
-  add(null, response?.status === 404 ? 'This recipe no longer exists.' : GENERIC);
+  add(null, response?.status === 404 ? 'This recipe no longer exists.' : generic(action));
   return result;
 };

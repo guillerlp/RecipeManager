@@ -175,7 +175,7 @@ describe('RecipeFormPage — new recipe', () => {
     typeInto('Recipe title', 'Offline soup');
     fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
 
-    const summary = await screen.findByRole('region', { name: 'Fix 1 thing before saving' });
+    const summary = await screen.findByRole('region', { name: "Couldn't save" });
     expect(within(summary).getByText("Couldn't save. Check your connection and try again.")).toBeTruthy();
     expect(screen.getByLabelText<HTMLInputElement>('Recipe title').value).toBe('Offline soup');
   });
@@ -268,5 +268,41 @@ describe('RecipeFormPage — existing recipe', () => {
     service.getRecipeById.mockRejectedValue(httpError(404, {}));
     renderAt(`/recipes/${ID}/edit`);
     expect(await screen.findByRole('heading', { name: 'Recipe not found' })).toBeTruthy();
+  });
+});
+
+describe('RecipeFormPage — review fixes', () => {
+  // A removed row's × unmounts with it; without a target focus falls to <body> (WCAG 2.4.3).
+  it('moves focus to the next line when an ingredient is removed, and to Add ingredient when none is left', () => {
+    renderAt('/recipes/new');
+    fireEvent.change(screen.getByLabelText('Ingredient 1'), { target: { value: 'butter' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add ingredient' }));
+    fireEvent.change(screen.getByLabelText('Ingredient 2'), { target: { value: 'salt' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove butter' }));
+    expect(document.activeElement).toBe(screen.getByLabelText('Ingredient 1'));
+    expect(screen.getByLabelText<HTMLInputElement>('Ingredient 1').value).toBe('salt');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove salt' }));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Add ingredient' }));
+  });
+
+  it('moves focus to the remaining step when a step is removed', () => {
+    renderAt('/recipes/new');
+    fireEvent.click(screen.getByRole('button', { name: 'Add step' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove step 2' }));
+    expect(document.activeElement).toBe(screen.getByLabelText('Step 1'));
+  });
+
+  it('says a failed delete could not be deleted, without asking the user to fix anything', async () => {
+    service.getRecipeById.mockResolvedValue(ok(published));
+    service.deleteRecipe.mockRejectedValue(new AxiosError('Network Error', 'ERR_NETWORK'));
+    renderAt(`/recipes/${ID}/edit`);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete recipe' }));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Delete Sunday Roast?' })).getByRole('button', { name: 'Delete' }));
+
+    const summary = await screen.findByRole('region', { name: "Couldn't delete" });
+    expect(within(summary).getByText("Couldn't delete. Check your connection and try again.")).toBeTruthy();
   });
 });
