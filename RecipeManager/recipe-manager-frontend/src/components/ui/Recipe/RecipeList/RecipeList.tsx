@@ -3,21 +3,24 @@ import React, { useMemo } from 'react';
 import { RecipeCard } from '@/components';
 import styles from './RecipeList.module.css';
 import { useRecipes } from '@/hooks/useRecipes';
+import type { RecipeStatus } from '@/types';
 
 interface RecipeListProps {
   searchQuery? : string;
   /** Already normalised by the caller (RecipePage), so an exact match is correct. */
   tag?: string;
+  /** Which list to show (ADR-025). */
+  status?: RecipeStatus;
 }
 
-export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = '', tag}) => {
+export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = '', tag, status = 'Published'}) => {
 
   const {
       data: recipes = [],
       isLoading: loading,
       error,
       refetch,
-  } = useRecipes();
+  } = useRecipes(status);
 
   // Derived during render, never stored: the tag narrows first, then the text search (AND), and tags are
   // searchable text too (spec 014).
@@ -67,7 +70,12 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = '', tag}) =
               </p>
             </>
           ) :
-          (
+          status === 'Draft' ? (
+            <>
+              <h3 className={styles.emptyTitle}>No drafts</h3>
+              <p className={styles.emptyBody}>Save a recipe as a draft and it'll wait here.</p>
+            </>
+          ) : (
             <>
               <h3 className={styles.emptyTitle}>No recipes available</h3>
               <p className={styles.emptyBody}>Start by adding some recipes to your collection.</p>

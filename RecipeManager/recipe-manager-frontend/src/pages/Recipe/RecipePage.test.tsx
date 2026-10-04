@@ -29,6 +29,7 @@ const titles = async () =>
   (await screen.findAllByRole('heading', { level: 3 })).map(heading => heading.textContent);
 
 beforeEach(() => {
+  vi.mocked(recipeService.getAllRecipes).mockClear();
   vi.mocked(recipeService.getAllRecipes).mockResolvedValue({
     data: [
       recipe('11111111-1111-1111-1111-111111111111', 'Roast Chicken', ['roast', 'feeds a table']),
@@ -82,5 +83,29 @@ describe('RecipePage tag filter', () => {
 
     expect(await titles()).toEqual(['Roast Chicken', 'Pancakes']);
     expect(screen.queryByRole('button', { name: /Clear tag filter/ })).toBeNull();
+  });
+});
+
+describe('RecipePage drafts toggle', () => {
+  it('lists published recipes by default, as a radio group', async () => {
+    renderAt('/recipes');
+    await titles();
+    expect(recipeService.getAllRecipes).toHaveBeenCalledWith('Published');
+    expect(screen.getByRole<HTMLInputElement>('radio', { name: 'Published' }).checked).toBe(true);
+  });
+
+  it('reads ?status=draft and asks the API for drafts', async () => {
+    renderAt('/recipes?status=draft');
+    await titles();
+    expect(recipeService.getAllRecipes).toHaveBeenCalledWith('Draft');
+    expect(screen.getByRole<HTMLInputElement>('radio', { name: 'Drafts' }).checked).toBe(true);
+  });
+
+  it('switches to drafts when Drafts is chosen', async () => {
+    renderAt('/recipes');
+    await titles();
+    fireEvent.click(screen.getByRole('radio', { name: 'Drafts' }));
+    await titles();
+    expect(recipeService.getAllRecipes).toHaveBeenLastCalledWith('Draft');
   });
 });
