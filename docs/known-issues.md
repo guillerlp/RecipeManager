@@ -85,9 +85,12 @@ kind of negative test.
 | [BUG-18](#bug-18) | Low | Frontend | A converted amount just under a unit threshold shows as the threshold in the smaller unit ("16 oz") |
 | [BUG-19](#bug-19) | Low | API | A publish racing a `PUT` can store a published recipe with null fields (no concurrency token) |
 | [BUG-20](#bug-20) | Low | API | A NUL character in any text field returns 500 |
+| [BUG-21](#bug-21) | Low | API | Tag normalisation ignores Unicode equivalence and invisible characters |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [TEST-08](#test-08) | Low | Tests | Servings reset between recipes is not pinned by a test |
+| [TEST-09](#test-09) | Low | Tests | Tag validation is tested less on the update path than on create |
+| [TEST-10](#test-10) | Low | Tests | No positive test for the tag filter combined with search |
 | [INFRA-07](#infra-07) | Medium | CI/CD | CI runs on every PR but is not yet *required* to merge |
 | [INFRA-02](#infra-02) | Medium | CI/CD | No versioning or tags |
 | [INFRA-03](#infra-03) | Medium | CI/CD | No rollback procedure |
@@ -109,6 +112,8 @@ kind of negative test.
 | [UX-14](#ux-14) | Low | UX | The ingredient rail note sets a font size outside the type scale |
 | [UX-15](#ux-15) | Low | UX | Decimals below 1 are spoken with a singular unit ("0.99 ounce") |
 | [UX-16](#ux-16) | Low | UX | Very small converted volumes read as ⅛ fl oz |
+| [UX-17](#ux-17) | Low | UX | The detail screen's tag links are small touch targets |
+| [UX-18](#ux-18) | Low | UX | Filtering the recipe list is not announced to screen readers |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-07](#dec-07) | — | Decision | 24 h cap excludes slow-cooked and fermented recipes |
@@ -485,6 +490,24 @@ binds, returning 400 — shape, not a business rule.
 
 **Owner:** `02-senior-csharp` · **Effort:** ~1 h
 
+### BUG-21
+**Tag normalisation ignores Unicode equivalence and invisible characters — Low**
+
+Found 2026-10-03 by the whole-branch review of `R-20` PR 1 ([#73](https://github.com/guillerlp/RecipeManager/pull/73)). `Recipe.NormaliseTags` trims, collapses
+`char.IsWhiteSpace` runs, lowercases with `ToLowerInvariant`, and dedupes by ordinal comparison — and nothing more.
+So "café" sent precomposed (U+00E9) and decomposed (`e` + U+0301) are stored as two different tags that look
+identical, and the SPA's exact-match `?tag=` filter finds only the form it was given. Separately, zero-width
+characters (U+200B–U+200D, U+2060, U+FEFF) are not whitespace, so a tag made only of them passes as non-blank and
+renders as an invisible chip. Spec 014 §12 lists both as deliberately not covered.
+
+**Fix.** `.Normalize(NormalizationForm.FormC)` before lowercasing, and strip zero-width characters before the
+blank check, both in `NormaliseTags` with `RecipeTests` rows. Mind the length rule: NFC can lengthen a few
+composition-exclusion characters, so the 40-character validator check on raw input no longer bounds the stored
+value exactly — either check after normalising in the domain, or accept and note it. The SPA's `normaliseTag` in
+`RecipePage` must apply the same `normalize('NFC')`.
+
+**Owner:** `02-senior-csharp` + `03-senior-react` · **Effort:** ~1 h
+
 ---
 
 ## Testing gaps
@@ -513,6 +536,32 @@ No test covers it: deleting the `key` keeps the suite green.
 second recipe's written servings.
 
 **Owner:** `06-qa-tester` · **Effort:** ~20 min
+
+### TEST-09
+**Tag validation is tested less on the update path than on create — Low**
+
+Found 2026-10-03 by the whole-branch review of `R-20` PR 1 ([#73](https://github.com/guillerlp/RecipeManager/pull/73)). Spec 014 §12 asks for the validator cases "for
+both" validators, but `UpdateRecipeDtoValidatorTests` covers only 21 tags, a 41-character tag, and a null list —
+not a `[null]` item nor the 20 × 40 passing case that `CreateRecipeCommandValidatorTests` has. And only `POST` has
+an integration test for an old client's body with no `tags` key (`CreateRecipe_WithoutATagsKey_ShouldReturn400NamingTags`);
+`PUT` relies on the same MVC implicit-required check but nothing pins it. Both validators share `ValidateTags`, so
+the risk is wiring, not logic.
+
+**Fix.** The two missing `UpdateRecipeDtoValidatorTests` cases, and a `PUT` twin of the missing-key test.
+
+**Owner:** `06-qa-tester` · **Effort:** ~20 min
+
+### TEST-10
+**No positive test for the tag filter combined with search — Low**
+
+Found 2026-10-04 by the whole-branch review of `R-20` PR 2 ([#75](https://github.com/guillerlp/RecipeManager/pull/75)). `RecipeList` applies `?tag=` AND the text search;
+the only combined test (`combines the tag with the text search`) checks an empty result. Spec 014 §11's
+"`?tag=roast` and the search "lemon" lists only recipes matching both" has no case where something matches both.
+Switching AND to OR already fails the empty-result test, so this documents the criterion more than it guards it.
+
+**Fix.** A `RecipeList` filter test where one recipe matches both and another matches only the tag.
+
+**Owner:** `06-qa-tester` · **Effort:** ~10 min
 
 ---
 
@@ -840,6 +889,34 @@ metric volumes to fluid ounces; recipes rarely hold such amounts.
 
 **Fix.** A decision for `07-ux-ui`: below a threshold, convert to teaspoons (US customary, 4.93 ml) instead of
 fluid ounces, or show the decimal. Amend spec 012 §8.5 and ADR-024 item 6 with whichever is chosen.
+
+**Owner:** `07-ux-ui` → `03-senior-react` · **Effort:** ~30 min
+
+### UX-17
+**The detail screen's tag links are small touch targets — Low**
+
+Found 2026-10-04 by the whole-branch review of `R-20` PR 2 ([#75](https://github.com/guillerlp/RecipeManager/pull/75)). The kicker's tag links (`.kicker a` in
+`RecipeDetailPage.module.css`) take their size from `--type-label`, `0.688rem/1` — about 11 px tall. They pass WCAG
+2.5.8 (24 × 24 px) only through its spacing exception, because the `·` separators keep the targets apart; on a
+phone they are still fiddly to hit, and a miss lands on nothing.
+
+**Fix.** `padding-block` (and a little inline padding) on `.kicker a`, balanced by a negative margin so the
+kicker's visual rhythm above the title does not change. Check at 375 px.
+
+**Owner:** `07-ux-ui` → `03-senior-react` · **Effort:** ~20 min
+
+### UX-18
+**Filtering the recipe list is not announced to screen readers — Low**
+
+Found 2026-10-04 by the whole-branch review of `R-20` PR 2 ([#75](https://github.com/guillerlp/RecipeManager/pull/75)). When the text search or a `?tag=` filter
+changes, `RecipeList` re-renders the list and its "Found N recipes" line, and `RecipePage` shows or removes the tag
+chip — all silently. Nothing is a live region, so a screen-reader user who types a query or clears a tag hears no
+result count and must explore the page to learn what changed. Predates `R-20` for the text search; the tag filter
+inherits it.
+
+**Fix.** Put the result summary (count, or the empty-state message) in one element with `role="status"`, present
+from first render so assistive tech registers it, and update only its text. Test that its text changes with the
+filter.
 
 **Owner:** `07-ux-ui` → `03-senior-react` · **Effort:** ~30 min
 
