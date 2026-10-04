@@ -4,19 +4,13 @@ import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styles from './RecipePage.module.css';
 import { RecipeList, SearchBar } from '@/components';
-
-// The same normalisation the server applies to stored tags (spec 014), so a hand-typed ?tag=Roast still
-// matches "roast". The URL, not state, owns the filter: it is linkable from the detail kicker and survives reload.
-// An empty or all-whitespace ?tag= normalises to "" and means no filter at all.
-const normaliseTag = (value: string | null) => {
-    const tag = value?.trim().replace(/\s+/g, ' ').toLowerCase();
-    return tag === '' ? undefined : tag;
-};
+import { normaliseTag } from '@/utils/tags';
 
 export const RecipePage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [searchParams, setSearchParams] = useSearchParams();
     const searchInput = useRef<HTMLInputElement>(null);
+    // The URL, not state, owns the filter: it is linkable from the detail kicker and survives reload.
     const tag = normaliseTag(searchParams.get('tag'));
 
     const handleSearchChange = (query:string) => {
