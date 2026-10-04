@@ -90,6 +90,12 @@ payload** and responses carry ids. `R-23` is now waiting only on `R-22`.
 `UX-05`: a Draft/Published status that selects the rule tier, `publish`/`unpublish` endpoints, and `?status=` on
 the list. Its entry is gone from this file.
 
+`R-20` (tags) shipped 2026-10-04 as **ADR-026** ([spec 014](specs/014-recipe-tags.md)) in two PRs: a bounded
+`character varying(40)[]` normalised in the aggregate (#73), then the first tag on list rows, the detail kicker of
+tag links, and a client-side `?tag=` filter. It narrowed known limitation #6 to categories, ratings, and
+favourites. Server-side `?tag=` with its GIN index is `R-11`'s; editing tags is `R-21`'s. Its entry is gone from
+this file.
+
 Build order. Each item names what it waits on, so a later item can move up if its dependencies are met:
 
 | Order | Item | Waits on |
@@ -98,8 +104,8 @@ Build order. Each item names what it waits on, so a later item can move up if it
 | ~~2~~ | ~~`R-17` Structured instructions~~ — **shipped 2026-09-26**, ADR-023 | — |
 | ~~3~~ | ~~`R-18` Recipe detail screen~~ — **shipped 2026-09-26**, ADR-024 | — |
 | ~~4~~ | ~~`R-19` Draft recipes~~ — **shipped 2026-10-02**, ADR-025 | — |
-| 5 | `R-20` Tags — **PR 1 shipped 2026-10-04** (ADR-026, #73); PR 2 (frontend) open | — |
-| 6 | `R-21` Add/edit form | ~~`R-10`~~, ~~`R-17`~~, ~~`R-19`~~, `R-20` |
+| ~~5~~ | ~~`R-20` Tags~~ — **shipped 2026-10-04**, ADR-026 | — |
+| 6 | `R-21` Add/edit form | ~~`R-10`~~, ~~`R-17`~~, ~~`R-19`~~, ~~`R-20`~~ — none |
 | 7 | `R-22` Cook log | — |
 | 8 | `R-23` Cooking mode | ~~`R-17`~~, `R-22` |
 | 9 | `R-24` Export and import | `SEC-08`, ~~`SEC-09`~~ |
@@ -107,22 +113,6 @@ Build order. Each item names what it waits on, so a later item can move up if it
 `R-11`, `R-12`, `R-13`, and `R-14` keep their IDs and are unordered relative to the list above; each notes what
 the design asks of it. `R-13` is worth doing early, since every screen above is easier to check against realistic
 data.
-
-### R-20
-**Tags** · `01-architect` → full stack · ~1 day
-
-Freeform labels ("roast", "breakfast", "feeds a table") on a recipe, shown in the list and on the detail
-screen, and edited in the form. Removes known limitation #6. Decide the storage (a `text[]` primitive
-collection, as `InstructionStep.IngredientIds` is a `uuid[]`, or an owned child table as `Ingredients` and
-`Instructions` now are) and normalisation (case, whitespace, duplicates) in
-the ADR. ADR-022's reasoning transfers: a `text[]` is cheaper and keeps order for free, a child table is what
-makes "every recipe tagged *roast*" an indexable SQL query rather than a client-side scan. Comes before `R-21`
-so the form is built once.
-
-Decided 2026-10-03 as **ADR-026** ([spec 014](specs/014-recipe-tags.md)): a `character varying(40)[]` with a
-cardinality `CHECK` (≤ 20), normalised in the aggregate, filtered client-side until `R-11`. **PR 1 (domain,
-migration, contract)** shipped 2026-10-04 in #73. **PR 2 (the first tag on list rows, the detail kicker, and a
-client-side `?tag=` filter) remains**, after which this entry is deleted. Editing tags is `R-21`'s.
 
 ### R-21
 **Add/edit form** · `07-ux-ui` → `03-senior-react` · ~2 days
@@ -200,7 +190,7 @@ endpoint, not three new endpoints. The last one needs `R-22`.
 
 `?tag=` belongs here too (ADR-026): tags are a `character varying(40)[]`, so the server-side filter is
 `'roast' = ANY("Tags")` and needs a **GIN** index on `"Tags"`, added in the same migration — a B-tree cannot serve
-an array-membership query. Until then the SPA filters by tag in the browser (`R-20` PR 2).
+an array-membership query. Until then the SPA filters by tag in the browser (`R-20`).
 
 ### R-12
 **Recipe images** · `01-architect` + `05-security-reviewer` (both required) → full stack · ~1 day

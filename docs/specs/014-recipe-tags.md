@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `014` |
-| **Status** | approved — PR 1 (backend + contract) in review; PR 2 (frontend) to follow |
+| **Status** | shipped 2026-10-04 — ADR-026 (#73, then the frontend PR) |
 | **Author** | `00-leader` + `01-architect` |
 | **Created** | `2026-10-03` |
 | **Branch** | `feat/recipe-tags` |
@@ -26,25 +26,25 @@ shows on the list and detail screens and can filter by.
 
 **PR 1 — backend and contract**
 
-- [ ] `Recipe.Tags` (`IReadOnlyList<string>`), accepted by `Recipe.Create` and `Recipe.Update`, normalised in
+- [x] `Recipe.Tags` (`IReadOnlyList<string>`), accepted by `Recipe.Create` and `Recipe.Update`, normalised in
       the domain (§6).
-- [ ] New `RecipeErrors.TagRequired()` for a tag that is blank after trimming.
-- [ ] Shape rules in `RecipeValidationRules`: list `NotNull`, at most 20 items, each `NotNull` and at most 40
+- [x] New `RecipeErrors.TagRequired()` for a tag that is blank after trimming.
+- [x] Shape rules in `RecipeValidationRules`: list `NotNull`, at most 20 items, each `NotNull` and at most 40
       characters.
-- [ ] `Tags` column `character varying(40)[] NOT NULL` with a `CHECK` on its cardinality; migration
+- [x] `Tags` column `character varying(40)[] NOT NULL` with a `CHECK` on its cardinality; migration
       `AddRecipeTags` back-fills existing rows with `'{}'`.
-- [ ] `tags` on `CreateRecipeCommand`, `UpdateRecipeDto`, and `RecipeDto`.
-- [ ] Regenerated `contracts/openapi.json` and `src/types/generated/api.ts`.
-- [ ] ADR-026, `domain-model.md` updated (limitation #6 narrowed), decisions-log entry.
+- [x] `tags` on `CreateRecipeCommand`, `UpdateRecipeDto`, and `RecipeDto`.
+- [x] Regenerated `contracts/openapi.json` and `src/types/generated/api.ts`.
+- [x] ADR-026, `domain-model.md` updated (limitation #6 narrowed), decisions-log entry.
 
 **PR 2 — frontend**
 
-- [ ] `RecipeCard` shows the recipe's first tag as plain text in the meta column.
-- [ ] `RecipeDetailPage` shows every tag as a kicker above the title, each a link to `/recipes?tag=<tag>`.
-- [ ] `RecipePage` reads `?tag=` and filters the list to recipes carrying that exact tag, combined with the text
+- [x] `RecipeCard` shows the recipe's first tag as plain text in the meta column.
+- [x] `RecipeDetailPage` shows every tag as a kicker above the title, each a link to `/recipes?tag=<tag>`.
+- [x] `RecipePage` reads `?tag=` and filters the list to recipes carrying that exact tag, combined with the text
       search by AND, and shows the active tag with a control to clear it.
-- [ ] The text search also matches tags.
-- [ ] `R-20` removed from the roadmap; spec status set to shipped.
+- [x] The text search also matches tags.
+- [x] `R-20` removed from the roadmap; spec status set to shipped.
 
 ## 4. Out of scope
 
@@ -194,25 +194,25 @@ shows on the list and detail screens and can filter by.
 
 ## 11. Acceptance criteria
 
-- [ ] Given a create request with `tags: ["  Roast ", "roast", "Feeds   A Table"]`, when it is posted, then
+- [x] Given a create request with `tags: ["  Roast ", "roast", "Feeds   A Table"]`, when it is posted, then
       201 and the response and database both hold `["roast", "feeds a table"]`.
-- [ ] Given a create request with `tags: []`, then 201 and `tags: []`.
-- [ ] Given a request with no `tags` property or `tags: null`, then 400. (Which layer rejects it — model
+- [x] Given a create request with `tags: []`, then 201 and `tags: []`.
+- [x] Given a request with no `tags` property or `tags: null`, then 400. (Which layer rejects it — model
       binding's implicit `[Required]` for a non-nullable reference, or FluentValidation's `NotNull` — is pinned by
       the integration test, not assumed here.)
-- [ ] Given 21 tags, then 400. Given a 41-character tag, then 400.
-- [ ] Given a tag of `"   "`, then 422 with `field: "tags"` — in a draft too.
-- [ ] Given a `PUT` with `tags: ["weeknight"]` on a recipe tagged `["roast"]`, then 204 and the recipe is tagged
+- [x] Given 21 tags, then 400. Given a 41-character tag, then 400.
+- [x] Given a tag of `"   "`, then 422 with `field: "tags"` — in a draft too.
+- [x] Given a `PUT` with `tags: ["weeknight"]` on a recipe tagged `["roast"]`, then 204 and the recipe is tagged
       `["weeknight"]` only.
-- [ ] Given an invalid `PUT`, then nothing about the recipe changes, tags included.
-- [ ] Given a recipe that existed before the migration, when read, then `tags: []`.
-- [ ] Given a direct SQL insert of a 41-character tag or of 21 tags, then PostgreSQL rejects it.
-- [ ] Given a recipe tagged `["roast", "chicken"]`, then its list row shows "roast" and its detail screen shows
+- [x] Given an invalid `PUT`, then nothing about the recipe changes, tags included.
+- [x] Given a recipe that existed before the migration, when read, then `tags: []`.
+- [x] Given a direct SQL insert of a 41-character tag or of 21 tags, then PostgreSQL rejects it.
+- [x] Given a recipe tagged `["roast", "chicken"]`, then its list row shows "roast" and its detail screen shows
       both as links to `/recipes?tag=roast` and `/recipes?tag=chicken`.
-- [ ] Given `/recipes?tag=roast`, then only recipes tagged exactly `roast` are listed, the active filter is shown,
+- [x] Given `/recipes?tag=roast`, then only recipes tagged exactly `roast` are listed, the active filter is shown,
       and clearing it removes `?tag=` and lists every recipe.
-- [ ] Given `/recipes?tag=roast` and the search "lemon", then only recipes matching both are listed.
-- [ ] Given the search "roast" and a recipe tagged `roast` whose title and description do not contain it, then
+- [x] Given `/recipes?tag=roast` and the search "lemon", then only recipes matching both are listed.
+- [x] Given the search "roast" and a recipe tagged `roast` whose title and description do not contain it, then
       that recipe is listed.
 
 ## 12. Test plan
