@@ -15,6 +15,8 @@ interface RecipeCardProps {
 export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
     const titleId = useId();
     const descriptionId = useId();
+    const tagId = useId();
+    const tag = recipe.tags[0];
     // The list only ever receives published recipes (spec 013), which always have both times; the type
     // cannot say so, hence the fallback.
     const totalMinutes = (recipe.preparationTime ?? 0) + (recipe.cookingTime ?? 0);
@@ -24,7 +26,9 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
             to={`/recipes/${recipe.id}`}
             className={styles.row}
             aria-labelledby={titleId}
-            aria-describedby={descriptionId}
+            // The tag joins the description: aria-describedby replaces the link's content as its description,
+            // so text not referenced here is never announced. No dangling id when the recipe is untagged.
+            aria-describedby={tag ? `${descriptionId} ${tagId}` : descriptionId}
         >
             <div className={styles.thumb} aria-hidden="true" />
 
@@ -41,7 +45,7 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
                 <time className={styles.time} dateTime={getISODuration(totalMinutes)}>
                     {formatDuration(totalMinutes)}
                 </time>
-                {recipe.tags[0] && <span className={styles.tag}>{recipe.tags[0]}</span>}
+                {tag && <span id={tagId} className={styles.tag} title={tag}>{tag}</span>}
             </span>
 
             <ChevronRightIcon className={styles.chevron} />

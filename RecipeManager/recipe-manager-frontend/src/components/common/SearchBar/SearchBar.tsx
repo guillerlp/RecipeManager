@@ -5,12 +5,15 @@ interface SearchBarProps {
     searchQuery: string;
     onSearchChange: (query: string) => void;
     placeholder? : string;
+    // React 19: ref is an ordinary prop on a function component, so the input can be focused from outside.
+    ref?: React.Ref<HTMLInputElement>;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
     searchQuery,
     onSearchChange,
-    placeholder = "Search by name, ingredient or a word you remember"
+    placeholder = "Search by name, ingredient or a word you remember",
+    ref
 }) => {
 
     const handleInputChange = (e:React.ChangeEvent<HTMLInputElement>) => {
@@ -23,6 +26,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 <SearchIcon className={styles.searchIcon} />
 
                 <input
+                    ref={ref}
                     type="text"
                     value={searchQuery}
                     onChange={handleInputChange}

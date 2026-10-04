@@ -61,6 +61,15 @@ describe('RecipePage tag filter', () => {
     expect(screen.queryByRole('button', { name: /Clear tag filter/ })).toBeNull();
   });
 
+  it('moves focus to the search field when the filter is cleared, instead of dropping it to the page', async () => {
+    renderAt('/recipes?tag=roast');
+    await titles();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear tag filter: roast' }));
+
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Search recipes' }));
+  });
+
   it('treats an all-whitespace ?tag= as no filter', async () => {
     renderAt('/recipes?tag=%20%20');
 

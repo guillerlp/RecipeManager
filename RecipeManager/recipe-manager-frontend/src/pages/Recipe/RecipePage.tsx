@@ -1,6 +1,6 @@
 // src/pages/Recipe/RecipePage.tsx
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styles from './RecipePage.module.css';
 import { RecipeList, SearchBar } from '@/components';
@@ -16,6 +16,7 @@ const normaliseTag = (value: string | null) => {
 export const RecipePage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [searchParams, setSearchParams] = useSearchParams();
+    const searchInput = useRef<HTMLInputElement>(null);
     const tag = normaliseTag(searchParams.get('tag'));
 
     const handleSearchChange = (query:string) => {
@@ -27,12 +28,15 @@ export const RecipePage: React.FC = () => {
             params.delete('tag');
             return params;
         });
+        // The clear button unmounts with the filter; without this, keyboard focus would fall back to <body>.
+        searchInput.current?.focus();
     }
 
     return(
         <section className={styles.heroSection}>
             <section className={styles.searchSection}>
                 <SearchBar
+                    ref={searchInput}
                     searchQuery={searchQuery}
                     onSearchChange={handleSearchChange}
                     placeholder='Search by name, ingredient or a word you remember'

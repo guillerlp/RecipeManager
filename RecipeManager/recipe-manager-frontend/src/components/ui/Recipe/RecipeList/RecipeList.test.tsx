@@ -175,6 +175,19 @@ describe('RecipeList states', () => {
     expect(screen.queryByText('weeknight')).toBeNull();
   });
 
+  it('includes the tag in the row link\'s accessible description, and references nothing when untagged', async () => {
+    respondWith(recipes);
+    renderList();
+
+    const describedBy = (name: string) =>
+      screen.getByRole('link', { name }).getAttribute('aria-describedby')!.split(' ')
+        .map(id => document.getElementById(id)?.textContent);
+
+    await screen.findByRole('link', { name: 'Tomato Soup' });
+    expect(describedBy('Tomato Soup')).toEqual(['Warm and simple', 'soup']);
+    expect(describedBy('Green Salad')).toEqual(['Crunchy side']);
+  });
+
   it('renders one card per recipe, with a formatted total duration', async () => {
     respondWith(recipes);
     renderList();
