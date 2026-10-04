@@ -8,6 +8,7 @@ public sealed class Recipe : Entity
 {
     private readonly List<Ingredient> _ingredients = [];
     private readonly List<InstructionStep> _instructions = [];
+    private readonly List<string> _tags = [];
 
     public string Title { get; private set; }
     public string? Description { get; private set; }
@@ -18,6 +19,7 @@ public sealed class Recipe : Entity
     public IReadOnlyList<Ingredient> Ingredients => _ingredients.OrderBy(i => i.Position).ToList().AsReadOnly();
     public IReadOnlyList<InstructionStep> Instructions =>
         _instructions.OrderBy(s => s.Position).ToList().AsReadOnly();
+    public IReadOnlyList<string> Tags => _tags.ToList().AsReadOnly();
 
 #pragma warning disable CS8618
     private Recipe()
@@ -27,7 +29,7 @@ public sealed class Recipe : Entity
 #pragma warning restore CS8618
 
     private Recipe(string title, string? description, int? preparationTime, int? cookingTime, int? servings,
-        List<Ingredient> ingredients, List<InstructionStep> instructions, RecipeStatus status)
+        List<Ingredient> ingredients, List<InstructionStep> instructions, List<string> tags, RecipeStatus status)
     {
         Id = Guid.NewGuid();
         Title = title;
@@ -38,36 +40,42 @@ public sealed class Recipe : Entity
         Status = status;
         ReplaceIngredients(ingredients);
         ReplaceInstructions(instructions);
+        _tags.AddRange(tags);
     }
 
+    // Tags come last and default to none so existing callers keep compiling: a new recipe with no tags is the
+    // truthful default. Update takes them as a required argument, where omitting them would silently clear them.
     public static Result<Recipe> Create(string title, string? description, int? preparationTime, int? cookingTime,
         int? servings, IEnumerable<Ingredient> ingredients, IEnumerable<InstructionStep> instructions,
-        RecipeStatus status = RecipeStatus.Published)
+        RecipeStatus status = RecipeStatus.Published, IEnumerable<string>? tags = null)
     {
         // Materialise once: each list is read by ValidateProperties and again by the constructor, and an
         // IEnumerable is not guaranteed to survive being walked twice.
         List<Ingredient> ingredientList = ingredients?.ToList() ?? [];
         List<InstructionStep> instructionList = instructions?.ToList() ?? [];
+        List<string> tagList = NormaliseTags(tags);
 
         Result validate = ValidateProperties(status, title, description, preparationTime, cookingTime, servings,
-            ingredientList, instructionList);
+            ingredientList, instructionList, tagList);
 
         if (validate.IsFailed)
             return Result.Fail<Recipe>(validate.Errors);
 
         return Result.Ok(new Recipe(title, description, preparationTime, cookingTime, servings, ingredientList,
-            instructionList, status));
+            instructionList, tagList, status));
     }
 
     // Validates against the current status: a published recipe keeps the full rules on every edit.
     public Result Update(string title, string? description, int? preparationTime, int? cookingTime,
-        int? servings, IEnumerable<Ingredient> ingredients, IEnumerable<InstructionStep> instructions)
+        int? servings, IEnumerable<Ingredient> ingredients, IEnumerable<InstructionStep> instructions,
+        IEnumerable<string> tags)
     {
         List<Ingredient> ingredientList = ingredients?.ToList() ?? [];
         List<InstructionStep> instructionList = instructions?.ToList() ?? [];
+        List<string> tagList = NormaliseTags(tags);
 
         Result validate = ValidateProperties(Status, title, description, preparationTime, cookingTime, servings,
-            ingredientList, instructionList);
+            ingredientList, instructionList, tagList);
 
         if (validate.IsFailed)
             return validate;
@@ -79,6 +87,8 @@ public sealed class Recipe : Entity
         Servings = servings;
         ReplaceIngredients(ingredientList);
         ReplaceInstructions(instructionList);
+        _tags.Clear();
+        _tags.AddRange(tagList);
 
         return Result.Ok();
     }
@@ -90,7 +100,7 @@ public sealed class Recipe : Entity
             return Result.Ok();
 
         Result validate = ValidateProperties(RecipeStatus.Published, Title, Description, PreparationTime,
-            CookingTime, Servings, _ingredients, _instructions);
+            CookingTime, Servings, _ingredients, _instructions, _tags);
 
         if (validate.IsFailed)
             return validate;
@@ -126,12 +136,27 @@ public sealed class Recipe : Entity
         }
     }
 
+    // Spec 014: trim, collapse internal whitespace, lowercase, drop repeats. Split(null) splits on every
+    // whitespace character and RemoveEmptyEntries drops the runs, which trims and collapses in one step.
+    // HashSet.Add is false for a repeat, so the first occurrence wins and the author's order survives —
+    // Enumerable.Distinct does not document an order. A blank tag becomes "" and is reported by
+    // ValidateProperties rather than dropped: silently discarding input is a bug, not normalisation.
+    private static List<string> NormaliseTags(IEnumerable<string>? tags)
+    {
+        var seen = new HashSet<string>();
+        return (tags ?? [])
+            .Select(tag => string.Join(' ', (tag ?? string.Empty)
+                .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant())
+            .Where(seen.Add)
+            .ToList();
+    }
+
     // Two tiers (spec 013): a value that is present must always be valid; completeness is demanded only of a
     // published recipe. The checks keep their original order, so the primary error ResultExtensions picks for
     // an existing payload does not change. Note the lifted operators: null < 0 and null == 0 are both false.
     private static Result ValidateProperties(RecipeStatus status, string title, string? description,
         int? preparationTime, int? cookingTime, int? servings, IReadOnlyCollection<Ingredient>? ingredients,
-        IReadOnlyCollection<InstructionStep>? instructions)
+        IReadOnlyCollection<InstructionStep>? instructions, IReadOnlyCollection<string> tags)
     {
         var errors = new List<IError>();
         bool mustBeComplete = status == RecipeStatus.Published;
@@ -180,6 +205,11 @@ public sealed class Recipe : Entity
         IEnumerable<Guid> referencedIds = instructions?.SelectMany(s => s.IngredientIds) ?? [];
         if (referencedIds.Any(id => !ingredientIds.Contains(id)))
             errors.Add(RecipeErrors.InstructionIngredientNotFound());
+
+        // Normalisation has already run, so a blank tag arrives here as "". Reported once per recipe, like
+        // IngredientsRequired, and in both tiers: a draft may have no tags, but never a blank one.
+        if (tags.Any(tag => tag.Length == 0))
+            errors.Add(RecipeErrors.TagRequired());
 
         return errors.Count == 0
             ? Result.Ok()

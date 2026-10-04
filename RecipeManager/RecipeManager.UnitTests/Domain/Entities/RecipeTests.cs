@@ -265,7 +265,7 @@ public class RecipeTests
 
         // Act
         Result updateResult = recipe.Update(newTitle, newDescription,
-            15, 25, 4, newIngredients, newInstructions);
+            15, 25, 4, newIngredients, newInstructions, []);
 
         // Assert
         updateResult.IsSuccess.Should().BeTrue();
@@ -293,7 +293,7 @@ public class RecipeTests
 
         // Act
         Result updateResult = recipe.Update("", "", // Invalid title and description
-            -5, 20, 2, ingredients, [Step("Replaced")]);
+            -5, 20, 2, ingredients, [Step("Replaced")], []);
 
         // Assert
         updateResult.IsFailed.Should().BeTrue();
@@ -375,7 +375,7 @@ public class RecipeTests
             [Ing("Flour"), Ing("Sugar")], [Step("Mix")]).Value;
 
         Result result = recipe.Update("Title", "Description", 10, 0, 1,
-            [Ing("Sugar"), Ing("Flour")], [Step("Mix")]);
+            [Ing("Sugar"), Ing("Flour")], [Step("Mix")], []);
 
         result.IsSuccess.Should().BeTrue();
         recipe.Ingredients.Select(i => i.Name).Should().Equal("Sugar", "Flour");
@@ -390,7 +390,7 @@ public class RecipeTests
         Recipe recipe = Recipe.Create("Title", "Description", 10, 0, 1, [Ing("Flour")], [Step("Mix")]).Value;
 
         recipe.Update("Title", "Description", 10, 0, 1,
-            [Ingredient.Create(keptId, 1m, Unit.Cup, "Flour", null).Value], [Step("Mix")]);
+            [Ingredient.Create(keptId, 1m, Unit.Cup, "Flour", null).Value], [Step("Mix")], []);
 
         recipe.Ingredients.Should().ContainSingle().Which.Id.Should().Be(keptId);
     }
@@ -437,7 +437,7 @@ public class RecipeTests
             [Ing("Flour")], [Step("Mix"), Step("Bake")]).Value;
 
         Result result = recipe.Update("Title", "Description", 10, 0, 1,
-            [Ing("Flour")], [Step("Bake"), Step("Mix"), Step("Serve")]);
+            [Ing("Flour")], [Step("Bake"), Step("Mix"), Step("Serve")], []);
 
         result.IsSuccess.Should().BeTrue();
         recipe.Instructions.Select(s => s.Text).Should().Equal("Bake", "Mix", "Serve");
@@ -480,7 +480,7 @@ public class RecipeTests
             [flour, butter], [StepUsing("Rub in", butter)]).Value;
 
         Result result = recipe.Update("Title", "Description", 10, 0, 1,
-            [flour], [StepUsing("Rub in", butter)]);
+            [flour], [StepUsing("Rub in", butter)], []);
 
         result.IsFailed.Should().BeTrue();
         recipe.Ingredients.Select(i => i.Name).Should().Equal("Flour", "Butter");
@@ -589,7 +589,7 @@ public class RecipeTests
     {
         Recipe draft = Draft();
 
-        Result result = draft.Update("Still a draft", null, 5, null, null, [], []);
+        Result result = draft.Update("Still a draft", null, 5, null, null, [], [], []);
 
         result.IsSuccess.Should().BeTrue();
         draft.Title.Should().Be("Still a draft");
@@ -602,7 +602,7 @@ public class RecipeTests
     {
         Recipe recipe = Published();
 
-        Result result = recipe.Update("New title", null, 10, 20, 4, [Ing("Flour")], [Step("Mix")]);
+        Result result = recipe.Update("New title", null, 10, 20, 4, [Ing("Flour")], [Step("Mix")], []);
 
         result.Errors.Should().ContainSingle().Which.Metadata["field"].Should().Be("description");
         recipe.Title.Should().Be("Title");
@@ -656,7 +656,85 @@ public class RecipeTests
         Recipe recipe = Published();
         recipe.Unpublish();
 
-        recipe.Update("Reworking", null, null, null, null, [], []).IsSuccess.Should().BeTrue();
+        recipe.Update("Reworking", null, null, null, null, [], [], []).IsSuccess.Should().BeTrue();
+    }
+
+    #endregion
+
+    #region Tags (R-20, spec 014)
+
+    private static Recipe Tagged(params string[] tags) =>
+        Recipe.Create("Title", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")], tags: tags).Value;
+
+    [Theory]
+    [InlineData(new[] { "roast" }, new[] { "roast" })]
+    [InlineData(new[] { "  Roast " }, new[] { "roast" })]
+    [InlineData(new[] { "feeds   a\ttable" }, new[] { "feeds a table" })]
+    [InlineData(new[] { "Roast", "roast", "ROAST" }, new[] { "roast" })]
+    [InlineData(new[] { "weeknight", "roast", "Weeknight" }, new[] { "weeknight", "roast" })]
+    public void Create_ShouldNormaliseTagsAndKeepTheFirstOccurrenceOrder(string[] given, string[] expected)
+    {
+        Tagged(given).Tags.Should().Equal(expected);
+    }
+
+    [Fact]
+    public void Create_WithoutTags_ShouldHaveAnEmptyList()
+    {
+        Published().Tags.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(RecipeStatus.Draft)]
+    [InlineData(RecipeStatus.Published)]
+    public void Create_WithBlankTags_ShouldFailOnceOnTagsInEitherTier(RecipeStatus status)
+    {
+        Result<Recipe> result = Recipe.Create("Title", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")],
+            status, ["roast", "   ", "\t"]);
+
+        result.IsFailed.Should().BeTrue();
+        IError error = result.Errors.Should().ContainSingle().Subject;
+        error.Message.Should().Be(RecipeErrors.TagRequired().Message);
+        error.Metadata["field"].Should().Be("tags");
+    }
+
+    [Fact]
+    public void Update_ShouldReplaceTheTags()
+    {
+        Recipe recipe = Tagged("roast");
+
+        Result result = recipe.Update("Title", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")],
+            ["Weeknight"]);
+
+        result.IsSuccess.Should().BeTrue();
+        recipe.Tags.Should().Equal("weeknight");
+    }
+
+    [Fact]
+    public void Update_WithABlankTag_ShouldFailAndLeaveTheTagsUnchanged()
+    {
+        Recipe recipe = Tagged("roast");
+
+        Result result = recipe.Update("Title", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")],
+            ["weeknight", " "]);
+
+        result.IsFailed.Should().BeTrue();
+        recipe.Tags.Should().Equal("roast");
+    }
+
+    [Fact]
+    public void Publish_ADraftWithTags_ShouldSucceedAndKeepThem()
+    {
+        Recipe draft = Recipe.Create("Title", "Description", 10, 20, 4, [Ing("Flour")], [Step("Mix")],
+            RecipeStatus.Draft, ["roast"]).Value;
+
+        draft.Publish().IsSuccess.Should().BeTrue();
+        draft.Tags.Should().Equal("roast");
+    }
+
+    [Fact]
+    public void Tags_ShouldNotBeCastableToAMutableList()
+    {
+        Tagged("roast").Tags.Should().NotBeAssignableTo<List<string>>();
     }
 
     #endregion

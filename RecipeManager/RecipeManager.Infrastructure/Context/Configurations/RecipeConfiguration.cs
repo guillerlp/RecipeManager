@@ -25,6 +25,17 @@ public sealed class RecipeConfiguration : IEntityTypeConfiguration<Recipe>
         // 'Published' default exists only in the AddRecipeStatus migration, to back-fill the existing rows.
         builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
 
+        // A bounded varchar[] primitive collection, not a child table (ADR-026): a list of plain strings with no
+        // fields of its own, kept in order for free. The element type carries the 40-character cap; PostgreSQL
+        // ignores array dimensions in a column type, so the 20-tag cap is a CHECK constraint instead. Field
+        // access because the getter returns a copy.
+        builder.PrimitiveCollection(r => r.Tags)
+            .IsRequired()
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .ElementType(tag => tag.HasMaxLength(40));
+
+        builder.ToTable(table => table.HasCheckConstraint("CK_Recipes_Tags_Count", "cardinality(\"Tags\") <= 20"));
+
         builder.OwnsMany(r => r.Ingredients, ingredient =>
         {
             ingredient.ToTable("RecipeIngredients");
