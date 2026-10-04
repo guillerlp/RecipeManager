@@ -1,7 +1,7 @@
 // Add/edit screen, design frame 3d (spec 015). The form model lives in recipeForm.ts; this file wires it to the
 // mutation hooks, the router, and the page.
 import { useEffect, useReducer, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { RecipeCard } from '@/components';
 import {
   isRecipeId, useCreateRecipe, useDeleteRecipe, usePublishRecipe, useRecipe, useUnpublishRecipe, useUpdateRecipe,
@@ -46,6 +46,15 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [state, dispatch] = useReducer(formReducer, recipe, initial => (initial ? fromRecipe(initial) : emptyForm()));
+  // Dirty = different from what was loaded or last saved. JSON comparison is enough: both sides come from the same
+  // constructors, so key order matches.
+  const [baseline, setBaseline] = useState(state);
+  const dirty = JSON.stringify(state) !== JSON.stringify(baseline);
+  // Set just before the form's own navigations (after create, publish, delete), which must never ask.
+  const leaving = useRef(false);
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    dirty && !leaving.current && currentLocation.pathname !== nextLocation.pathname);
+  const leaveDialog = useRef<HTMLDialogElement>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [action, setAction] = useState<Action>('save');
   // The first draft save redirects here from /recipes/new and remounts this component; the time travels in state.
@@ -64,6 +73,18 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
   const publish = usePublishRecipe();
   const unpublish = useUnpublishRecipe();
   const remove = useDeleteRecipe();
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') leaveDialog.current?.showModal();
+  }, [blocker.state]);
+
+  // Closing the tab or reloading: the browser shows its own generic prompt; custom text is no longer allowed.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
   // Focus moves to the summary after every failed attempt, so a keyboard or screen-reader user lands on the list
   // of what to fix instead of hunting through a long form.
@@ -89,6 +110,7 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
     }
 
     const request = toRequest(state);
+    const submitted = state;
     busy.current = true;
     setSaving(true);
     try {
@@ -96,8 +118,10 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
         const created = await create.mutateAsync({ ...request, status: intent === 'draft' ? 'Draft' : 'Published' });
         // Replace, not push: Back from the edit screen must not land on a blank form that would create a second recipe.
         if (intent === 'draft') {
+          leaving.current = true;
           void navigate(`/recipes/${created.id}/edit`, { replace: true, state: { savedAt: Date.now() } });
         } else {
+          leaving.current = true;
           void navigate(`/recipes/${created.id}`);
         }
         return;
@@ -106,10 +130,12 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
       if (intent === 'unpublish') await unpublish.mutateAsync(recipe.id);
       await update.mutateAsync({ id: recipe.id, request });
       setSavedAt(Date.now());
+      setBaseline(submitted);
       setErrors({});
       // Saved before publishing, so a 422 from publish still leaves the edit saved as a draft.
       if (intent === 'publish') {
         await publish.mutateAsync(recipe.id);
+        leaving.current = true;
         void navigate(`/recipes/${recipe.id}`);
       }
     } catch (error) {
@@ -126,6 +152,7 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
     setSaving(true);
     try {
       await remove.mutateAsync(recipe.id);
+      leaving.current = true;
       void navigate('/recipes', { replace: true });
     } catch (error) {
       deleteDialog.current?.close();
@@ -352,6 +379,31 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
           </div>
         </dialog>
       )}
+      <dialog
+        ref={leaveDialog}
+        className={styles.dialog}
+        aria-labelledby="leave-heading"
+        onClose={() => {
+          if (blocker.state === 'blocked') blocker.reset();
+        }}
+      >
+        <h2 id="leave-heading" className={styles.dialogTitle}>Leave without saving?</h2>
+        <p className={styles.hint}>Your changes to this recipe will be lost.</p>
+        <div className={styles.actions}>
+          <button type="button" className={styles.secondary} onClick={() => leaveDialog.current?.close()}>Keep editing</button>
+          <button
+            type="button"
+            className={styles.danger}
+            onClick={() => {
+              if (blocker.state !== 'blocked') return;
+              leaving.current = true;
+              blocker.proceed();
+            }}
+          >
+            Leave
+          </button>
+        </div>
+      </dialog>
     </form>
   );
 };

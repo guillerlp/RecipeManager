@@ -29,9 +29,9 @@ describe('NotFoundPage', () => {
 });
 
 // The test above proves the page renders correctly in isolation, but not that the app's router
-// actually reaches it (the real fix for BUG-06). App.tsx mounts its own BrowserRouter, which
+// actually reaches it (the real fix for BUG-06). App.tsx mounts its own browser router, which
 // reads from the History API rather than accepting an injected route, so an unknown path is
-// simulated the same way BrowserRouter itself would see one: pushing it onto jsdom's history
+// simulated the same way that router itself would see one: pushing it onto jsdom's history
 // before mount.
 describe('App routing', () => {
   it('renders the 404 page inside the app shell for an unknown path', () => {

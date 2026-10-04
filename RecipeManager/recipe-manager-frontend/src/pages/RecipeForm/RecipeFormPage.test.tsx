@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { AxiosError, type AxiosResponse } from 'axios';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -354,5 +354,66 @@ describe('RecipeFormPage — list-row preview', () => {
     const preview = screen.getByText('How it will look in the list').closest('section');
     expect(preview?.hasAttribute('inert')).toBe(true);
     expect(within(preview!).getByText('Weeknight dal')).toBeTruthy();
+  });
+});
+
+describe('RecipeFormPage — leaving with unsaved changes', () => {
+  it('asks first, and Keep editing stays on the form', async () => {
+    const router = renderAt('/recipes/new');
+    typeInto('Recipe title', 'Unsaved');
+
+    await act(() => router.navigate('/recipes'));
+    const dialog = screen.getByRole('dialog', { name: 'Leave without saving?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Keep editing' }));
+
+    expect(router.state.location.pathname).toBe('/recipes/new');
+    expect(screen.getByLabelText<HTMLInputElement>('Recipe title').value).toBe('Unsaved');
+  });
+
+  it('Leave discards the edits and goes', async () => {
+    const router = renderAt('/recipes/new');
+    typeInto('Recipe title', 'Unsaved');
+
+    await act(() => router.navigate('/recipes'));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Leave without saving?' })).getByRole('button', { name: 'Leave' }));
+
+    expect(await screen.findByText('List page')).toBeTruthy();
+  });
+
+  it('Discard on a dirty form asks too', () => {
+    renderAt('/recipes/new');
+    typeInto('Recipe title', 'Unsaved');
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(screen.getByRole('dialog', { name: 'Leave without saving?' }).hasAttribute('open')).toBe(true);
+  });
+
+  it('a clean form leaves without asking', async () => {
+    const router = renderAt('/recipes/new');
+    await act(() => router.navigate('/recipes'));
+    expect(await screen.findByText('List page')).toBeTruthy();
+  });
+
+  it('a form just saved leaves without asking', async () => {
+    service.getRecipeById.mockResolvedValue(ok(published));
+    service.updateRecipe.mockResolvedValue(ok(undefined));
+    const router = renderAt(`/recipes/${ID}/edit`);
+    const saveButton = await screen.findByRole('button', { name: 'Save' });
+    typeInto('Description', 'Changed.');
+    fireEvent.click(saveButton);
+    await screen.findByText(/^Saved/);
+
+    await act(() => router.navigate('/recipes'));
+    expect(await screen.findByText('List page')).toBeTruthy();
+  });
+
+  it('a successful create redirects without asking', async () => {
+    service.createRecipe.mockResolvedValue(ok(draft));
+    service.getRecipeById.mockResolvedValue(ok(draft));
+    const router = renderAt('/recipes/new');
+    typeInto('Recipe title', 'Half a roast');
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+    await screen.findByText(/^Draft saved/);
+    expect(router.state.location.pathname).toBe(`/recipes/${ID}/edit`);
+    expect(screen.queryByRole('dialog', { name: 'Leave without saving?' })?.hasAttribute('open') ?? false).toBe(false);
   });
 });
