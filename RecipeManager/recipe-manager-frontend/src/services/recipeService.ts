@@ -1,7 +1,7 @@
 // src/services/recipeService.ts
 /// <reference types="vite/client" />
 
-import type { CreateRecipeRequest, Recipe, UpdateRecipeRequest } from '@/types';
+import type { CreateRecipeRequest, Recipe, RecipeStatus, UpdateRecipeRequest } from '@/types';
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 
 const rawBase = import.meta.env.VITE_API_URL as string | undefined;
@@ -16,8 +16,9 @@ const api: AxiosInstance = axios.create({
 });
 
 export const recipeService = {
-  getAllRecipes: (): Promise<AxiosResponse<Recipe[]>> =>
-    api.get<Recipe[]>('/Recipes'),
+  // ?status= (ADR-025): the API lists Published unless asked for drafts.
+  getAllRecipes: (status: RecipeStatus = 'Published'): Promise<AxiosResponse<Recipe[]>> =>
+    api.get<Recipe[]>('/Recipes', { params: { status } }),
 
   getRecipeById: (id: string): Promise<AxiosResponse<Recipe>> =>
     api.get<Recipe>(`/Recipes/${encodeURIComponent(id)}`),
@@ -32,7 +33,7 @@ export const recipeService = {
   deleteRecipe: (id: string): Promise<AxiosResponse<void>> =>
     api.delete<void>(`/Recipes/${encodeURIComponent(id)}`),
 
-  // Unused until R-21 wires the controls. Both return 204 No Content.
+  // Both return 204 No Content.
   publishRecipe: (id: string): Promise<AxiosResponse<void>> =>
     api.post<void>(`/Recipes/${encodeURIComponent(id)}/publish`),
 
