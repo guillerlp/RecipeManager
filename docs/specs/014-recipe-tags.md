@@ -233,7 +233,7 @@ shows on the list and detail screens and can filter by.
 - **Vitest:** `RecipeCard` (first tag shown, none when empty), `RecipeDetailPage` (kicker links, encoded href,
   absent when empty), `RecipePage`/`RecipeList` (`?tag=` filter, AND with search, clear, search matches tags).
 - **Not covered, and why:** Unicode normalisation (NFC) and zero-width-only tags — deferred minors from the PR 1
-  review, not rules this spec sets.
+  review, not rules this spec sets — tracked as [BUG-21](../known-issues.md#bug-21).
 - **Manual verification:** create a tagged recipe through Swagger against local PostgreSQL; `\d "Recipes"` in
   psql shows `character varying(40)[]` and the check constraint; click a detail kicker tag in the SPA.
 
