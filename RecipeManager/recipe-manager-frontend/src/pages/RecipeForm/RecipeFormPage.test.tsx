@@ -306,3 +306,43 @@ describe('RecipeFormPage — review fixes', () => {
     expect(within(summary).getByText("Couldn't delete. Check your connection and try again.")).toBeTruthy();
   });
 });
+
+describe('RecipeFormPage — keyboard reorder', () => {
+  it('moves an ingredient down, keeps focus on the control, and announces the new position', async () => {
+    service.getRecipeById.mockResolvedValue(ok(published));
+    renderAt(`/recipes/${ID}/edit`);
+
+    const down = await screen.findByRole('button', { name: 'Move stock down' });
+    down.focus();
+    fireEvent.click(down);
+
+    expect(screen.getByLabelText<HTMLInputElement>('Ingredient 2').value).toBe('0.333 cups stock');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Move stock down' }));
+    expect(screen.getByText('Moved stock to position 2 of 3.')).toBeTruthy();
+  });
+
+  it("marks the first row's Move up as unavailable without removing it from the tab order", async () => {
+    service.getRecipeById.mockResolvedValue(ok(published));
+    renderAt(`/recipes/${ID}/edit`);
+    const up = await screen.findByRole('button', { name: 'Move stock up' });
+    expect(up.getAttribute('aria-disabled')).toBe('true');
+    expect(up.hasAttribute('disabled')).toBe(false);
+    fireEvent.click(up);
+    expect(screen.getByLabelText<HTMLInputElement>('Ingredient 1').value).toBe('0.333 cups stock');
+  });
+
+  it('moves a step up and announces it', async () => {
+    service.getRecipeById.mockResolvedValue(ok({
+      ...published,
+      instructions: [
+        { id: 'bbbbbbbb-0000-0000-0000-000000000001', text: 'First.', durationMinutes: null, ingredientIds: [] },
+        { id: 'bbbbbbbb-0000-0000-0000-000000000002', text: 'Second.', durationMinutes: null, ingredientIds: [] },
+      ],
+    }));
+    renderAt(`/recipes/${ID}/edit`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Move step 2 up' }));
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Step 1').value).toBe('Second.');
+    expect(screen.getByText('Moved step 2 to position 1 of 2.')).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Move step 1 up' }));
+  });
+});

@@ -50,6 +50,7 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
   // The first draft save redirects here from /recipes/new and remounts this component; the time travels in state.
   const [savedAt, setSavedAt] = useState<number | null>((location.state as { savedAt?: number } | null)?.savedAt ?? null);
   const [saving, setSaving] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
   // State lags a render: two clicks in one tick would both read `saving` as false and create two recipes.
   const busy = useRef(false);
   const [failures, setFailures] = useState(0);
@@ -159,6 +160,8 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
       <div className={styles.bar}>
         {/* Present from first render so assistive tech registers it; a save is then announced (cf. UX-18). */}
         <p role="status" className={styles.saveStatus}>{statusText}</p>
+        {/* A second polite region for reorder: the save status must not be overwritten by "Moved…". */}
+        <p role="status" className={styles.visuallyHidden}>{announcement}</p>
         <div className={styles.actions}>
           <button type="button" className={styles.secondary} onClick={discard}>Discard</button>
           {recipe && (
@@ -310,8 +313,14 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
           <FieldError id="times-error" messages={errors.times} />
           <FieldError id="servings-error" messages={errors.servings} />
 
-          <IngredientsEditor rows={state.ingredients} dispatch={dispatch} error={errors.ingredients} />
-          <StepsEditor steps={state.steps} ingredients={state.ingredients} dispatch={dispatch} error={errors.instructions} />
+          <IngredientsEditor rows={state.ingredients} dispatch={dispatch} error={errors.ingredients} announce={setAnnouncement} />
+          <StepsEditor
+            steps={state.steps}
+            ingredients={state.ingredients}
+            dispatch={dispatch}
+            error={errors.instructions}
+            announce={setAnnouncement}
+          />
         </div>
 
         <aside className={styles.rail} aria-label="Tags">

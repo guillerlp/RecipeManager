@@ -7,16 +7,18 @@ interface IngredientsEditorProps {
   rows: IngredientRow[];
   dispatch: Dispatch<FormAction>;
   error: string[] | undefined;
+  announce: (message: string) => void;
 }
 
 // One text input per ingredient, parsed as it is typed (spec 015 §8.2). Each row keeps its key and id, so editing a
 // line never breaks the steps that use it — which a single re-parsed textarea would.
-export const IngredientsEditor = ({ rows, dispatch, error }: IngredientsEditorProps) => {
+export const IngredientsEditor = ({ rows, dispatch, error, announce }: IngredientsEditorProps) => {
   // The row to focus when it mounts; autoFocus only fires on mount, so existing rows are unaffected.
   const [focusKey, setFocusKey] = useState<string | null>(null);
 
-  // Where focus goes after a remove: the removed row's × unmounts with it, and focus would fall to <body> (WCAG
-  // 2.4.3). A new object each time, so removing twice towards the same target still refocuses.
+  // Where focus goes after a remove or a move. A removed row's × unmounts with it, and focus would fall to <body>
+  // (WCAG 2.4.3); a moved row is re-ordered in the DOM, which can drop focus too. A new object each time, so a
+  // repeat towards the same target still refocuses.
   const [refocus, setRefocus] = useState<{ id: string } | null>(null);
   useEffect(() => {
     if (refocus) document.getElementById(refocus.id)?.focus();
@@ -26,6 +28,16 @@ export const IngredientsEditor = ({ rows, dispatch, error }: IngredientsEditorPr
     const neighbour = rows[index + 1] ?? rows[index - 1];
     setRefocus({ id: neighbour ? `ingredient-${neighbour.key}` : 'add-ingredient' });
     dispatch({ type: 'removeIngredient', key: rows[index].key });
+  };
+
+  // aria-disabled, not disabled, at the ends: a disabled button drops focus to <body>, stranding a keyboard user.
+  const moveRow = (index: number, by: -1 | 1, label: string) => {
+    const to = index + by;
+    if (to < 0 || to >= rows.length) return;
+    const { key } = rows[index];
+    dispatch({ type: 'moveIngredient', key, by });
+    setRefocus({ id: `move-${by === -1 ? 'up' : 'down'}-${key}` });
+    announce(`Moved ${label} to position ${to + 1} of ${rows.length}.`);
   };
 
   const add = (after?: string) => {
@@ -65,6 +77,26 @@ export const IngredientsEditor = ({ rows, dispatch, error }: IngredientsEditorPr
                   add(row.key);
                 }}
               />
+              <button
+                id={`move-up-${row.key}`}
+                type="button"
+                className={styles.remove}
+                aria-label={`Move ${label} up`}
+                aria-disabled={index === 0 ? true : undefined}
+                onClick={() => moveRow(index, -1, label)}
+              >
+                ↑
+              </button>
+              <button
+                id={`move-down-${row.key}`}
+                type="button"
+                className={styles.remove}
+                aria-label={`Move ${label} down`}
+                aria-disabled={index === rows.length - 1 ? true : undefined}
+                onClick={() => moveRow(index, 1, label)}
+              >
+                ↓
+              </button>
               <button
                 type="button"
                 className={styles.remove}
