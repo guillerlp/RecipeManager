@@ -50,11 +50,11 @@ const respondWith = (data: Recipe[]) =>
   getAllRecipes.mockResolvedValue({ data } as AxiosResponse<Recipe[]>);
 
 // A fresh QueryClient per render: a shared one would serve the previous test's cached list.
-const renderList = (searchQuery?: string) =>
+const renderList = (searchQuery?: string, tag?: string) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter>
-        <RecipeList searchQuery={searchQuery} />
+        <RecipeList searchQuery={searchQuery} tag={tag} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -78,6 +78,7 @@ describe('RecipeList filtering', () => {
     { scenario: 'matches on an ingredient', query: 'basil', expected: ['Tomato Soup'] },
     { scenario: 'is case-insensitive', query: 'TOMATO', expected: ['Tomato Soup'] },
     { scenario: 'trims surrounding whitespace', query: '  flour  ', expected: ['Pancakes'] },
+    { scenario: 'matches on a tag', query: 'weeknight', expected: ['Tomato Soup'] },
   ])('$scenario', async ({ query, expected }) => {
     respondWith(recipes);
     renderList(query);
@@ -184,5 +185,29 @@ describe('RecipeList states', () => {
     // through the existing duration helpers, rather than showing just one of the two times.
     const totalTime = screen.getByText('1h 50min');
     expect(totalTime.getAttribute('datetime')).toBe('PT1H50M');
+  });
+});
+
+describe('RecipeList tag filter', () => {
+  it('lists only recipes carrying exactly that tag', async () => {
+    respondWith(recipes);
+    renderList(undefined, 'weeknight');
+
+    expect(await cardTitles()).toEqual(['Tomato Soup']);
+  });
+
+  it('combines the tag with the text search', async () => {
+    respondWith(recipes);
+    renderList('pancakes', 'weeknight');
+
+    expect(await screen.findByRole('heading', { level: 3, name: 'No recipes found' })).toBeTruthy();
+    expect(screen.getByText('No recipes tagged "weeknight" match "pancakes".')).toBeTruthy();
+  });
+
+  it('explains an empty tag filter', async () => {
+    respondWith(recipes);
+    renderList(undefined, 'dessert');
+
+    expect(await screen.findByText('No recipes tagged "dessert".')).toBeTruthy();
   });
 });

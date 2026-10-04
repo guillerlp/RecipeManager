@@ -20,3 +20,29 @@
     overflow: hidden; 
     width:min(680px, 100%); 
 }
+.activeTag {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: min(680px, 100%);
+    margin: 0;
+    color: var(--ink-2);
+}
+
+.tagChip {
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    color: var(--ink);
+}
+
+/* 24x24 minimum target (WCAG 2.5.8); the global :focus-visible ring applies. */
+.clearTag {
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    border: none;
+    background: none;
+    color: var(--ink-2);
+    font: inherit;
+    cursor: pointer;
+}

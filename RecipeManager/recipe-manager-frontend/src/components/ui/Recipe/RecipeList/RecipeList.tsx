@@ -6,9 +6,11 @@ import { useRecipes } from '@/hooks/useRecipes';
 
 interface RecipeListProps {
   searchQuery? : string;
+  /** Already normalised by the caller (RecipePage), so an exact match is correct. */
+  tag?: string;
 }
 
-export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
+export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = '', tag}) => {
 
   const {
       data: recipes = [],
@@ -17,24 +19,25 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
       refetch,
   } = useRecipes();
 
+  // Derived during render, never stored: the tag narrows first, then the text search (AND), and tags are
+  // searchable text too (spec 014).
   const filteredRecipes = useMemo(() => {
-
-    if(!searchQuery.trim()){
-      return recipes;
-    }
-
     const query = searchQuery.toLowerCase().trim();
 
     return recipes.filter(recipe => {
+      if (tag && !recipe.tags.includes(tag)) return false;
+      if (!query) return true;
+
       const searchableText = [
         recipe.title,
         recipe.description,
-        ...recipe.ingredients.map(i => i.name)
+        ...recipe.ingredients.map(i => i.name),
+        ...recipe.tags,
       ].join(' ').toLowerCase();
 
       return searchableText.includes(query);
     });
-  }, [recipes, searchQuery])
+  }, [recipes, searchQuery, tag])
 
   if (loading) return <p className={styles.loadingSection}>Loading…</p>;
   if (error) {
@@ -53,11 +56,15 @@ export const RecipeList: React.FC<RecipeListProps> = ({searchQuery = ''}) => {
       {filteredRecipes.length === 0 ?
       (
         <div>
-          { searchQuery ?
+          { searchQuery || tag ?
           (
             <>
               <h3 className={styles.emptyTitle}>No recipes found</h3>
-              <p className={styles.emptyBody}>No recipes match "{searchQuery}". Try a different search term.</p>
+              <p className={styles.emptyBody}>
+                {tag
+                  ? `No recipes tagged "${tag}"${searchQuery ? ` match "${searchQuery}"` : ''}.`
+                  : `No recipes match "${searchQuery}". Try a different search term.`}
+              </p>
             </>
           ) :
           (
