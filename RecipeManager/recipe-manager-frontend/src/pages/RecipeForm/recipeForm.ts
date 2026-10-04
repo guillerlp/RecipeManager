@@ -309,3 +309,21 @@ export const fromServerErrors = ({ fields, form }: ServerErrors): FormErrors => 
   }
   return errors;
 };
+
+// The list row as it would look (design frame 3d's right rail). Display only: never sent. The id is a placeholder;
+// the card it feeds sits in an inert section, so its link cannot be followed.
+export const previewRecipe = (state: RecipeFormState): Recipe => {
+  const whole = (value: string): number | null => (WHOLE.test(value.trim()) ? Number(value) : null);
+  return {
+    id: 'preview',
+    status: 'Draft',
+    title: state.title.trim() || 'Untitled recipe',
+    description: state.description.trim() || 'Your one-line description shows here.',
+    preparationTime: whole(state.prep),
+    cookingTime: whole(state.cook),
+    servings: whole(state.servings),
+    ingredients: [],
+    instructions: [],
+    tags: state.tags,
+  };
+};

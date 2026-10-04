@@ -346,3 +346,13 @@ describe('RecipeFormPage — keyboard reorder', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Move step 1 up' }));
   });
 });
+
+describe('RecipeFormPage — list-row preview', () => {
+  it('previews the list row as you type, kept out of the tab order and the accessibility tree', () => {
+    renderAt('/recipes/new');
+    typeInto('Recipe title', 'Weeknight dal');
+    const preview = screen.getByText('How it will look in the list').closest('section');
+    expect(preview?.hasAttribute('inert')).toBe(true);
+    expect(within(preview!).getByText('Weeknight dal')).toBeTruthy();
+  });
+});

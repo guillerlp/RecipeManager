@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Recipe } from '@/types';
 import {
-  emptyForm, emptyIngredient, emptyStep, formReducer, fromRecipe, fromServerErrors, hasErrors, toRequest, validate,
+  emptyForm, emptyIngredient, emptyStep, formReducer, fromRecipe, fromServerErrors, hasErrors, previewRecipe, toRequest, validate,
   type RecipeFormState,
 } from './recipeForm';
 
@@ -220,5 +220,19 @@ describe('reorder', () => {
     const state = fromRecipe(recipe);
     const moved = formReducer(state, { type: 'moveStep', key: state.steps[1].key, by: -1 });
     expect(moved.steps.map(s => s.text)).toEqual(['Roast.', 'Rub.']);
+  });
+});
+
+describe('previewRecipe', () => {
+  it('fills the design placeholders while the form is empty', () => {
+    const preview = previewRecipe(emptyForm());
+    expect(preview.title).toBe('Untitled recipe');
+    expect(preview.description).toBe('Your one-line description shows here.');
+    expect(preview.preparationTime).toBeNull();
+  });
+
+  it('shows the typed values and ignores a half-typed time', () => {
+    const preview = previewRecipe({ ...emptyForm(), title: ' Stew ', prep: '20', cook: '1.5', tags: ['winter'] });
+    expect(preview).toMatchObject({ title: 'Stew', preparationTime: 20, cookingTime: null, tags: ['winter'] });
   });
 });

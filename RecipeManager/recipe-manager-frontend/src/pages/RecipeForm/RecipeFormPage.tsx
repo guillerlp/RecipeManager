@@ -2,6 +2,7 @@
 // mutation hooks, the router, and the page.
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { RecipeCard } from '@/components';
 import {
   isRecipeId, useCreateRecipe, useDeleteRecipe, usePublishRecipe, useRecipe, useUnpublishRecipe, useUpdateRecipe,
 } from '@/hooks';
@@ -10,7 +11,7 @@ import type { Recipe } from '@/types';
 import { formatDuration } from '@/utils/duration';
 import { IngredientsEditor } from './IngredientsEditor';
 import {
-  FIELD_IDS, FIELD_ORDER, emptyForm, formReducer, fromRecipe, fromServerErrors, hasErrors, toRequest, validate,
+  FIELD_IDS, FIELD_ORDER, emptyForm, formReducer, fromRecipe, fromServerErrors, hasErrors, previewRecipe, toRequest, validate,
   type FieldKey, type FormErrors, type Rules,
 } from './recipeForm';
 import { StepsEditor } from './StepsEditor';
@@ -323,7 +324,13 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
           />
         </div>
 
-        <aside className={styles.rail} aria-label="Tags">
+        <aside className={styles.rail} aria-label="Preview and tags">
+          {/* inert: a duplicate of what the form already says, so Tab and screen readers skip it, and its link — to a
+              recipe that may not exist yet — cannot be followed. */}
+          <section inert className={styles.section}>
+            <h2 className={styles.sectionHeading}>How it will look in the list</h2>
+            <RecipeCard recipe={previewRecipe(state)} />
+          </section>
           <TagsEditor tags={state.tags} dispatch={dispatch} error={errors.tags} />
         </aside>
       </div>
