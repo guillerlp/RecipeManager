@@ -17,34 +17,38 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
     const descriptionId = useId();
     const tagId = useId();
     const tag = recipe.tags[0];
-    // The list only ever receives published recipes (spec 013), which always have both times; the type
-    // cannot say so, hence the fallback.
+    // The Drafts view lists recipes that may have no description or times yet (ADR-025): absent values
+    // render nothing rather than "0 min" or filler text.
     const totalMinutes = (recipe.preparationTime ?? 0) + (recipe.cookingTime ?? 0);
+    // aria-describedby replaces the link's content as its description, so text not referenced here is never
+    // announced; and no id is referenced unless its element exists.
+    const describedBy = [recipe.description ? descriptionId : null, tag ? tagId : null]
+        .filter(id => id !== null).join(' ') || undefined;
 
     return (
         <Link
             to={`/recipes/${recipe.id}`}
             className={styles.row}
             aria-labelledby={titleId}
-            // The tag joins the description: aria-describedby replaces the link's content as its description,
-            // so text not referenced here is never announced. No dangling id when the recipe is untagged.
-            aria-describedby={tag ? `${descriptionId} ${tagId}` : descriptionId}
+            aria-describedby={describedBy}
         >
             <div className={styles.thumb} aria-hidden="true" />
 
             <div className={styles.info}>
                 <h3 id={titleId} className={styles.title}>{recipe.title}</h3>
-                <p id={descriptionId} className={styles.description}>
-                    {recipe.description ?? 'Delicious homemade recipe'}
-                </p>
+                {recipe.description && (
+                    <p id={descriptionId} className={styles.description}>{recipe.description}</p>
+                )}
             </div>
 
             {/* The first tag only, as the design does; the rest are on the detail screen. Plain text, never a
                 link: the whole row is already a <Link>, and a link inside a link is invalid HTML (spec 014). */}
             <span className={styles.meta}>
-                <time className={styles.time} dateTime={getISODuration(totalMinutes)}>
-                    {formatDuration(totalMinutes)}
-                </time>
+                {totalMinutes > 0 && (
+                    <time className={styles.time} dateTime={getISODuration(totalMinutes)}>
+                        {formatDuration(totalMinutes)}
+                    </time>
+                )}
                 {tag && <span id={tagId} className={styles.tag} title={tag}>{tag}</span>}
             </span>
 

@@ -62,17 +62,17 @@ build config.
 
 - [ ] All HTTP goes through `services/recipeService.ts`. Components and hooks never import `axios`.
 - [ ] Service methods return `Promise<AxiosResponse<T>>`; the hook unwraps `.data`.
-- [ ] **Mutations do not exist yet.** The first one establishes the pattern: `useMutation` in `recipe-manager-frontend/src/hooks/`, and
-      on success `queryClient.invalidateQueries({ queryKey: ['recipes'] })`. Without that the list stays stale —
-      `useRecipes` sets `refetchOnMount: false` and `refetchOnWindowFocus: false`, so nothing else will refresh it.
+- [ ] Mutations live in `hooks/useRecipeMutations.ts` (ADR-027): each invalidates `queryKey: ['recipes']` on success,
+      which covers every list (`['recipes', 'list', status]`) and every detail entry. A new write follows the same
+      rule — `useRecipes`/`useRecipe` set `refetchOnMount: false`, so nothing else refreshes them.
 - [ ] Every fetching component handles all four states: loading, error, empty, populated. `RecipeList` is the
       reference — including distinct empty states for "no recipes at all" vs. "no search matches".
 - [ ] Errors surface a message and a real recovery action. `RecipeList`'s current retry does
       `window.location.reload()` — prefer TanStack Query's `refetch()` in new code.
 
-### Forms — for the recipe create/edit screens that do not exist yet
+### Forms — the recipe form (`R-21`, spec 015)
 
-There is **no form in the codebase today** and no form library installed. When building the recipe form:
+The form's model is `pages/RecipeForm/recipeForm.ts` (ADR-027); there is no form library. Rules any change to it keeps:
 
 - [ ] `Ingredients` is a dynamic ordered list of **objects** since ADR-022 — `IngredientInput`
       (`{ id, quantity, unit, name, notes }`) on the way in, `Ingredient` on the way out. `Instructions` is a
@@ -134,7 +134,7 @@ npm test
 - [ ] `npm run lint` must report **0 problems**. Read the output — a linter that cannot start also exits
       non-zero, and for eleven months nobody noticed the difference (`BUILD-03`, now closed).
       `npx oxlint --format=default` prints how many files and rules ran — a quick check that it checked anything.
-- [ ] `npm test` (Vitest + RTL under jsdom, ADR-018) must pass — currently **174**. It does not
+- [ ] `npm test` (Vitest + RTL under jsdom, ADR-018) must pass — currently **280**. It does not
       process CSS, so run `npm run build` after any stylesheet change: an invalid CSS Module (e.g. `composes:`
       on a non-single-class selector) passes every test and blanks the app.
 - [ ] No `console.log` added — `no-console` is an **error** in `.oxlintrc.json` (`warn`/`error` are allowed).

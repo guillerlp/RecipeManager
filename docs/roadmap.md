@@ -117,6 +117,8 @@ data.
 ### R-21
 **Add/edit form** · `07-ux-ui` → `03-senior-react` · ~2 days
 
+**PR 1 shipped** (spec 015, ADR-027): the form, drafts toggle, Edit link. PR 2 (reorder, preview, leave guard) remains.
+
 Design screen 3d. The title field is typeset as the page title, there is a live preview of the list row, and
 ingredients are entered one per line and parsed into quantity, unit, and name. The parser runs **on the client**
 and produces an `IngredientInputDto`; the server never parses free text. Its rules are already fixed — spec 010

@@ -248,3 +248,13 @@ describe('RecipeDetailPage tags', () => {
     expect(screen.queryAllByRole('link').filter(link => link.getAttribute('href')?.startsWith('/recipes?tag='))).toHaveLength(0);
   });
 });
+
+describe('RecipeDetailPage edit link', () => {
+  it('links to the edit screen', async () => {
+    getRecipeById.mockResolvedValue({ data: recipe } as AxiosResponse<Recipe>);
+    renderPage();
+
+    const edit = await screen.findByRole('link', { name: 'Edit' });
+    expect(edit.getAttribute('href')).toBe(`/recipes/${ID}/edit`);
+  });
+});

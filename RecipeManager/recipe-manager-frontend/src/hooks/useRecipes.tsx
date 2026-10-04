@@ -1,12 +1,14 @@
 import { recipeService } from "@/services"
-import { Recipe } from "@/types"
+import type { Recipe, RecipeStatus } from "@/types"
 import { useQuery } from "@tanstack/react-query"
 
-export const useRecipes = () => {
+// ['recipes', 'list', status]: the 'list' segment keeps list keys apart from useRecipe's ['recipes', id]. Both sit
+// under the ['recipes'] prefix every mutation invalidates (useRecipeMutations.ts).
+export const useRecipes = (status: RecipeStatus = 'Published') => {
     return useQuery({
-        queryKey: ['recipes'],
+        queryKey: ['recipes', 'list', status],
         queryFn: async (): Promise<Recipe[]> => {
-            const {data} = await recipeService.getAllRecipes();
+            const {data} = await recipeService.getAllRecipes(status);
             return data;
         },
         staleTime: 5 * 60 * 1000,

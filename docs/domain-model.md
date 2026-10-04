@@ -295,6 +295,11 @@ schema filter to express: see ADR-022's appended consequences.
 `PUT`, `DELETE`, and the publish/unpublish transitions return 204, so their service methods return `AxiosResponse<void>`. The shape is generated
 from the OpenAPI snapshot, so drift fails CI (ADR-019). Owner: [agents/08-api-contract.md](agents/08-api-contract.md).
 
+Writes exist since `R-21` (spec 015, ADR-027). The form reads a `Recipe` and writes an `UpdateRecipeRequest`
+(plus `status` on create): step references go out as `ingredientIndexes` computed from client-only row keys in the
+same pass that builds `ingredients`, each existing ingredient echoes its `id`, and a row nobody edited is sent with
+its stored value. Free-text ingredient lines are parsed only in the browser (`utils/ingredientLine.ts`).
+
 ## Known limitations
 
 Read these before proposing any recipe feature.

@@ -8,7 +8,8 @@ export interface AmountText {
 
 // A Record over the whole union, so adding a member to the C# enum fails the typecheck here
 // until it has a name — instead of rendering "undefined".
-const UNIT_NAMES: Record<Unit, { abbr?: string; one: string; many: string }> = {
+// Also the parser's symbol table (ingredientLine.ts), so display and parsing cannot disagree on a name.
+export const UNIT_NAMES: Record<Unit, { abbr?: string; one: string; many: string }> = {
   Gram: { abbr: 'g', one: 'gram', many: 'grams' },
   Kilogram: { abbr: 'kg', one: 'kilogram', many: 'kilograms' },
   Ounce: { abbr: 'oz', one: 'ounce', many: 'ounces' },

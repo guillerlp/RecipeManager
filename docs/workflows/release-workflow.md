@@ -127,7 +127,7 @@ None | RecipeDto changed: <fields> — frontend updated in this PR (08-api-contr
 - dotnet build: <N> warnings (must be 0 — warnings are errors)
 - dotnet test: <N>/<N> passing (currently 282)
 - npm run build + npx tsc --noEmit: pass | n/a
-- npm test: <N>/<N> passing (currently 174) | n/a
+- npm test: <N>/<N> passing (currently 280) | n/a
 - Manual check against a real PostgreSQL: <what you did> | n/a
 
 ## Known issues / roadmap

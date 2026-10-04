@@ -4,7 +4,7 @@ import type { AxiosResponse } from 'axios';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { recipeService } from '@/services';
-import type { Ingredient, Recipe } from '@/types';
+import type { Ingredient, Recipe, RecipeStatus } from '@/types';
 import { RecipeList } from './RecipeList';
 
 vi.mock('@/services', () => ({
@@ -50,11 +50,11 @@ const respondWith = (data: Recipe[]) =>
   getAllRecipes.mockResolvedValue({ data } as AxiosResponse<Recipe[]>);
 
 // A fresh QueryClient per render: a shared one would serve the previous test's cached list.
-const renderList = (searchQuery?: string, tag?: string) =>
+const renderList = (searchQuery?: string, tag?: string, status?: RecipeStatus) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter>
-        <RecipeList searchQuery={searchQuery} tag={tag} />
+        <RecipeList searchQuery={searchQuery} tag={tag} status={status} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -222,5 +222,24 @@ describe('RecipeList tag filter', () => {
     renderList(undefined, 'dessert');
 
     expect(await screen.findByText('No recipes tagged "dessert".')).toBeTruthy();
+  });
+});
+
+describe('RecipeList drafts', () => {
+  it('says there are no drafts, not that the catalogue is empty', async () => {
+    respondWith([]);
+    renderList(undefined, undefined, 'Draft');
+    expect(await screen.findByRole('heading', { name: 'No drafts' })).toBeTruthy();
+    expect(screen.getByText("Save a recipe as a draft and it'll wait here.")).toBeTruthy();
+    expect(getAllRecipes).toHaveBeenCalledWith('Draft');
+  });
+
+  // A draft may have no description and no times (ADR-025): absent values render nothing, never "0 min" or filler.
+  it('renders a draft row without invented values', async () => {
+    respondWith([makeRecipe({ title: 'Half a stew', status: 'Draft', description: null, preparationTime: null, cookingTime: null })]);
+    renderList(undefined, undefined, 'Draft');
+    const row = await screen.findByRole('link', { name: 'Half a stew' });
+    expect(row.textContent).not.toMatch(/0 min|Delicious homemade recipe/);
+    expect(row.getAttribute('aria-describedby')).toBeNull();
   });
 });

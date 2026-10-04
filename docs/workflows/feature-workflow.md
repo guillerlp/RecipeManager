@@ -102,11 +102,10 @@ Only if persistence changes.
 
 1. Service method in `services/recipeService.ts` (never call axios from a component).
 2. Query/mutation hook in `recipe-manager-frontend/src/hooks/`, exported from `recipe-manager-frontend/src/hooks/index.ts`. Mutations must invalidate the
-   `['recipes']` query key — no mutation hook exists yet, so establish the pattern deliberately.
+   `['recipes']` query key — follow `hooks/useRecipeMutations.ts` (ADR-027).
 3. Component in the right bucket (`ui/` presentational, `common/` cross-cutting, `layout/` chrome) with
    `Foo.tsx` + `Foo.module.css` + `index.ts`, and update every parent barrel.
-4. Page wiring in `recipe-manager-frontend/src/pages/` and a route in `App.tsx` if needed — note `/recipes/new` is already linked from
-   `HomePage` but **has no route**, so it currently renders nothing.
+4. Page wiring in `recipe-manager-frontend/src/pages/` and a route in `App.tsx` if needed.
 5. Design tokens and a11y per [../agents/07-ux-ui.md](../agents/07-ux-ui.md).
 
 ## 9. Tests — `06-qa-tester`

@@ -157,8 +157,7 @@ Introducing a UI library is an `01-architect` decision.
 
 Before `03-senior-react` writes a screen, specify:
 
-- [ ] **Route** and where it is reachable from. (`/recipes/new` is linked from `HomePage` but has no route —
-      do not repeat that.)
+- [ ] **Route** and where it is reachable from.
 - [ ] **Layout**: does it sit inside `AppLayout` (Header + main + Footer)? Every current route does.
 - [ ] **All four states**: loading, error, empty, populated. `RecipeList` is the reference and additionally
       distinguishes *empty because no recipes exist* from *empty because the search matched nothing* — new
@@ -169,11 +168,11 @@ Before `03-senior-react` writes a screen, specify:
 - [ ] **Copy**: exact strings, sentence case, English.
 - [ ] **Both themes**: reviewed in light and dark.
 
-### Recipe form screens (create/edit) — not built yet
+### Recipe form screens (create/edit) — built in `R-21` (spec 015)
 
 The highest-value pending UX work. Specify before implementation:
 
-- [ ] **Dynamic ingredient and instruction lists.** Both are ordered `string[]`. Needs add / remove / reorder,
+- [ ] **Dynamic ingredient and instruction lists.** Both are ordered lists of objects (ADR-022, ADR-023). Needs add / remove / reorder,
       an obvious affordance for each, and a keyboard-accessible reorder mechanism (drag-only is not acceptable).
 - [ ] **Instruction steps are ordered and the order is meaningful** — number them visibly so a reorder is
       verifiable by the user.
