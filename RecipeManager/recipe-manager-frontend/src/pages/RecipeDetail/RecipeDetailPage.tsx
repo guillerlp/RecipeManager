@@ -1,6 +1,6 @@
 // src/pages/RecipeDetail/RecipeDetailPage.tsx
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { IngredientRail, MethodSteps, RecipeDetailTabs } from '@/components';
 import { PrintIcon } from '@/components/ui/Icon';
@@ -49,6 +49,17 @@ const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
       <BackLink />
 
       <header className={styles.header}>
+        {recipe.tags.length > 0 && (
+          <p className={styles.kicker}>
+            {recipe.tags.map((tag, index) => (
+              <Fragment key={tag}>
+                {index > 0 && <span aria-hidden="true"> · </span>}
+                {/* Encoded: a tag is user text, and "a&b" or "x/y" must not become a different query or route. */}
+                <Link to={`/recipes?tag=${encodeURIComponent(tag)}`}>{tag}</Link>
+              </Fragment>
+            ))}
+          </p>
+        )}
         {recipe.status === 'Draft' && <p className={styles.statLabel}>Draft</p>}
         <h1 className={styles.title}>{recipe.title}</h1>
         {recipe.description && <p className={styles.description}>{recipe.description}</p>}
