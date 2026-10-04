@@ -909,6 +909,25 @@ endpoint is anonymous and every recipe is world-writable. See
   knows only by name, so changing it is a migration and a validator change in step. Capitalised tags ("BBQ") are
   impossible by design. A request without `tags` is now a 400.
 
+### ADR-027 — The recipe form: a pure reducer model, client keys for identity, prefix invalidation for writes
+
+- **Status:** accepted (2026-10-04). Full detail: [specs/015-recipe-form.md](specs/015-recipe-form.md).
+- **Context:** `R-21`. The SPA's first form and first mutation. Ingredients are typed as free text and parsed on
+  the client (spec 010 §9); steps reference ingredients, which requests address by index and responses by id
+  (ADR-023); every write must refresh lists and detail entries that never refetch by themselves.
+- **Decision:** the form's state is a pure model (`pages/RecipeForm/recipeForm.ts`) owned by `useReducer`. Rows
+  carry a client-only key; steps reference keys; `toRequest` maps keys to indexes in the same pass that builds the
+  `ingredients` array it sends. A row loaded from the server keeps its stored value and is sent unchanged until its
+  text is edited. Five mutation hooks (`hooks/useRecipeMutations.ts`) each invalidate the `['recipes']` prefix;
+  list keys become `['recipes', 'list', status]`. Saving is explicit: Save draft / Publish, Save / Unpublish.
+- **Alternatives:** `useState` per field (the key-to-index translation would live in a submit handler, the hardest
+  place to test); `react-hook-form` (a dependency whose field-array ids are its own, so the step mapping is still
+  ours); a single re-parsed textarea (identity rebuilt on every keystroke); autosave (a debounce, an in-flight race,
+  and a published recipe going live mid-edit); a separate `/drafts` route (a nav destination the design lacks).
+- **Consequences:** the index translation and identity rules are table-tested without rendering. Harder: every new
+  field touches the state type, reducer, `fromRecipe`, `toRequest`, and `validate`; the client mirrors server rules
+  and can drift from them — the server stays the authority, and `readServerErrors` renders whatever it returns.
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001

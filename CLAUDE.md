@@ -76,7 +76,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Api/               RecipesController, Startup/*, Startup/Swagger/*, Middlewares/*, Extensions/*
     RecipeManager.UnitTests/         195 tests — xUnit + NSubstitute (Domain + Application handlers/mappings/validators + Api result mapping)
     RecipeManager.IntegrationTests/  87 tests — xUnit + WebApplicationFactory (83 real PostgreSQL via Testcontainers, 4 OpenAPI contract needing no Docker)
-    recipe-manager-frontend/         React 19 + Vite SPA — 174 Vitest tests, colocated
+    recipe-manager-frontend/         React 19 + Vite SPA — 275 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
 
@@ -126,7 +126,7 @@ Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than s
 any freshly-built assembly blocked, `dotnet ef` included. **CI is the authority for these numbers**; a run inside
 **WSL2** reproduces them faithfully (282 passed, 0 skipped on 2026-10-03 — README, "Windows with Smart App
 Control"), a native Windows run does not.
-The frontend has 174 Vitest tests across 21 files (`npm test`).
+The frontend has 275 Vitest tests across 26 files (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note. Code style is too: the root `.editorconfig` makes `IDE0055` formatting,
 `IDE0005` unused usings, and `IDE0161` file-scoped namespaces build errors (ADR-020), so fix them with

@@ -19,7 +19,7 @@ WSL2 against `main` @ `01eeccc`: build 0 warnings, 142 unit + 50 integration pas
 "CI is the only place" constraint above no longer holds for a WSL2 run (`INFRA-06`, [Settled](#settled)). Re-measured
 on 2026-10-03 after `R-20` PR 1 from **CI run 37130641536**: 195 unit + 87 integration passed, 0 skipped, and 160 frontend
 tests across 20 files. The frontend row re-measured locally on 2026-10-04 after `R-20` PR 2 (21 files,
-174 passed).
+174 passed), and again after `R-21` PR 1 (26 files, 275 passed).
 
 > **Rules for agents**
 > - Do not leave inline TODO markers scattered in the docs or the code. Add an entry here instead.
@@ -42,7 +42,7 @@ tests across 20 files. The frontend row re-measured locally on 2026-10-04 after 
 | Frontend build | `npm run build` | succeeds, and type-checks `src/` and `vite.config.ts` first (`tsc -b tsconfig.json tsconfig.node.json && vite build`, ADR-012, `BUILD-10`) |
 | Frontend lint | `npm run lint` | **0 problems** — Oxlint, 159 rules: the 71 type-aware ones on `src/**` plus the `correctness` category everywhere (ADR-016; ESLint until then, ADR-012) |
 | npm vulnerabilities | `npm audit --audit-level=high` | **0** — re-cleared 2026-09-12 by `npm audit fix` after two new transitive dev-only advisories surfaced post-`SEC-03` (`GHSA-2883-xcg3-v3hh`, `GHSA-p498-v437-472g`). A clean audit expires: it is a claim about the advisory database on the day it ran, not a property of the lock file (`SEC-03`, [Settled](#settled)). |
-| Frontend tests | `npm test` | 174 pass — Vitest + RTL under jsdom (ADR-018). Vitest does not process CSS, so an invalid CSS Module passes here and fails only `npm run build` |
+| Frontend tests | `npm test` | 275 pass — Vitest + RTL under jsdom (ADR-018). Vitest does not process CSS, so an invalid CSS Module passes here and fails only `npm run build` |
 | CI | `.github/workflows/ci.yml` | runs every row above on each PR (ADR-013, `R-04`). Not yet *required* to merge — [INFRA-07](#infra-07) |
 
 **Zero warnings across every backend project, enforced.** `RecipeManager/Directory.Build.props` sets
@@ -114,6 +114,7 @@ kind of negative test.
 | [UX-16](#ux-16) | Low | UX | Very small converted volumes read as ⅛ fl oz |
 | [UX-17](#ux-17) | Low | UX | The detail screen's tag links are small touch targets |
 | [UX-18](#ux-18) | Low | UX | Filtering the recipe list is not announced to screen readers |
+| [UX-19](#ux-19) | Low | UX | The ingredient parser reads neither fraction glyphs nor a comma decimal |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-07](#dec-07) | — | Decision | 24 h cap excludes slow-cooked and fermented recipes |
@@ -919,6 +920,19 @@ from first render so assistive tech registers it, and update only its text. Test
 filter.
 
 **Owner:** `07-ux-ui` → `03-senior-react` · **Effort:** ~30 min
+
+### UX-19
+**The ingredient parser reads neither fraction glyphs nor a comma decimal — Low**
+
+Found 2026-10-04 while specifying `R-21` (spec 015 §4, §14). `parseIngredientLine` accepts `1/2` and `1 1/2` but not
+`½` or `1½`, which a recipe pasted from the web often contains — `½ cup milk` parses as a name. A comma decimal
+(`1,5 kg`) is split at the comma: quantity 1, notes "5 kg".
+
+**Fix.** Map the Unicode vulgar fractions (`¼ ½ ¾ ⅓ ⅔ ⅛ ⅜ ⅝ ⅞`) to their values in the parser's leading-number
+token, attached to a whole number or alone. A comma decimal is a product decision (it conflicts with the notes
+separator) — decide it with `07-ux-ui` before parsing it.
+
+**Owner:** `03-senior-react` · **Effort:** ~30 min
 
 ---
 

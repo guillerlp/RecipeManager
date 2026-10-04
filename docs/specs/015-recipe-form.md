@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `015` |
-| **Status** | draft |
+| **Status** | in progress — PR 1 shipped |
 | **Author** | `00-leader` + `07-ux-ui` + `03-senior-react` |
 | **Created** | `2026-10-04` |
 | **Branch** | `feat/recipe-form` |
@@ -27,23 +27,23 @@ the way they would say them.
 
 **PR 1 — the form, end to end**
 
-- [ ] `utils/ingredientLine.ts`: `parseIngredientLine` (spec 010 §9 plus the edge rules in §8.2) and
+- [x] `utils/ingredientLine.ts`: `parseIngredientLine` (spec 010 §9 plus the edge rules in §8.2) and
       `serialiseIngredient`, round-trip exact.
-- [ ] `pages/RecipeForm/recipeForm.ts`: the form model — state, reducer, `fromRecipe`, `toRequest`,
+- [x] `pages/RecipeForm/recipeForm.ts`: the form model — state, reducer, `fromRecipe`, `toRequest`,
       `validate` (§8.3).
-- [ ] `services/serverErrors.ts`: `readServerErrors` for 422 `ProblemDetails` and 400 `ValidationProblemDetails`
+- [x] `services/serverErrors.ts`: `readServerErrors` for 422 `ProblemDetails` and 400 `ValidationProblemDetails`
       (§8.5). In `services/`, because only that folder imports axios.
-- [ ] `hooks/useRecipeMutations.ts`: `useCreateRecipe`, `useUpdateRecipe`, `usePublishRecipe`,
+- [x] `hooks/useRecipeMutations.ts`: `useCreateRecipe`, `useUpdateRecipe`, `usePublishRecipe`,
       `useUnpublishRecipe`, `useDeleteRecipe`, each invalidating `['recipes']` (§8.4).
-- [ ] `RecipeFormPage` at `/recipes/new` and `/recipes/:id/edit`, inside `AppLayout`: title as page title,
+- [x] `RecipeFormPage` at `/recipes/new` and `/recipes/:id/edit`, inside `AppLayout`: title as page title,
       description, prep/cook minutes with a formatted total, servings, ingredient rows, method steps with an
       optional duration and a per-step ingredient picker, tag chips, Save draft / Publish / Save / Unpublish /
       Delete / Discard, a save-status line, an error summary.
-- [ ] Delete with a native `<dialog>` confirmation naming the recipe.
-- [ ] `RecipeDetailPage` gains an **Edit** link to `/recipes/:id/edit`.
-- [ ] `RecipePage` gains a Published / Drafts `SegmentedControl`, kept in the URL as `?status=draft`;
+- [x] Delete with a native `<dialog>` confirmation naming the recipe.
+- [x] `RecipeDetailPage` gains an **Edit** link to `/recipes/:id/edit`.
+- [x] `RecipePage` gains a Published / Drafts `SegmentedControl`, kept in the URL as `?status=draft`;
       `useRecipes(status)` and `recipeService.getAllRecipes(status)` pass `?status=`.
-- [ ] ADR-027, decisions-log entry, docs in §16.
+- [x] ADR-027, decisions-log entry, docs in §16.
 
 **PR 2 — reorder, preview, leave guard**
 
