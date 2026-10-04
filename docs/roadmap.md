@@ -98,7 +98,7 @@ Build order. Each item names what it waits on, so a later item can move up if it
 | ~~2~~ | ~~`R-17` Structured instructions~~ — **shipped 2026-09-26**, ADR-023 | — |
 | ~~3~~ | ~~`R-18` Recipe detail screen~~ — **shipped 2026-09-26**, ADR-024 | — |
 | ~~4~~ | ~~`R-19` Draft recipes~~ — **shipped 2026-10-02**, ADR-025 | — |
-| 5 | `R-20` Tags — **PR 1 (backend + contract) in review**, ADR-026; PR 2 (frontend) open | — |
+| 5 | `R-20` Tags — **PR 1 shipped 2026-10-04** (ADR-026, #73); PR 2 (frontend) open | — |
 | 6 | `R-21` Add/edit form | ~~`R-10`~~, ~~`R-17`~~, ~~`R-19`~~, `R-20` |
 | 7 | `R-22` Cook log | — |
 | 8 | `R-23` Cooking mode | ~~`R-17`~~, `R-22` |
@@ -121,8 +121,8 @@ so the form is built once.
 
 Decided 2026-10-03 as **ADR-026** ([spec 014](specs/014-recipe-tags.md)): a `character varying(40)[]` with a
 cardinality `CHECK` (≤ 20), normalised in the aggregate, filtered client-side until `R-11`. **PR 1 (domain,
-migration, contract)** is in review. **PR 2 (the first tag on list rows, the detail kicker, and a client-side
-`?tag=` filter) remains**, after which this entry is deleted. Editing tags is `R-21`'s.
+migration, contract)** shipped 2026-10-04 in #73. **PR 2 (the first tag on list rows, the detail kicker, and a
+client-side `?tag=` filter) remains**, after which this entry is deleted. Editing tags is `R-21`'s.
 
 ### R-21
 **Add/edit form** · `07-ux-ui` → `03-senior-react` · ~2 days

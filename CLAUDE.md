@@ -35,8 +35,9 @@ Never document a target as though it were already reality, and never lower a doc
 existing code — fix the code, or record the gap.
 
 Verified against `main` @ `edfd057` (merge of `dotnet10-postgresql`) on 2026-07-26; the domain, persistence, and
-test-count statements re-verified on 2026-09-24 against `feat/structured-ingredients` (ADR-022) and on 2026-09-26
-against `feat/structured-instructions` (`R-17`, ADR-023).
+test-count statements re-verified on 2026-09-24 against `feat/structured-ingredients` (ADR-022), on 2026-09-26
+against `feat/structured-instructions` (`R-17`, ADR-023), and on 2026-10-04 against `main` @ `ec24543` (`R-20` PR 1,
+ADR-026).
 
 ---
 
@@ -73,9 +74,9 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Application/       Commands, Queries, Handlers, Dispatchers, DTOs, Validators, Mappings
     RecipeManager.Infrastructure/    AppDbContext + Context/Configurations, RecipeRepository, CachedRecipeRepository, MemoryCacheService, Migrations
     RecipeManager.Api/               RecipesController, Startup/*, Startup/Swagger/*, Middlewares/*, Extensions/*
-    RecipeManager.UnitTests/         142 tests — xUnit + NSubstitute (Domain + Application handlers/mappings/validators + Api result mapping)
-    RecipeManager.IntegrationTests/  50 tests — xUnit + WebApplicationFactory (46 real PostgreSQL via Testcontainers, 4 OpenAPI contract needing no Docker)
-    recipe-manager-frontend/         React 19 + Vite SPA — 157 Vitest tests, colocated
+    RecipeManager.UnitTests/         195 tests — xUnit + NSubstitute (Domain + Application handlers/mappings/validators + Api result mapping)
+    RecipeManager.IntegrationTests/  87 tests — xUnit + WebApplicationFactory (83 real PostgreSQL via Testcontainers, 4 OpenAPI contract needing no Docker)
+    recipe-manager-frontend/         React 19 + Vite SPA — 160 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
 
@@ -118,14 +119,14 @@ dotnet build RecipeManager.sln
 dotnet test RecipeManager.sln
 ```
 
-Current state: build succeeds with **0 warnings** and the suite has **192 tests** (142 unit + 50 integration) after
-`R-18` PR 1, confirmed by **CI run 36244824092** on 2026-09-26: 192 passed, 0 failed, 0 skipped. Of the 50 integration tests, **46 need Docker** and are
+Current state: build succeeds with **0 warnings** and the suite has **282 tests** (195 unit + 87 integration) after
+`R-20` PR 1, confirmed by **CI run 37130641536** on 2026-10-03: 282 passed, 0 failed, 0 skipped. Of the 87 integration tests, **83 need Docker** and are
 reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need no Docker, but on a
 Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip — and that machine can have
 any freshly-built assembly blocked, `dotnet ef` included. **CI is the authority for these numbers**; a run inside
-**WSL2** reproduces them faithfully (192 passed, 0 skipped on 2026-10-02 — README, "Windows with Smart App
+**WSL2** reproduces them faithfully (282 passed, 0 skipped on 2026-10-03 — README, "Windows with Smart App
 Control"), a native Windows run does not.
-The frontend has 157 Vitest tests across 20 files (`npm test`).
+The frontend has 160 Vitest tests across 20 files (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note. Code style is too: the root `.editorconfig` makes `IDE0055` formatting,
 `IDE0005` unused usings, and `IDE0161` file-scoped namespaces build errors (ADR-020), so fix them with

@@ -126,16 +126,16 @@ dotnet dev-certs https --trust
 dotnet test RecipeManager.sln
 ```
 
-192 tests: 142 unit and 50 integration. Of the 50, **46** start a real PostgreSQL container (ADR-017) and the
-other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 192 passed;
-**without it** you get 146 passed and 46 skipped, each naming Docker as the reason. The skip is deliberate — see
+282 tests: 195 unit and 87 integration. Of the 87, **83** start a real PostgreSQL container (ADR-017) and the
+other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 282 passed;
+**without it** you get 199 passed and 83 skipped, each naming Docker as the reason. The skip is deliberate — see
 the troubleshooting entry below — but it means a green run is only as complete as its skip count says. On a
 Windows machine with Smart App Control enabled, the 4 contract tests do not skip — they **fail** with
-`FileLoadException`, the same way the 46 integration tests do. On such a machine, run the backend in WSL2
+`FileLoadException`, the same way the 83 integration tests do. On such a machine, run the backend in WSL2
 instead — see [Windows with Smart App Control](#windows-with-smart-app-control-run-the-backend-in-wsl2).
 
-The "with Docker" figure is confirmed by CI run 36244824092 (2026-09-26, `R-18` PR 1): 142 unit + 50 integration
-passed, 0 skipped — and reproduced locally inside WSL2 on 2026-10-02 against `main` @ `01eeccc`: 192 passed,
+The "with Docker" figure is confirmed by CI run 37130641536 (2026-10-03, `R-20` PR 1): 195 unit + 87 integration
+passed, 0 skipped — and reproduced locally inside WSL2 on 2026-10-03 against `feat/recipe-tags`: 282 passed,
 0 skipped. CI remains the authority for what merges; a WSL2 run is a faithful local reproduction of it, a native
 Windows run under Smart App Control is not.
 
@@ -350,7 +350,7 @@ on `ubuntu-latest`:
 
 | Job | Steps |
 | --- | --- |
-| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (192) → upload `openapi-received` snapshot on failure → vulnerable-package check |
+| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (282) → upload `openapi-received` snapshot on failure → vulnerable-package check |
 | **Frontend** | `npm ci` → contract types are current (`npm run gen:api` + diff check) → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` → `npm audit --audit-level=high --prefix ../contracts` |
 
 Two things are worth knowing before a run surprises you:
