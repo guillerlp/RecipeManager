@@ -25,7 +25,7 @@ const recipe = {
   preparationTime: 20,
   cookingTime: 85,
   servings: 4,
-  tags: [] as string[],
+  tags: ['roast', 'feeds a table', 'a&b'],
   ingredients: [
     { id: 'i1', quantity: 1.6, unit: 'Kilogram', name: 'whole chicken', notes: null },
     { id: 'i2', quantity: 2, unit: null, name: 'lemons', notes: 'one halved' },
@@ -226,5 +226,25 @@ describe('RecipeDetailPage with a draft', () => {
 
     expect(await screen.findByText(recipe.title)).toBeTruthy();
     expect(screen.queryByText('Draft')).toBeNull();
+  });
+});
+
+describe('RecipeDetailPage tags', () => {
+  it('shows each tag as a link to the filtered list, with the value encoded', async () => {
+    getRecipeById.mockResolvedValue({ data: recipe } as AxiosResponse<Recipe>);
+    renderPage();
+
+    const roast = await screen.findByRole('link', { name: 'roast' });
+    expect(roast.getAttribute('href')).toBe('/recipes?tag=roast');
+    expect(screen.getByRole('link', { name: 'feeds a table' }).getAttribute('href')).toBe('/recipes?tag=feeds%20a%20table');
+    expect(screen.getByRole('link', { name: 'a&b' }).getAttribute('href')).toBe('/recipes?tag=a%26b');
+  });
+
+  it('renders no kicker when the recipe has no tags', async () => {
+    getRecipeById.mockResolvedValue({ data: { ...recipe, tags: [] as string[] } } as AxiosResponse<Recipe>);
+    renderPage();
+
+    await screen.findByRole('heading', { level: 1, name: recipe.title });
+    expect(screen.queryAllByRole('link').filter(link => link.getAttribute('href')?.startsWith('/recipes?tag='))).toHaveLength(0);
   });
 });

@@ -40,8 +40,8 @@ const ing = (name: string): Ingredient => ({
 });
 
 const recipes: Recipe[] = [
-  makeRecipe({ id: '11111111-1111-1111-1111-111111111111', title: 'Tomato Soup', description: 'Warm and simple', ingredients: [ing('tomato'), ing('basil')], preparationTime: 90 }),
-  makeRecipe({ id: '22222222-2222-2222-2222-222222222222', title: 'Pancakes', description: 'Fluffy breakfast', ingredients: [ing('flour'), ing('milk')] }),
+  makeRecipe({ id: '11111111-1111-1111-1111-111111111111', title: 'Tomato Soup', description: 'Warm and simple', ingredients: [ing('tomato'), ing('basil')], preparationTime: 90, tags: ['soup', 'weeknight'] }),
+  makeRecipe({ id: '22222222-2222-2222-2222-222222222222', title: 'Pancakes', description: 'Fluffy breakfast', ingredients: [ing('flour'), ing('milk')], tags: ['breakfast'] }),
   makeRecipe({ id: '33333333-3333-3333-3333-333333333333', title: 'Green Salad', description: 'Crunchy side', ingredients: [ing('lettuce'), ing('cucumber')] }),
 ];
 
@@ -50,11 +50,11 @@ const respondWith = (data: Recipe[]) =>
   getAllRecipes.mockResolvedValue({ data } as AxiosResponse<Recipe[]>);
 
 // A fresh QueryClient per render: a shared one would serve the previous test's cached list.
-const renderList = (searchQuery?: string) =>
+const renderList = (searchQuery?: string, tag?: string) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <MemoryRouter>
-        <RecipeList searchQuery={searchQuery} />
+        <RecipeList searchQuery={searchQuery} tag={tag} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -78,6 +78,7 @@ describe('RecipeList filtering', () => {
     { scenario: 'matches on an ingredient', query: 'basil', expected: ['Tomato Soup'] },
     { scenario: 'is case-insensitive', query: 'TOMATO', expected: ['Tomato Soup'] },
     { scenario: 'trims surrounding whitespace', query: '  flour  ', expected: ['Pancakes'] },
+    { scenario: 'matches on a tag', query: 'weeknight', expected: ['Tomato Soup'] },
   ])('$scenario', async ({ query, expected }) => {
     respondWith(recipes);
     renderList(query);
@@ -164,6 +165,29 @@ describe('RecipeList states', () => {
     expect(link.getAttribute('aria-describedby')).toBeTruthy();
   });
 
+  it('shows only the first tag on a row, as text inside the row link', async () => {
+    respondWith(recipes);
+    renderList();
+
+    const tag = await screen.findByText('soup');
+    expect(tag.closest('a')?.getAttribute('href')).toBe('/recipes/11111111-1111-1111-1111-111111111111');
+    expect(tag.tagName).not.toBe('A');
+    expect(screen.queryByText('weeknight')).toBeNull();
+  });
+
+  it('includes the tag in the row link\'s accessible description, and references nothing when untagged', async () => {
+    respondWith(recipes);
+    renderList();
+
+    const describedBy = (name: string) =>
+      screen.getByRole('link', { name }).getAttribute('aria-describedby')!.split(' ')
+        .map(id => document.getElementById(id)?.textContent);
+
+    await screen.findByRole('link', { name: 'Tomato Soup' });
+    expect(describedBy('Tomato Soup')).toEqual(['Warm and simple', 'soup']);
+    expect(describedBy('Green Salad')).toEqual(['Crunchy side']);
+  });
+
   it('renders one card per recipe, with a formatted total duration', async () => {
     respondWith(recipes);
     renderList();
@@ -174,5 +198,29 @@ describe('RecipeList states', () => {
     // through the existing duration helpers, rather than showing just one of the two times.
     const totalTime = screen.getByText('1h 50min');
     expect(totalTime.getAttribute('datetime')).toBe('PT1H50M');
+  });
+});
+
+describe('RecipeList tag filter', () => {
+  it('lists only recipes carrying exactly that tag', async () => {
+    respondWith(recipes);
+    renderList(undefined, 'weeknight');
+
+    expect(await cardTitles()).toEqual(['Tomato Soup']);
+  });
+
+  it('combines the tag with the text search', async () => {
+    respondWith(recipes);
+    renderList('pancakes', 'weeknight');
+
+    expect(await screen.findByRole('heading', { level: 3, name: 'No recipes found' })).toBeTruthy();
+    expect(screen.getByText('No recipes tagged "weeknight" match "pancakes".')).toBeTruthy();
+  });
+
+  it('explains an empty tag filter', async () => {
+    respondWith(recipes);
+    renderList(undefined, 'dessert');
+
+    expect(await screen.findByText('No recipes tagged "dessert".')).toBeTruthy();
   });
 });
