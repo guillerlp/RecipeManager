@@ -35,9 +35,14 @@ export const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
                 </p>
             </div>
 
-            <time className={styles.time} dateTime={getISODuration(totalMinutes)}>
-                {formatDuration(totalMinutes)}
-            </time>
+            {/* The first tag only, as the design does; the rest are on the detail screen. Plain text, never a
+                link: the whole row is already a <Link>, and a link inside a link is invalid HTML (spec 014). */}
+            <span className={styles.meta}>
+                <time className={styles.time} dateTime={getISODuration(totalMinutes)}>
+                    {formatDuration(totalMinutes)}
+                </time>
+                {recipe.tags[0] && <span className={styles.tag}>{recipe.tags[0]}</span>}
+            </span>
 
             <ChevronRightIcon className={styles.chevron} />
         </Link>

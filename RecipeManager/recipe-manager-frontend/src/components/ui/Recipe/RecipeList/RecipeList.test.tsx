@@ -40,8 +40,8 @@ const ing = (name: string): Ingredient => ({
 });
 
 const recipes: Recipe[] = [
-  makeRecipe({ id: '11111111-1111-1111-1111-111111111111', title: 'Tomato Soup', description: 'Warm and simple', ingredients: [ing('tomato'), ing('basil')], preparationTime: 90 }),
-  makeRecipe({ id: '22222222-2222-2222-2222-222222222222', title: 'Pancakes', description: 'Fluffy breakfast', ingredients: [ing('flour'), ing('milk')] }),
+  makeRecipe({ id: '11111111-1111-1111-1111-111111111111', title: 'Tomato Soup', description: 'Warm and simple', ingredients: [ing('tomato'), ing('basil')], preparationTime: 90, tags: ['soup', 'weeknight'] }),
+  makeRecipe({ id: '22222222-2222-2222-2222-222222222222', title: 'Pancakes', description: 'Fluffy breakfast', ingredients: [ing('flour'), ing('milk')], tags: ['breakfast'] }),
   makeRecipe({ id: '33333333-3333-3333-3333-333333333333', title: 'Green Salad', description: 'Crunchy side', ingredients: [ing('lettuce'), ing('cucumber')] }),
 ];
 
@@ -162,6 +162,16 @@ describe('RecipeList states', () => {
     const link = await screen.findByRole('link', { name: 'Tomato Soup' });
     expect(link.getAttribute('href')).toBe('/recipes/11111111-1111-1111-1111-111111111111');
     expect(link.getAttribute('aria-describedby')).toBeTruthy();
+  });
+
+  it('shows only the first tag on a row, as text inside the row link', async () => {
+    respondWith(recipes);
+    renderList();
+
+    const tag = await screen.findByText('soup');
+    expect(tag.closest('a')?.getAttribute('href')).toBe('/recipes/11111111-1111-1111-1111-111111111111');
+    expect(tag.tagName).not.toBe('A');
+    expect(screen.queryByText('weeknight')).toBeNull();
   });
 
   it('renders one card per recipe, with a formatted total duration', async () => {
