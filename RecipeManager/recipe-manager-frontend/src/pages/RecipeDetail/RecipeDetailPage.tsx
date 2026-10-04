@@ -46,7 +46,11 @@ const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
 
   return (
     <article className={styles.page}>
-      <BackLink />
+      {/* A link, not a button: Edit goes somewhere (ADR-024), so it can be opened in a new tab. */}
+      <div className={styles.topBar}>
+        <BackLink />
+        <Link to={`/recipes/${recipe.id}/edit`} className={styles.edit}>Edit</Link>
+      </div>
 
       <header className={styles.header}>
         {recipe.tags.length > 0 && (

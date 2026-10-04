@@ -69,3 +69,18 @@ describe('App routing to a recipe', () => {
     expect(screen.getByRole('contentinfo')).toBeTruthy();
   });
 });
+
+describe('App routing to the form', () => {
+  it('renders the new-recipe form inside the app shell at /recipes/new', () => {
+    window.history.pushState({}, '', '/recipes/new');
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <App />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1, name: 'New recipe' })).toBeTruthy();
+    expect(screen.getByRole('contentinfo')).toBeTruthy();
+  });
+});

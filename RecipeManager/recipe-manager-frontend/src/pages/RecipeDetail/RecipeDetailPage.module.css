@@ -19,6 +19,26 @@
   text-decoration: underline;
 }
 
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.edit {
+  composes: ui from '@/styles/typography.module.css';
+  padding: 0.375rem 1rem;
+  border: 1px solid var(--field-border);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.edit:hover {
+  background: var(--paper-2);
+}
+
 .header {
   display: flex;
   flex-direction: column;
@@ -158,6 +178,7 @@
 /* Paper, not screen: one column, ingredients first, no controls. */
 @media print {
   .back,
+  .edit,
   .print {
     display: none;
   }
