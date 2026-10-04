@@ -31,8 +31,8 @@ the way they would say them.
       `serialiseIngredient`, round-trip exact.
 - [ ] `pages/RecipeForm/recipeForm.ts`: the form model — state, reducer, `fromRecipe`, `toRequest`,
       `validate` (§8.3).
-- [ ] `utils/serverErrors.ts`: `mapServerErrors` for 422 `ProblemDetails` and 400 `ValidationProblemDetails`
-      (§8.5).
+- [ ] `services/serverErrors.ts`: `readServerErrors` for 422 `ProblemDetails` and 400 `ValidationProblemDetails`
+      (§8.5). In `services/`, because only that folder imports axios.
 - [ ] `hooks/useRecipeMutations.ts`: `useCreateRecipe`, `useUpdateRecipe`, `usePublishRecipe`,
       `useUnpublishRecipe`, `useDeleteRecipe`, each invalidating `['recipes']` (§8.4).
 - [ ] `RecipeFormPage` at `/recipes/new` and `/recipes/:id/edit`, inside `AppLayout`: title as page title,
@@ -120,6 +120,7 @@ Edge rules this spec adds:
 
 | Input | Result | Why |
 | --- | --- | --- |
+| `200g flour`, `1.5kg potatoes` | `(200, Gram, "flour", null)` | A unit symbol attached to the number is a unit. Attached text that is not a unit (`3-4 eggs`, `2x`) makes the whole line the name, with no quantity. |
 | `tbsp butter` | `(null, null, "tbsp butter", null)` | ADR-022 allows a unit only with a quantity; rule 2 only runs after rule 1 matched. |
 | `0 eggs` | failure: "Quantity must be more than zero" | The domain rejects it (`IngredientQuantityMustBePositive`); say so before the round-trip. |
 | `1/0 cup` | failure: "That fraction doesn't work" | Division by zero. |
@@ -147,13 +148,16 @@ interface RecipeFormState {
 }
 ```
 
-- **Identity.** `key` is a client-only `crypto.randomUUID()`, used as the React `key` and as the target of
+- **Identity.** `key` is a client-only counter value (`k1`, `k2`, …), used as the React `key` and as the target of
   step references; it is never sent. `id` is the server's ingredient id, echoed back on update, and `null` for
   a new row. The form never invents an `id` (`BUG-15`).
 - **Steps reference ingredient keys**, not indexes and not ids. Removing an ingredient removes its key from every
   step in the **same** reducer action, so a dangling reference cannot exist in state.
-- `fromRecipe(recipe)` builds state from a `RecipeDto`: each ingredient gets a key and its `id`, each step's
-  `ingredientIds` become the matching keys.
+- `fromRecipe(recipe)` builds state from a `RecipeDto`: each ingredient gets a key, its `id`, its serialised line,
+  and its **stored value**; each step's `ingredientIds` become the matching keys. While a row's text equals the
+  line it was loaded with, `toRequest` sends the stored value instead of re-parsing, so an untouched row is sent
+  unchanged even when it was written through Swagger and would not survive a re-parse (a name starting with a
+  digit and no quantity, more than three decimals).
 - `toRequest(state)` builds the request body in **one pass**: it parses each line, records each row's index in
   the array it is building, and maps every step's `ingredientKeys` to those indexes (ADR-023). Indexes are
   computed against the exact array being sent, so no stale array exists to compute them against. `tags` is
@@ -177,9 +181,10 @@ triggered. The prefix covers every list key and every detail key. `useDeleteReci
 `useRecipes(status)` moves to the key `['recipes', 'list', status]`. The `'list'` segment keeps list keys and
 the existing `['recipes', id]` detail keys from sharing a shape; both stay under the `['recipes']` prefix.
 
-### 8.5 Server-error mapping — `utils/serverErrors.ts`
+### 8.5 Server-error mapping — `services/serverErrors.ts`
 
-`mapServerErrors(error) → { fields: Partial<Record<FormField, string[]>>; form: string[] }`.
+`readServerErrors(error) → { fields: Record<string, string[]>; form: string[] }` reads the HTTP shape;
+`fromServerErrors` in `recipeForm.ts` places each field on the form.
 
 - **422** (`ProblemDetails`, `ResultExtensions.CreateProblemDetails`): `field` plus `detail`, or an `errors[]`
   of `{ message, field }` when there are several. Fields are section-level camelCase: `title`, `description`,
@@ -205,7 +210,7 @@ Actions by state:
 | --- | --- | --- |
 | New | **Save draft**, **Publish** | Save draft: `POST` with `status: "Draft"`, then `navigate('/recipes/:id/edit', { replace: true })`. Publish: `POST` with no status; a 422 marks every gap and creates nothing; success goes to the detail page. |
 | Draft | **Save draft**, **Publish**, **Delete** | Save draft: `PUT`. Publish: `PUT`, then `POST …/publish`; a 422 from publish leaves the draft saved and marks every gap; success goes to the detail page. |
-| Published | **Save**, **Unpublish**, **Delete** | Save: `PUT` — the server applies the published tier. Unpublish: `PUT` if dirty, then `POST …/unpublish`. |
+| Published | **Save**, **Unpublish**, **Delete** | Save: `PUT` — the server applies the published tier. Unpublish: `POST …/unpublish`, then `PUT` — in that order, so the edit is checked against the draft tier it is moving to. |
 | Any | **Discard** | `navigate(-1)`, or `/recipes` with no history. Confirms when dirty from PR 2. |
 
 Copy (sentence case):
@@ -228,8 +233,8 @@ States:
 - **Not found / error** (edit mode): the detail page's not-found and error states, with `refetch()` retry.
 - **Empty:** a new recipe — the form itself, with one empty ingredient row and one empty step.
 - **Populated:** an existing recipe.
-- **Saving:** buttons disabled with `aria-disabled` while a mutation is pending; the status line reads
-  "Saving…".
+- **Saving:** buttons `disabled` while a request is in flight, and a ref guard so a double click sends one
+  request; the status line reads "Saving…".
 
 Accessibility:
 
@@ -286,7 +291,7 @@ honestly (no "0 min", no "serves null") — check, and fix in the same PR if it 
   translates indexes into ids on the server side. Cache invalidation by query-key prefix (TanStack Query).
 - **What this makes harder:** every new form field touches the state type, the reducer, `fromRecipe`,
   `toRequest`, and `validate`. Client-side rules duplicate server rules and can drift; the server stays the
-  authority, and `mapServerErrors` renders whatever it says.
+  authority, and `readServerErrors` renders whatever it says.
 
 ## 10. Security impact
 
@@ -340,7 +345,7 @@ honestly (no "0 min", no "serves null") — check, and fix in the same PR if it 
   - `utils/ingredientLine.test.ts` — the §8.2 table, every `Unit` symbol form, round-trip.
   - `pages/RecipeForm/recipeForm.test.ts` — reducer actions; `fromRecipe`/`toRequest` round-trip;
     index translation after reorder and removal; `validate` for both intents.
-  - `utils/serverErrors.test.ts` — 422 single, 422 multiple, cross-field, 400, unknown/network.
+  - `services/serverErrors.test.ts` — 422 single, 422 multiple, cross-field, 400, unknown/network.
   - `pages/RecipeForm/RecipeFormPage.test.tsx` — service mocked: create draft → redirect; publish blocked
     client-side; draft publish 422; edit loads and submits unchanged; delete confirm/cancel; error summary focus.
   - `RecipePage.test.tsx` — drafts toggle drives `?status=` and the service call.
