@@ -11,7 +11,7 @@ import { RecipeDetailPage } from './RecipeDetailPage';
 // Keep the real isNotFoundError; replace only the network call.
 vi.mock('@/services', async importOriginal => ({
   ...(await importOriginal<typeof import('@/services')>()),
-  recipeService: { getRecipeById: vi.fn() },
+  recipeService: { getRecipeById: vi.fn(), logCook: vi.fn(), deleteCook: vi.fn() },
 }));
 
 const getRecipeById = vi.mocked(recipeService.getRecipeById);
@@ -257,5 +257,29 @@ describe('RecipeDetailPage edit link', () => {
 
     const edit = await screen.findByRole('link', { name: 'Edit' });
     expect(edit.getAttribute('href')).toBe(`/recipes/${ID}/edit`);
+  });
+});
+
+describe('RecipeDetailPage cook stat', () => {
+  it('says never yet when the recipe has not been cooked', async () => {
+    getRecipeById.mockResolvedValue({ data: recipe } as AxiosResponse<Recipe>);
+    renderPage();
+
+    expect(await screen.findByText('never yet')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'I cooked this' })).toBeTruthy();
+  });
+
+  it('shows the count and when it was last cooked', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 11, 20, 0));
+    getRecipeById.mockResolvedValue({
+      data: { ...recipe, cookCount: 11, lastCookedAt: new Date(2026, 9, 8, 19, 0).toISOString() },
+    } as AxiosResponse<Recipe>);
+    renderPage();
+
+    expect(await screen.findByText('11 times')).toBeTruthy();
+    const last = screen.getByText('Thursday');
+    expect(last.tagName).toBe('TIME');
+    expect(last.getAttribute('dateTime')).toBe(new Date(2026, 9, 8, 19, 0).toISOString());
   });
 });
