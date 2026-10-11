@@ -417,3 +417,25 @@ describe('RecipeFormPage — leaving with unsaved changes', () => {
     expect(screen.queryByRole('dialog', { name: 'Leave without saving?' })?.hasAttribute('open') ?? false).toBe(false);
   });
 });
+
+describe('RecipeFormPage — a save still in flight after the user left', () => {
+  // The data router's navigate still works after the form unmounts, so a create that resolves late would pull the
+  // user off the page they chose in the guard dialog.
+  it('does not navigate once the user has left the form', async () => {
+    let resolveCreate: (value: AxiosResponse<Recipe>) => void = () => undefined;
+    service.createRecipe.mockReturnValue(new Promise(resolve => { resolveCreate = resolve; }));
+    const router = renderAt('/recipes/new');
+    typeInto('Recipe title', 'Slow network');
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+
+    await act(() => router.navigate('/recipes'));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Leave without saving?' })).getByRole('button', { name: 'Leave' }));
+    expect(await screen.findByText('List page')).toBeTruthy();
+
+    resolveCreate(ok(draft));
+    // Let the mutation's then-chain (onSuccess, invalidation, the navigate it guards) run to completion.
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+
+    expect(router.state.location.pathname).toBe('/recipes');
+  });
+});

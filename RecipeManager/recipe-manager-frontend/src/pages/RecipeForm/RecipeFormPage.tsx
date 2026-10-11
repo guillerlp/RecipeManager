@@ -1,7 +1,7 @@
 // Add/edit screen, design frame 3d (spec 015). The form model lives in recipeForm.ts; this file wires it to the
 // mutation hooks, the router, and the page.
 import { useEffect, useReducer, useRef, useState } from 'react';
-import { Link, useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useBlocker, useLocation, useNavigate, useParams, type NavigateOptions, type To } from 'react-router-dom';
 import { RecipeCard } from '@/components';
 import {
   isRecipeId, useCreateRecipe, useDeleteRecipe, usePublishRecipe, useRecipe, useUnpublishRecipe, useUpdateRecipe,
@@ -52,6 +52,22 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
   const dirty = JSON.stringify(state) !== JSON.stringify(baseline);
   // Set just before the form's own navigations (after create, publish, delete), which must never ask.
   const leaving = useRef(false);
+  // A data router's navigate still works after this component unmounts, so a save that resolves after the user has
+  // left (through the guard dialog, or Back) would pull them off the page they chose. Set in the effect, not only
+  // initialised, because StrictMode unmounts and remounts once in development.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  // The form's own navigations after an await: skipped if the user has already gone elsewhere.
+  const leaveTo = (to: To, options?: NavigateOptions) => {
+    if (!mounted.current) return;
+    leaving.current = true;
+    void navigate(to, options);
+  };
   const blocker = useBlocker(({ currentLocation, nextLocation }) =>
     dirty && !leaving.current && currentLocation.pathname !== nextLocation.pathname);
   const leaveDialog = useRef<HTMLDialogElement>(null);
@@ -118,11 +134,9 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
         const created = await create.mutateAsync({ ...request, status: intent === 'draft' ? 'Draft' : 'Published' });
         // Replace, not push: Back from the edit screen must not land on a blank form that would create a second recipe.
         if (intent === 'draft') {
-          leaving.current = true;
-          void navigate(`/recipes/${created.id}/edit`, { replace: true, state: { savedAt: Date.now() } });
+          leaveTo(`/recipes/${created.id}/edit`, { replace: true, state: { savedAt: Date.now() } });
         } else {
-          leaving.current = true;
-          void navigate(`/recipes/${created.id}`);
+          leaveTo(`/recipes/${created.id}`);
         }
         return;
       }
@@ -135,8 +149,7 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
       // Saved before publishing, so a 422 from publish still leaves the edit saved as a draft.
       if (intent === 'publish') {
         await publish.mutateAsync(recipe.id);
-        leaving.current = true;
-        void navigate(`/recipes/${recipe.id}`);
+        leaveTo(`/recipes/${recipe.id}`);
       }
     } catch (error) {
       fail(fromServerErrors(readServerErrors(error, nextAction)), nextAction);
@@ -152,8 +165,7 @@ const RecipeForm = ({ recipe }: RecipeFormProps) => {
     setSaving(true);
     try {
       await remove.mutateAsync(recipe.id);
-      leaving.current = true;
-      void navigate('/recipes', { replace: true });
+      leaveTo('/recipes', { replace: true });
     } catch (error) {
       deleteDialog.current?.close();
       fail(fromServerErrors(readServerErrors(error, 'delete')), 'delete');
