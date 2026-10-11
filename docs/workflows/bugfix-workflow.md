@@ -26,7 +26,6 @@ Use the observed HTTP status to narrow the layer before reading any code:
 
 Frontend-specific suspects worth checking first, since they are known-broken:
 
-- `HomePage` links to `/recipes/new`, which has no route in `App.tsx`.
 - `.env.production` still points at the placeholder `https://your-production-api.com/api`.
 
 ## 2. Write the failing test first — `06-qa-tester`

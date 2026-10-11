@@ -927,6 +927,9 @@ endpoint is anonymous and every recipe is world-writable. See
 - **Consequences:** the index translation and identity rules are table-tested without rendering. Harder: every new
   field touches the state type, reducer, `fromRecipe`, `toRequest`, and `validate`; the client mirrors server rules
   and can drift from them — the server stays the authority, and `readServerErrors` renders whatever it returns.
+  PR 2 moved the app to a data router (`src/routes.tsx`, `createBrowserRouter`, with the providers and
+  `AppLayout` in one `Shell` layout route) so `useBlocker` can guard unsaved edits; every route now shares one
+  `AppLayout`, and a new route is a line in `routes.tsx`, not `App.tsx`.
 
 ---
 

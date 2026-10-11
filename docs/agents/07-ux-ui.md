@@ -42,7 +42,8 @@ How to use it:
 - **The design does not overrule the domain.** Where its copy or behaviour contradicts
   [../domain-model.md](../domain-model.md), the domain wins until a roadmap item changes it. The last known case,
   "only the title is required" (`UX-05`), is true since `R-19` — for a **draft** (ADR-025); publishing still needs
-  the full invariants, and the Add/Edit helper text should say so when `R-21` is built.
+  the full invariants. Since `R-21` the form's helper text says so ("A title is all a draft needs. Publishing needs
+  the rest."); the design file's copy still predates drafts.
 - **Its implementation choices are not decisions.** The design loads Newsreader and Material Symbols from Google
   Fonts. The project self-hosts fonts and keeps inline SVG icons instead (`R-16`).
 - **It is external and can change.** A frame's link can go stale or be edited. When a screen is specified from it,
@@ -172,6 +173,9 @@ Before `03-senior-react` writes a screen, specify:
 
 The highest-value pending UX work. Specify before implementation:
 
+- [x] Built in `R-21` (spec 015): keyboard reorder is a pair of move buttons per row — `aria-disabled` rather
+      than `disabled` at the ends so focus is never dropped, and each move announced in a polite live region — and an
+      unsaved-changes guard on a data router (`src/routes.tsx`, ADR-027).
 - [ ] **Dynamic ingredient and instruction lists.** Both are ordered lists of objects (ADR-022, ADR-023). Needs add / remove / reorder,
       an obvious affordance for each, and a keyboard-accessible reorder mechanism (drag-only is not acceptable).
 - [ ] **Instruction steps are ordered and the order is meaningful** — number them visibly so a reorder is

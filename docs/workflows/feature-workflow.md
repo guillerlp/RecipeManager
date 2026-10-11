@@ -105,7 +105,7 @@ Only if persistence changes.
    `['recipes']` query key — follow `hooks/useRecipeMutations.ts` (ADR-027).
 3. Component in the right bucket (`ui/` presentational, `common/` cross-cutting, `layout/` chrome) with
    `Foo.tsx` + `Foo.module.css` + `index.ts`, and update every parent barrel.
-4. Page wiring in `recipe-manager-frontend/src/pages/` and a route in `App.tsx` if needed.
+4. Page wiring in `recipe-manager-frontend/src/pages/` and a route in `recipe-manager-frontend/src/routes.tsx` if needed (ADR-027).
 5. Design tokens and a11y per [../agents/07-ux-ui.md](../agents/07-ux-ui.md).
 
 ## 9. Tests — `06-qa-tester`

@@ -96,6 +96,12 @@ tag links, and a client-side `?tag=` filter. It narrowed known limitation #6 to 
 favourites. Server-side `?tag=` with its GIN index is `R-11`'s; editing tags is `R-21`'s. Its entry is gone from
 this file.
 
+`R-21` (add/edit form) shipped 2026-10-11 as **ADR-027** ([spec 015](specs/015-recipe-form.md)) in two PRs: the
+form end to end — client-side ingredient parser, reducer form model, the SPA's first mutation hooks, Save draft /
+Publish / Unpublish / Delete, a Drafts view on `/recipes`, and an Edit link (#77) — then keyboard reorder, a live
+list-row preview, and an unsaved-changes guard, which moved the app onto a data router. It opened `UX-19`. Its
+entry is gone from this file.
+
 Build order. Each item names what it waits on, so a later item can move up if its dependencies are met:
 
 | Order | Item | Waits on |
@@ -105,7 +111,7 @@ Build order. Each item names what it waits on, so a later item can move up if it
 | ~~3~~ | ~~`R-18` Recipe detail screen~~ — **shipped 2026-09-26**, ADR-024 | — |
 | ~~4~~ | ~~`R-19` Draft recipes~~ — **shipped 2026-10-02**, ADR-025 | — |
 | ~~5~~ | ~~`R-20` Tags~~ — **shipped 2026-10-04**, ADR-026 | — |
-| 6 | `R-21` Add/edit form | ~~`R-10`~~, ~~`R-17`~~, ~~`R-19`~~, ~~`R-20`~~ — none |
+| ~~6~~ | ~~`R-21` Add/edit form~~ — **shipped 2026-10-11**, ADR-027 | — |
 | 7 | `R-22` Cook log | — |
 | 8 | `R-23` Cooking mode | ~~`R-17`~~, `R-22` |
 | 9 | `R-24` Export and import | `SEC-08`, ~~`SEC-09`~~ |
@@ -113,30 +119,6 @@ Build order. Each item names what it waits on, so a later item can move up if it
 `R-11`, `R-12`, `R-13`, and `R-14` keep their IDs and are unordered relative to the list above; each notes what
 the design asks of it. `R-13` is worth doing early, since every screen above is easier to check against realistic
 data.
-
-### R-21
-**Add/edit form** · `07-ux-ui` → `03-senior-react` · ~2 days
-
-**PR 1 shipped** (spec 015, ADR-027): the form, drafts toggle, Edit link. PR 2 (reorder, preview, leave guard) remains.
-
-Design screen 3d. The title field is typeset as the page title, there is a live preview of the list row, and
-ingredients are entered one per line and parsed into quantity, unit, and name. The parser runs **on the client**
-and produces an `IngredientInputDto`; the server never parses free text. Its rules are already fixed — spec 010
-§9 and ADR-022 — against the `Unit` enum that now exists. Adds the SPA's first mutation hooks (the `['recipes']`
-invalidation pattern in the feature workflow) and gives `/recipes/new` a real screen in place of the `R-16` 404
-fallback. The existing checklist in [agents/07-ux-ui.md](agents/07-ux-ui.md) still applies: keyboard reorder,
-visible limits, cross-field errors, and 400/422 mapping. Three things the form must not get wrong. **Step
-references are sent as indexes, read as ids** (ADR-023): at submit time, translate each step's selected
-ingredient ids into indexes into the exact `ingredients` array being sent in that request. `number[]` against
-`string[]` stops a direct copy, but nothing stops an index computed against a stale array. It should echo each
-ingredient's `id` so ingredients keep their identity, though step references no longer depend on it. And it must
-not invent ids, because nothing server-side validates that one belongs to the recipe (`BUG-15`). "Draft saved" is
-backed by `R-19` (ADR-025): create with `status: "Draft"`, `PUT` freely while it is a draft, then
-`POST /api/recipes/{id}/publish` — a 422 from publish lists every missing field, so the form can mark them all.
-Wire the existing `publishRecipe`/`unpublishRecipe` service methods, and update the design's helper text to
-describe drafts and publishing (`UX-05`'s follow-up). The photo field depends on `R-12`. Tags (`R-20`,
-ADR-026) are edited as chips and sent as `tags: string[]` on **every** `POST` and `PUT` — the field is required, so
-omitting it is a 400 — and the server normalises them, so the form need not.
 
 ### R-22
 **Cook log** · `01-architect` (ADR required) → full stack · ~1–2 days

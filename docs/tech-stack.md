@@ -71,7 +71,7 @@ Both test projects set `<Using Include="Xunit" />`, so `using Xunit;` is implici
 | `@tanstack/react-query` | 5.102 | server state (`useRecipes`); client configured in `main.tsx` |
 | `@tanstack/react-query-devtools` | 5.102 | mounted when `import.meta.env.DEV` (Vite's own flag — browser code does not rely on Node's `process` types) |
 | `axios` | 1.20 | single `AxiosInstance` in `services/recipeService.ts` |
-| `react-router-dom` | 7.18 | `BrowserRouter` + 3 routes in `App.tsx` |
+| `react-router-dom` | 7.18 | Data router: `createBrowserRouter` over the route table in `src/routes.tsx` (ADR-027), needed for `useBlocker` |
 | `oxlint` | 1.82.0 (exact) | the linter. `.oxlintrc.json` holds the 71 type-aware rules ESLint + typescript-eslint enforced before ADR-016, scoped to `src/**` (plus `no-console`), and turns on Oxlint's `correctness` category for every file so root tooling files are checked too — 159 rules in all (`BUILD-10`) |
 | `oxlint-tsgolint` | 7.0.2001 (exact) | Oxlint's type-aware backend. Embeds its own typescript-go and is versioned after it (7.0.2, patch 001) — keep it in step with `typescript`; the `typescript` Dependabot group moves all three together |
 | `vitest` | 5.0 | test runner; configured by the `test` block in `vite.config.ts` (ADR-018) |
