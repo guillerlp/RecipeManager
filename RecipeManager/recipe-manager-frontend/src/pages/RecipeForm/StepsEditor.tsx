@@ -7,9 +7,10 @@ interface StepsEditorProps {
   ingredients: IngredientRow[];
   dispatch: Dispatch<FormAction>;
   error: string[] | undefined;
+  announce: (message: string) => void;
 }
 
-export const StepsEditor = ({ steps, ingredients, dispatch, error }: StepsEditorProps) => {
+export const StepsEditor = ({ steps, ingredients, dispatch, error, announce }: StepsEditorProps) => {
   const [focusKey, setFocusKey] = useState<string | null>(null);
   // Only lines that name something can be picked: a blank or unparseable line has no name to show yet.
   const choices = ingredients.flatMap(row => {
@@ -17,7 +18,8 @@ export const StepsEditor = ({ steps, ingredients, dispatch, error }: StepsEditor
     return parsed?.ok ? [{ key: row.key, name: parsed.value.name }] : [];
   });
 
-  // Same as IngredientsEditor: a removed step's × unmounts with it, so focus moves to a neighbour or Add step.
+  // Same as IngredientsEditor: after a remove focus moves to a neighbour or Add step; after a move it stays on the
+  // moved step's control.
   const [refocus, setRefocus] = useState<{ id: string } | null>(null);
   useEffect(() => {
     if (refocus) document.getElementById(refocus.id)?.focus();
@@ -27,6 +29,15 @@ export const StepsEditor = ({ steps, ingredients, dispatch, error }: StepsEditor
     const neighbour = steps[index + 1] ?? steps[index - 1];
     setRefocus({ id: neighbour ? `step-${neighbour.key}` : 'add-step' });
     dispatch({ type: 'removeStep', key: steps[index].key });
+  };
+
+  const moveStep = (index: number, by: -1 | 1) => {
+    const to = index + by;
+    if (to < 0 || to >= steps.length) return;
+    const { key } = steps[index];
+    dispatch({ type: 'moveStep', key, by });
+    setRefocus({ id: `move-${by === -1 ? 'up' : 'down'}-${key}` });
+    announce(`Moved step ${index + 1} to position ${to + 1} of ${steps.length}.`);
   };
 
   const add = () => {
@@ -93,6 +104,27 @@ export const StepsEditor = ({ steps, ingredients, dispatch, error }: StepsEditor
                   </fieldset>
                 )}
               </div>
+              <div className={styles.stepControls}>
+              <button
+                id={`move-up-${step.key}`}
+                type="button"
+                className={styles.remove}
+                aria-label={`Move step ${n} up`}
+                aria-disabled={index === 0 ? true : undefined}
+                onClick={() => moveStep(index, -1)}
+              >
+                ↑
+              </button>
+              <button
+                id={`move-down-${step.key}`}
+                type="button"
+                className={styles.remove}
+                aria-label={`Move step ${n} down`}
+                aria-disabled={index === steps.length - 1 ? true : undefined}
+                onClick={() => moveStep(index, 1)}
+              >
+                ↓
+              </button>
               <button
                 type="button"
                 className={styles.remove}
@@ -101,6 +133,7 @@ export const StepsEditor = ({ steps, ingredients, dispatch, error }: StepsEditor
               >
                 ×
               </button>
+              </div>
             </li>
           );
         })}

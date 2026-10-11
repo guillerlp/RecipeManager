@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `015` |
-| **Status** | in progress — PR 1 shipped |
+| **Status** | shipped 2026-10-11 — ADR-027 (#77, then the PR 2 PR) |
 | **Author** | `00-leader` + `07-ux-ui` + `03-senior-react` |
 | **Created** | `2026-10-04` |
 | **Branch** | `feat/recipe-form` |
@@ -47,13 +47,13 @@ the way they would say them.
 
 **PR 2 — reorder, preview, leave guard**
 
-- [ ] Keyboard-accessible reorder for ingredient rows and method steps (move up / move down buttons, focus
+- [x] Keyboard-accessible reorder for ingredient rows and method steps (move up / move down buttons, focus
       follows the moved row, the new position announced). Drag is optional on top, never the only way.
-- [ ] The live list-row preview rail ("How it will look in the list"), reusing `RecipeCard`.
-- [ ] Unsaved-changes guard: migrate `App.tsx` from `<BrowserRouter>` to `createBrowserRouter` +
+- [x] The live list-row preview rail ("How it will look in the list"), reusing `RecipeCard`.
+- [x] Unsaved-changes guard: migrate `App.tsx` from `<BrowserRouter>` to `createBrowserRouter` +
       `RouterProvider` so `useBlocker` is available; block in-app navigation and `beforeunload` while the form
       is dirty. Discard confirms when dirty.
-- [ ] `R-21` removed from the roadmap; spec status set to shipped.
+- [x] `R-21` removed from the roadmap; spec status set to shipped.
 
 ## 4. Out of scope
 
@@ -308,35 +308,35 @@ honestly (no "0 min", no "serves null") — check, and fix in the same PR if it 
 
 ## 11. Acceptance criteria
 
-- [ ] Given `2 tbsp butter, cold`, when parsed, then `(2, Tablespoon, "butter", "cold")`; `salt to taste` gives
+- [x] Given `2 tbsp butter, cold`, when parsed, then `(2, Tablespoon, "butter", "cold")`; `salt to taste` gives
       `(null, null, "salt to taste", null)`; `3 eggs` gives `(3, null, "eggs", null)`; `1 1/2 cups flour` gives
       `(1.5, Cup, "flour", null)`.
-- [ ] Given every `Unit` and a quantity like `0.333`, when serialised then parsed, then the result equals the
+- [x] Given every `Unit` and a quantity like `0.333`, when serialised then parsed, then the result equals the
       input.
-- [ ] Given ingredients A, B, C where step 1 uses C, when B is moved to the end and the form submitted, then step
+- [x] Given ingredients A, B, C where step 1 uses C, when B is moved to the end and the form submitted, then step
       1's `ingredientIndexes` is the index of C in the sent array.
-- [ ] Given step 1 uses B, when B is removed, then step 1 references nothing and the request is valid.
-- [ ] Given an existing recipe, when its edit form is submitted unchanged, then the request carries the same
+- [x] Given step 1 uses B, when B is removed, then step 1 references nothing and the request is valid.
+- [x] Given an existing recipe, when its edit form is submitted unchanged, then the request carries the same
       quantities, units, names, notes, ingredient `id`s, step references, and tags it was loaded with.
-- [ ] Given a new recipe with only a title, when **Save draft**, then `POST` with `status: "Draft"` and the URL
+- [x] Given a new recipe with only a title, when **Save draft**, then `POST` with `status: "Draft"` and the URL
       becomes `/recipes/{id}/edit` without a new history entry.
-- [ ] Given a new recipe with only a title, when **Publish**, then the client marks description, times,
+- [x] Given a new recipe with only a title, when **Publish**, then the client marks description, times,
       servings, ingredients, and method without sending a request.
-- [ ] Given the server answers 422 with an `errors[]` of several fields, then every one is marked and listed in
+- [x] Given the server answers 422 with an `errors[]` of several fields, then every one is marked and listed in
       the summary, and focus is on the summary.
-- [ ] Given 422 `field: "preparationTime,cookingTime"`, then the message appears once, under the times group.
-- [ ] Given 400 with `errors: { "Ingredients[2].Name": [...] }`, then the message appears on the Ingredients
+- [x] Given 422 `field: "preparationTime,cookingTime"`, then the message appears once, under the times group.
+- [x] Given 400 with `errors: { "Ingredients[2].Name": [...] }`, then the message appears on the Ingredients
       section.
-- [ ] Given a draft, when **Publish** and the publish call returns 422, then the draft's `PUT` has succeeded and
+- [x] Given a draft, when **Publish** and the publish call returns 422, then the draft's `PUT` has succeeded and
       every gap is marked.
-- [ ] Given a saved recipe, when **Delete** is confirmed, then `DELETE` is sent, the user lands on `/recipes`, and
+- [x] Given a saved recipe, when **Delete** is confirmed, then `DELETE` is sent, the user lands on `/recipes`, and
       the recipe is gone from the list without a reload.
-- [ ] Given **Delete**, when the dialog is cancelled or `Esc` pressed, then nothing is sent and focus returns to
+- [x] Given **Delete**, when the dialog is cancelled or `Esc` pressed, then nothing is sent and focus returns to
       the Delete button.
-- [ ] Given any successful write, then the list and detail screens show the change without a reload.
-- [ ] Given `/recipes?status=draft`, then only drafts are listed; the toggle is a radio group.
-- [ ] Given the detail screen, then an **Edit** link leads to `/recipes/{id}/edit`.
-- [ ] Given a tag typed with `Enter` or `,`, then it appears as a chip with a "Remove tag {name}" button.
+- [x] Given any successful write, then the list and detail screens show the change without a reload.
+- [x] Given `/recipes?status=draft`, then only drafts are listed; the toggle is a radio group.
+- [x] Given the detail screen, then an **Edit** link leads to `/recipes/{id}/edit`.
+- [x] Given a tag typed with `Enter` or `,`, then it appears as a chip with a "Remove tag {name}" button.
 
 ## 12. Test plan
 

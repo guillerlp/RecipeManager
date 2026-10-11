@@ -121,8 +121,21 @@ export type FormAction =
   | { type: 'setStep'; key: string; text?: string; duration?: string }
   | { type: 'removeStep'; key: string }
   | { type: 'toggleStepIngredient'; stepKey: string; ingredientKey: string }
+  | { type: 'moveIngredient'; key: string; by: -1 | 1 }
+  | { type: 'moveStep'; key: string; by: -1 | 1 }
   | { type: 'addTag'; tag: string }
   | { type: 'removeTag'; tag: string };
+
+// Swaps an item with its neighbour; a move past either end returns the same array, so the reducer returns the same
+// state and React skips the render.
+const move = <T extends { key: string }>(items: T[], key: string, by: -1 | 1): T[] => {
+  const from = items.findIndex(item => item.key === key);
+  const to = from + by;
+  if (from === -1 || to < 0 || to >= items.length) return items;
+  const next = [...items];
+  [next[from], next[to]] = [next[to], next[from]];
+  return next;
+};
 
 export const formReducer = (state: RecipeFormState, action: FormAction): RecipeFormState => {
   switch (action.type) {
@@ -167,6 +180,15 @@ export const formReducer = (state: RecipeFormState, action: FormAction): RecipeF
           return { ...step, ingredientKeys: keys };
         }),
       };
+    case 'moveIngredient': {
+      // Steps reference keys, not positions, so a move needs no step update at all.
+      const ingredients = move(state.ingredients, action.key, action.by);
+      return ingredients === state.ingredients ? state : { ...state, ingredients };
+    }
+    case 'moveStep': {
+      const steps = move(state.steps, action.key, action.by);
+      return steps === state.steps ? state : { ...state, steps };
+    }
     case 'addTag': {
       const tag = normaliseTag(action.tag);
       return tag === undefined || state.tags.includes(tag) ? state : { ...state, tags: [...state.tags, tag] };
@@ -286,4 +308,22 @@ export const fromServerErrors = ({ fields, form }: ServerErrors): FormErrors => 
     (errors[SERVER_FIELDS.get(field) ?? 'form'] ??= []).push(...messages);
   }
   return errors;
+};
+
+// The list row as it would look (design frame 3d's right rail). Display only: never sent. The id is a placeholder;
+// the card it feeds sits in an inert section, so its link cannot be followed.
+export const previewRecipe = (state: RecipeFormState): Recipe => {
+  const whole = (value: string): number | null => (WHOLE.test(value.trim()) ? Number(value) : null);
+  return {
+    id: 'preview',
+    status: 'Draft',
+    title: state.title.trim() || 'Untitled recipe',
+    description: state.description.trim() || 'Your one-line description shows here.',
+    preparationTime: whole(state.prep),
+    cookingTime: whole(state.cook),
+    servings: whole(state.servings),
+    ingredients: [],
+    instructions: [],
+    tags: state.tags,
+  };
 };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Recipe } from '@/types';
 import {
-  emptyForm, emptyIngredient, emptyStep, formReducer, fromRecipe, fromServerErrors, hasErrors, toRequest, validate,
+  emptyForm, emptyIngredient, emptyStep, formReducer, fromRecipe, fromServerErrors, hasErrors, previewRecipe, toRequest, validate,
   type RecipeFormState,
 } from './recipeForm';
 
@@ -194,5 +194,45 @@ describe('validate — a step with content but no text', () => {
     const state = formReducer(emptyForm(), { type: 'setField', field: 'title', value: 'Toast' });
     const withTimer = formReducer(state, { type: 'setStep', key: state.steps[0].key, duration: '5' });
     expect(validate(withTimer, 'draft')).toEqual({ instructions: ['Give every step some text, or remove it'] });
+  });
+});
+
+describe('reorder', () => {
+  // Spec 015 AC: A, B, C with step 1 using C; move B to the end; step 1 must point at C's index in the sent array.
+  it('keeps step references on the right ingredient after a move', () => {
+    const state = fromRecipe({
+      ...recipe,
+      instructions: [{ id: 'bbbbbbbb-0000-0000-0000-000000000009', text: 'Use C.', durationMinutes: null, ingredientIds: ['aaaaaaaa-0000-0000-0000-00000000000c'] }],
+    });
+    const moved = formReducer(state, { type: 'moveIngredient', key: state.ingredients[1].key, by: 1 });
+    const request = toRequest(moved);
+    expect(request.ingredients.map(i => i.name)).toEqual(['butter', 'chicken', '7 spice']);
+    expect(request.instructions[0].ingredientIndexes).toEqual([1]);
+  });
+
+  it('ignores a move past either end', () => {
+    const state = fromRecipe(recipe);
+    expect(formReducer(state, { type: 'moveIngredient', key: state.ingredients[0].key, by: -1 })).toBe(state);
+    expect(formReducer(state, { type: 'moveStep', key: state.steps[1].key, by: 1 })).toBe(state);
+  });
+
+  it('moves steps', () => {
+    const state = fromRecipe(recipe);
+    const moved = formReducer(state, { type: 'moveStep', key: state.steps[1].key, by: -1 });
+    expect(moved.steps.map(s => s.text)).toEqual(['Roast.', 'Rub.']);
+  });
+});
+
+describe('previewRecipe', () => {
+  it('fills the design placeholders while the form is empty', () => {
+    const preview = previewRecipe(emptyForm());
+    expect(preview.title).toBe('Untitled recipe');
+    expect(preview.description).toBe('Your one-line description shows here.');
+    expect(preview.preparationTime).toBeNull();
+  });
+
+  it('shows the typed values and ignores a half-typed time', () => {
+    const preview = previewRecipe({ ...emptyForm(), title: ' Stew ', prep: '20', cook: '1.5', tags: ['winter'] });
+    expect(preview).toMatchObject({ title: 'Stew', preparationTime: 20, cookingTime: null, tags: ['winter'] });
   });
 });

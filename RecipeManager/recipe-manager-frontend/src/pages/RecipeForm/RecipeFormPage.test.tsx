@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { AxiosError, type AxiosResponse } from 'axios';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -304,5 +304,138 @@ describe('RecipeFormPage — review fixes', () => {
 
     const summary = await screen.findByRole('region', { name: "Couldn't delete" });
     expect(within(summary).getByText("Couldn't delete. Check your connection and try again.")).toBeTruthy();
+  });
+});
+
+describe('RecipeFormPage — keyboard reorder', () => {
+  it('moves an ingredient down, keeps focus on the control, and announces the new position', async () => {
+    service.getRecipeById.mockResolvedValue(ok(published));
+    renderAt(`/recipes/${ID}/edit`);
+
+    const down = await screen.findByRole('button', { name: 'Move stock down' });
+    down.focus();
+    fireEvent.click(down);
+
+    expect(screen.getByLabelText<HTMLInputElement>('Ingredient 2').value).toBe('0.333 cups stock');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Move stock down' }));
+    expect(screen.getByText('Moved stock to position 2 of 3.')).toBeTruthy();
+  });
+
+  it("marks the first row's Move up as unavailable without removing it from the tab order", async () => {
+    service.getRecipeById.mockResolvedValue(ok(published));
+    renderAt(`/recipes/${ID}/edit`);
+    const up = await screen.findByRole('button', { name: 'Move stock up' });
+    expect(up.getAttribute('aria-disabled')).toBe('true');
+    expect(up.hasAttribute('disabled')).toBe(false);
+    fireEvent.click(up);
+    expect(screen.getByLabelText<HTMLInputElement>('Ingredient 1').value).toBe('0.333 cups stock');
+  });
+
+  it('moves a step up and announces it', async () => {
+    service.getRecipeById.mockResolvedValue(ok({
+      ...published,
+      instructions: [
+        { id: 'bbbbbbbb-0000-0000-0000-000000000001', text: 'First.', durationMinutes: null, ingredientIds: [] },
+        { id: 'bbbbbbbb-0000-0000-0000-000000000002', text: 'Second.', durationMinutes: null, ingredientIds: [] },
+      ],
+    }));
+    renderAt(`/recipes/${ID}/edit`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Move step 2 up' }));
+    expect(screen.getByLabelText<HTMLTextAreaElement>('Step 1').value).toBe('Second.');
+    expect(screen.getByText('Moved step 2 to position 1 of 2.')).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Move step 1 up' }));
+  });
+});
+
+describe('RecipeFormPage — list-row preview', () => {
+  it('previews the list row as you type, kept out of the tab order and the accessibility tree', () => {
+    renderAt('/recipes/new');
+    typeInto('Recipe title', 'Weeknight dal');
+    const preview = screen.getByText('How it will look in the list').closest('section');
+    expect(preview?.hasAttribute('inert')).toBe(true);
+    expect(within(preview!).getByText('Weeknight dal')).toBeTruthy();
+  });
+});
+
+describe('RecipeFormPage — leaving with unsaved changes', () => {
+  it('asks first, and Keep editing stays on the form', async () => {
+    const router = renderAt('/recipes/new');
+    typeInto('Recipe title', 'Unsaved');
+
+    await act(() => router.navigate('/recipes'));
+    const dialog = screen.getByRole('dialog', { name: 'Leave without saving?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Keep editing' }));
+
+    expect(router.state.location.pathname).toBe('/recipes/new');
+    expect(screen.getByLabelText<HTMLInputElement>('Recipe title').value).toBe('Unsaved');
+  });
+
+  it('Leave discards the edits and goes', async () => {
+    const router = renderAt('/recipes/new');
+    typeInto('Recipe title', 'Unsaved');
+
+    await act(() => router.navigate('/recipes'));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Leave without saving?' })).getByRole('button', { name: 'Leave' }));
+
+    expect(await screen.findByText('List page')).toBeTruthy();
+  });
+
+  it('Discard on a dirty form asks too', () => {
+    renderAt('/recipes/new');
+    typeInto('Recipe title', 'Unsaved');
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(screen.getByRole('dialog', { name: 'Leave without saving?' }).hasAttribute('open')).toBe(true);
+  });
+
+  it('a clean form leaves without asking', async () => {
+    const router = renderAt('/recipes/new');
+    await act(() => router.navigate('/recipes'));
+    expect(await screen.findByText('List page')).toBeTruthy();
+  });
+
+  it('a form just saved leaves without asking', async () => {
+    service.getRecipeById.mockResolvedValue(ok(published));
+    service.updateRecipe.mockResolvedValue(ok(undefined));
+    const router = renderAt(`/recipes/${ID}/edit`);
+    const saveButton = await screen.findByRole('button', { name: 'Save' });
+    typeInto('Description', 'Changed.');
+    fireEvent.click(saveButton);
+    await screen.findByText(/^Saved/);
+
+    await act(() => router.navigate('/recipes'));
+    expect(await screen.findByText('List page')).toBeTruthy();
+  });
+
+  it('a successful create redirects without asking', async () => {
+    service.createRecipe.mockResolvedValue(ok(draft));
+    service.getRecipeById.mockResolvedValue(ok(draft));
+    const router = renderAt('/recipes/new');
+    typeInto('Recipe title', 'Half a roast');
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+    await screen.findByText(/^Draft saved/);
+    expect(router.state.location.pathname).toBe(`/recipes/${ID}/edit`);
+    expect(screen.queryByRole('dialog', { name: 'Leave without saving?' })?.hasAttribute('open') ?? false).toBe(false);
+  });
+});
+
+describe('RecipeFormPage — a save still in flight after the user left', () => {
+  // The data router's navigate still works after the form unmounts, so a create that resolves late would pull the
+  // user off the page they chose in the guard dialog.
+  it('does not navigate once the user has left the form', async () => {
+    let resolveCreate: (value: AxiosResponse<Recipe>) => void = () => undefined;
+    service.createRecipe.mockReturnValue(new Promise(resolve => { resolveCreate = resolve; }));
+    const router = renderAt('/recipes/new');
+    typeInto('Recipe title', 'Slow network');
+    fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+
+    await act(() => router.navigate('/recipes'));
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Leave without saving?' })).getByRole('button', { name: 'Leave' }));
+    expect(await screen.findByText('List page')).toBeTruthy();
+
+    resolveCreate(ok(draft));
+    // Let the mutation's then-chain (onSuccess, invalidation, the navigate it guards) run to completion.
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+
+    expect(router.state.location.pathname).toBe('/recipes');
   });
 });
