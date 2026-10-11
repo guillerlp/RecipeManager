@@ -1,10 +1,10 @@
-// The SPA's first mutations (spec 015 §8.4). One rule for all five: on success, invalidate the ['recipes'] prefix.
+// The SPA's first mutations (spec 015 §8.4). One rule for all of them: on success, invalidate the ['recipes'] prefix.
 // It covers every list (['recipes', 'list', status]) and every detail entry (['recipes', id]); a status change
 // moves a recipe between lists, so nothing narrower is safe. useRecipes and useRecipe set refetchOnMount: false,
 // so without this the screens would keep showing the old recipe until a reload.
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { recipeService } from '@/services';
-import type { CreateRecipeRequest, Recipe, UpdateRecipeRequest } from '@/types';
+import type { Cook, CreateRecipeRequest, Recipe, UpdateRecipeRequest } from '@/types';
 
 // Returned from onSuccess, so mutateAsync resolves only once the refetch has been triggered.
 const invalidateRecipes = (queryClient: QueryClient) => queryClient.invalidateQueries({ queryKey: ['recipes'] });
@@ -62,5 +62,25 @@ export const useDeleteRecipe = () => {
       queryClient.removeQueries({ queryKey: ['recipes', id], exact: true });
       return invalidateRecipes(queryClient);
     },
+  });
+};
+
+// The count and last date live on every RecipeDto (ADR-028), so a cook makes both the lists and the detail stale.
+export const useLogCook = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ recipeId, cookedAt }: { recipeId: string; cookedAt?: string }): Promise<Cook> =>
+      (await recipeService.logCook(recipeId, cookedAt)).data,
+    onSuccess: () => invalidateRecipes(queryClient),
+  });
+};
+
+export const useDeleteCook = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ recipeId, cookId }: { recipeId: string; cookId: string }): Promise<void> => {
+      await recipeService.deleteCook(recipeId, cookId);
+    },
+    onSuccess: () => invalidateRecipes(queryClient),
   });
 };
