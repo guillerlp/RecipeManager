@@ -26,6 +26,7 @@ const recipe = {
   cookingTime: 85,
   servings: 4,
   tags: ['roast', 'feeds a table', 'a&b'],
+  cookCount: 0,
   ingredients: [
     { id: 'i1', quantity: 1.6, unit: 'Kilogram', name: 'whole chicken', notes: null },
     { id: 'i2', quantity: 2, unit: null, name: 'lemons', notes: 'one halved' },

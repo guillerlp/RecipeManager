@@ -21,12 +21,12 @@ const ID = '11111111-1111-1111-1111-111111111111';
 
 const draft: Recipe = {
   id: ID, title: 'Half a roast', status: 'Draft', description: null, preparationTime: null, cookingTime: null,
-  servings: null, ingredients: [], instructions: [], tags: [],
+  servings: null, ingredients: [], instructions: [], tags: [], cookCount: 0,
 };
 
 const published: Recipe = {
   id: ID, title: 'Sunday Roast', status: 'Published', description: 'Feeds a table.', preparationTime: 20,
-  cookingTime: 85, servings: 4, tags: ['roast'],
+  cookingTime: 85, servings: 4, tags: ['roast'], cookCount: 0,
   ingredients: [
     { id: 'aaaaaaaa-0000-0000-0000-000000000001', quantity: 0.333, unit: 'Cup', name: 'stock', notes: null },
     { id: 'aaaaaaaa-0000-0000-0000-000000000002', quantity: null, unit: null, name: '7 spice', notes: 'a pinch' },

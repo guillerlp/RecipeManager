@@ -21,7 +21,12 @@ public class CooksController : ControllerBase
         _commandDispatcher = commandDispatcher;
     }
 
+    // Declared because IActionResult hides the body type from Swashbuckle: without it the contract documents a bare
+    // 200 and generates no CookDto for the SPA to alias (ADR-019). RecipesController has the same gap (QUAL-08).
     [HttpPost]
+    [ProducesResponseType<CookDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Log([FromRoute] Guid recipeId, [FromBody] LogCookDto dto,
         CancellationToken cancellationToken)
     {
@@ -37,6 +42,8 @@ public class CooksController : ControllerBase
     }
 
     [HttpDelete("{cookId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete([FromRoute] Guid recipeId, [FromRoute] Guid cookId,
         CancellationToken cancellationToken)
     {

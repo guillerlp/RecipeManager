@@ -14,3 +14,5 @@ export type InstructionStep = Schemas['InstructionStepDto'];
 export type InstructionStepInput = Schemas['InstructionStepInputDto'];
 export type Unit = Schemas['Unit'];
 export type RecipeStatus = Schemas['RecipeStatus'];
+export type Cook = Schemas['CookDto'];
+export type LogCookRequest = Schemas['LogCookDto'];

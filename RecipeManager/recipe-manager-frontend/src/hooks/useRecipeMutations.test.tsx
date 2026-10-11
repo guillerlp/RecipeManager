@@ -18,7 +18,7 @@ vi.mock('@/services', () => ({
 const service = vi.mocked(recipeService);
 const ID = '11111111-1111-1111-1111-111111111111';
 const request: UpdateRecipeRequest = { title: 'T', ingredients: [], instructions: [], tags: [] };
-const created: Recipe = { id: ID, title: 'T', status: 'Draft', ingredients: [], instructions: [], tags: [] };
+const created: Recipe = { id: ID, title: 'T', status: 'Draft', ingredients: [], instructions: [], tags: [], cookCount: 0 };
 const ok = <T,>(data: T) => ({ data }) as AxiosResponse<T>;
 
 const setup = () => {
