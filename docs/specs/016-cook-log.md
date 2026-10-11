@@ -108,7 +108,7 @@ counts and dates derived from those logs.
 
   | Verb | Route | Request body | Success | Failures |
   | --- | --- | --- | --- | --- |
-  | POST | `/api/recipes/{recipeId:guid}/cooks` | `LogCookDto { cookedAt?: string (date-time) }` — `{}` means now | 201 + `Location: /api/recipes/{recipeId}/cooks/{cookId}` + `CookDto { id, cookedAt }` | 400 malformed date, 404 recipe not found, 422 `cookedAt` in the future |
+  | POST | `/api/recipes/{recipeId:guid}/cooks` | `LogCookDto { cookedAt?: string (date-time) }` — `{}` means now | 201 + `Location: /api/recipes/{recipeId}/cooks/{cookId}` + `CookDto { id, cookedAt }` | 400 malformed date, 404 recipe not found, 415 no body (`{}` is "now"; an empty request has no `Content-Type`), 422 `cookedAt` in the future |
   | DELETE | `/api/recipes/{recipeId:guid}/cooks/{cookId:guid}` | — | 204 | 404 cook not found, or not this recipe's |
 
   There is no `GET` for a single cook, so `Location` identifies a resource that answers only `DELETE`. RFC 9110

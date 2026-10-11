@@ -56,6 +56,24 @@ describe('CookControls', () => {
     expect(screen.getByRole('status').textContent).toBe('');
   });
 
+  it('keeps Undo for every cook logged on this visit, newest first', async () => {
+    logCook.mockResolvedValueOnce(ok(cook)).mockResolvedValueOnce(ok({ id: 'c2', cookedAt: '2026-10-08T10:00:00Z' }));
+    renderControls();
+    fireEvent.click(screen.getByRole('button', { name: 'I cooked this' }));
+    await screen.findByRole('button', { name: 'Undo' });
+
+    fireEvent.change(screen.getByLabelText('Day'), { target: { value: '2026-10-08' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Log' }));
+    await waitFor(() => expect(logCook).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(deleteCook).toHaveBeenCalledWith(ID, 'c2'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(deleteCook).toHaveBeenLastCalledWith(ID, 'c1'));
+
+    expect(await screen.findByRole('button', { name: 'I cooked this' })).toBeTruthy();
+  });
+
   it('cannot be tapped twice while the first log is in flight', async () => {
     logCook.mockReturnValue(new Promise<AxiosResponse<Cook>>(() => undefined));
     renderControls();

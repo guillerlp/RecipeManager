@@ -21,16 +21,22 @@ const cookedAtFor = (day: string): string | undefined => {
 export const CookControls = ({ recipeId }: { recipeId: string }) => {
   const logCook = useLogCook();
   const deleteCook = useDeleteCook();
-  // The cook just logged, kept so Undo can name it. Not timed: Undo lasts until the page is left (WCAG 2.2.1),
-  // because the API puts no deadline on a delete either.
-  const [logged, setLogged] = useState<Cook | null>(null);
+  // Every cook logged on this visit, newest last, so Undo can name each one: with no cook list (UX-20), a cook that
+  // lost its Undo could never be removed. Not timed: Undo lasts until the page is left (WCAG 2.2.1), because the API
+  // puts no deadline on a delete either.
+  const [loggedThisVisit, setLoggedThisVisit] = useState<Cook[]>([]);
+  const logged: Cook | null = loggedThisVisit[loggedThisVisit.length - 1] ?? null;
   const [day, setDay] = useState('');
 
   const log = (cookedAt?: string) =>
-    logCook.mutate({ recipeId, cookedAt }, { onSuccess: cook => { setLogged(cook); setDay(''); } });
+    logCook.mutate({ recipeId, cookedAt }, {
+      onSuccess: cook => { setLoggedThisVisit(cooks => [...cooks, cook]); setDay(''); },
+    });
 
   const undo = (cook: Cook) =>
-    deleteCook.mutate({ recipeId, cookId: cook.id }, { onSuccess: () => setLogged(null) });
+    deleteCook.mutate({ recipeId, cookId: cook.id }, {
+      onSuccess: () => setLoggedThisVisit(cooks => cooks.filter(c => c.id !== cook.id)),
+    });
 
   return (
     <div className={styles.cook}>

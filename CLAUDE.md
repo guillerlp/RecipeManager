@@ -1,7 +1,7 @@
 # RecipeManager — AI Agent Context
 
-Recipe Manager is a personal recipe catalogue: a Clean-Architecture ASP.NET Core REST API over a single
-`Recipe` aggregate, with a React 19 SPA for browsing and searching recipes.
+Recipe Manager is a personal recipe catalogue: a Clean-Architecture ASP.NET Core REST API over a
+`Recipe` aggregate and a `Cook` log that references it (ADR-028), with a React 19 SPA for browsing and searching recipes.
 
 > **Language rule:** all code, identifiers, comments, commit messages, and documentation are written in
 > **English**. Conversation with the user may be in Spanish; artifacts are not.
@@ -76,7 +76,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Api/               RecipesController, CooksController, Startup/*, Startup/Swagger/*, Middlewares/*, Extensions/*
     RecipeManager.UnitTests/         212 tests — xUnit + NSubstitute (Domain + Application handlers/mappings/validators + Api result mapping)
     RecipeManager.IntegrationTests/  103 tests — xUnit + WebApplicationFactory (99 real PostgreSQL via Testcontainers, 4 OpenAPI contract needing no Docker)
-    recipe-manager-frontend/         React 19 + Vite SPA — 322 Vitest tests, colocated
+    recipe-manager-frontend/         React 19 + Vite SPA — 323 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
 
@@ -126,7 +126,7 @@ reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, A
 Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip — and that machine can have
 any freshly-built assembly blocked, `dotnet ef` included. **CI is the authority for these numbers**; a run inside
 **WSL2** reproduces them faithfully (README, "Windows with Smart App Control"), a native Windows run does not.
-The frontend has 322 Vitest tests across 28 files (`npm test`).
+The frontend has 323 Vitest tests across 28 files (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note. Code style is too: the root `.editorconfig` makes `IDE0055` formatting,
 `IDE0005` unused usings, and `IDE0161` file-scoped namespaces build errors (ADR-020), so fix them with
@@ -175,8 +175,8 @@ API first; there is no mock backend.
 - **There is no seed mechanism.** The database starts empty; create recipes via `POST /api/recipes` or Swagger.
   Integration tests seed through `IntegrationTestBase.SeedDatabase<T>(...)` into their own throwaway database on
   the test container only (`INFRA-05`; a Development-only seeder is planned as `R-13`).
-- PostgreSQL folds unquoted identifiers to lowercase while EF creates `"Recipes"`, `"RecipeIngredients"`, and
-  `"RecipeInstructionSteps"` — quote them in psql: `SELECT * FROM "Recipes";`,
+- PostgreSQL folds unquoted identifiers to lowercase while EF creates `"Recipes"`, `"RecipeIngredients"`,
+  `"RecipeInstructionSteps"`, and `"Cooks"` — quote them in psql: `SELECT * FROM "Recipes";`,
   `SELECT * FROM "RecipeInstructionSteps" ORDER BY "Position";`
 
 ---
@@ -235,7 +235,7 @@ API first; there is no mock backend.
   target. Ownership stays with `01-architect` for structure and
   [docs/workflows/release-workflow.md](docs/workflows/release-workflow.md) for process. Revisit if a deployment
   pipeline is ever built — that is when the surface justifies an owner.
-- **No DBA agent**: a single table, a single migration, no stored procedures, no indexes beyond the PK.
+- **No DBA agent**: four tables, a handful of migrations, no stored procedures, and no indexes beyond the PKs and FK indexes.
   EF-related concerns belong to `02-senior-csharp`, schema-shape decisions to `01-architect`.
 
 ---
