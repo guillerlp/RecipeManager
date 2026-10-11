@@ -22,6 +22,24 @@ namespace RecipeManager.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("RecipeManager.Domain.Entities.Cook", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CookedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RecipeId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipeId");
+
+                    b.ToTable("Cooks", (string)null);
+                });
+
             modelBuilder.Entity("RecipeManager.Domain.Entities.Recipe", b =>
                 {
                     b.Property<Guid>("Id")
@@ -58,6 +76,15 @@ namespace RecipeManager.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Recipes_Tags_Count", "cardinality(\"Tags\") <= 20");
                         });
+                });
+
+            modelBuilder.Entity("RecipeManager.Domain.Entities.Cook", b =>
+                {
+                    b.HasOne("RecipeManager.Domain.Entities.Recipe", null)
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RecipeManager.Domain.Entities.Recipe", b =>
