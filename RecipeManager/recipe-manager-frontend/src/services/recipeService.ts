@@ -1,7 +1,7 @@
 // src/services/recipeService.ts
 /// <reference types="vite/client" />
 
-import type { CreateRecipeRequest, Recipe, RecipeStatus, UpdateRecipeRequest } from '@/types';
+import type { Cook, CreateRecipeRequest, LogCookRequest, Recipe, RecipeStatus, UpdateRecipeRequest } from '@/types';
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 
 const rawBase = import.meta.env.VITE_API_URL as string | undefined;
@@ -39,6 +39,13 @@ export const recipeService = {
 
   unpublishRecipe: (id: string): Promise<AxiosResponse<void>> =>
     api.post<void>(`/Recipes/${encodeURIComponent(id)}/unpublish`),
+
+  // An absent cookedAt is dropped by JSON.stringify, so "just now" posts `{}` — the server's clock decides (spec 016 §8).
+  logCook: (recipeId: string, cookedAt?: string): Promise<AxiosResponse<Cook>> =>
+    api.post<Cook>(`/Recipes/${encodeURIComponent(recipeId)}/cooks`, { cookedAt } satisfies LogCookRequest),
+
+  deleteCook: (recipeId: string, cookId: string): Promise<AxiosResponse<void>> =>
+    api.delete<void>(`/Recipes/${encodeURIComponent(recipeId)}/cooks/${encodeURIComponent(cookId)}`),
 };
 
 // Kept here so hooks and components can tell a missing recipe from a failure without importing axios.

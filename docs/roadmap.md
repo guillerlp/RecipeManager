@@ -129,6 +129,10 @@ of `Recipe` or a separate aggregate. If it is a separate aggregate, it forces th
 ADR-006 deferred, so plan that here, not after. Decide whether logging a cook invalidates the recipe's cache
 entries.
 
+**In progress** — designed as ADR-028 ([spec 016](specs/016-cook-log.md)): a separate `Cook` aggregate that did
+*not* force the unit of work, with stats joined outside the cache. PR 1 (backend, contract, Detail) is in review;
+PR 2 (Home's cook count and "Last cooked" rail, Profile stats) follows.
+
 ### R-23
 **Cooking mode** · `07-ux-ui` → `03-senior-react` · ~2 days
 

@@ -12,11 +12,14 @@ namespace RecipeManager.Application.Handlers.Recipes;
 public class GetRecipeByIdHandler : IQueryHandler<GetRecipeByIdQuery, Result<RecipeDto>>
 {
     private readonly IRecipeRepository _recipeRepository;
+    private readonly ICookRepository _cookRepository;
     private readonly ILogger<GetRecipeByIdHandler> _logger;
 
-    public GetRecipeByIdHandler(IRecipeRepository recipeRepository, ILogger<GetRecipeByIdHandler> logger)
+    public GetRecipeByIdHandler(IRecipeRepository recipeRepository, ICookRepository cookRepository,
+        ILogger<GetRecipeByIdHandler> logger)
     {
         _recipeRepository = recipeRepository;
+        _cookRepository = cookRepository;
         _logger = logger;
     }
 
@@ -27,6 +30,9 @@ public class GetRecipeByIdHandler : IQueryHandler<GetRecipeByIdQuery, Result<Rec
         if (recipe is null)
             return Result.Fail<RecipeDto>(RecipeErrors.RecipeNotFound(request.Id));
 
-        return Result.Ok(recipe.MapToRecipeDto());
+        IReadOnlyDictionary<Guid, CookStats> stats =
+            await _cookRepository.GetStatsAsync([recipe.Id], cancellationToken);
+
+        return Result.Ok(recipe.MapToRecipeDto(stats.GetValueOrDefault(recipe.Id)));
     }
 }

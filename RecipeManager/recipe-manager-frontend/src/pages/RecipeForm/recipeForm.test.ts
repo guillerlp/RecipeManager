@@ -14,6 +14,7 @@ const recipe: Recipe = {
   cookingTime: 85,
   servings: 4,
   tags: ['roast'],
+  cookCount: 0,
   ingredients: [
     { id: 'aaaaaaaa-0000-0000-0000-00000000000a', quantity: 2, unit: 'Tablespoon', name: 'butter', notes: 'cold' },
     { id: 'aaaaaaaa-0000-0000-0000-00000000000b', quantity: null, unit: null, name: '7 spice', notes: null },

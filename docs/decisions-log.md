@@ -38,9 +38,9 @@ Jump to every entry touching a topic.
 | CQRS / dispatching | [2026-07-26 Scrutor](#2026-07-26--auto-register-handlers-instead-of-listing-them), [2025-08-28 CQRS without MediatR](#2025-08-28--hand-rolled-cqrs-instead-of-mediatr) |
 | Layering / dependency direction | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain) |
 | Error handling | [2026-09-16 Error kinds implemented](#2026-09-16--rank-errors-by-what-they-mean-not-by-where-they-sit), [2026-09-13 FluentResults 4.0](#2026-09-13--take-a-library-major-when-it-is-cheap-not-when-it-is-needed), [2026-07-26 Error kinds](#2026-07-26--http-status-codes-do-not-belong-in-the-domain), [2025-09-18 FluentResults](#2025-09-18--expected-failures-are-values-not-exceptions) |
-| Caching | [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
-| Domain modelling | [2026-10-03 Tags storage](#2026-10-03--choose-storage-by-the-query-you-will-run-and-write-down-the-one-that-would-reverse-it), [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
-| Persistence / EF Core | [2026-10-03 Tags storage](#2026-10-03--choose-storage-by-the-query-you-will-run-and-write-down-the-one-that-would-reverse-it), [2026-10-02 Enum default](#2026-10-02--an-enums-first-member-is-everybodys-default), [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
+| Caching | [2026-10-11 Second aggregate, no unit of work](#2026-10-11--a-second-aggregate-does-not-force-a-unit-of-work-a-write-that-spans-two-does), [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2025-08-30 Decorator](#2025-08-30--caching-as-a-decorator-not-as-handler-code) |
+| Domain modelling | [2026-10-11 Second aggregate, no unit of work](#2026-10-11--a-second-aggregate-does-not-force-a-unit-of-work-a-write-that-spans-two-does), [2026-10-03 Tags storage](#2026-10-03--choose-storage-by-the-query-you-will-run-and-write-down-the-one-that-would-reverse-it), [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Structured ingredients](#2026-07-26--free-text-ingredients-are-a-shortcut-with-an-expiry-date) |
+| Persistence / EF Core | [2026-10-11 Second aggregate, no unit of work](#2026-10-11--a-second-aggregate-does-not-force-a-unit-of-work-a-write-that-spans-two-does), [2026-10-03 Tags storage](#2026-10-03--choose-storage-by-the-query-you-will-run-and-write-down-the-one-that-would-reverse-it), [2026-10-02 Enum default](#2026-10-02--an-enums-first-member-is-everybodys-default), [2026-09-26 Local vs. global references](#2026-09-26--local-references-on-the-wire-global-references-in-the-store), [2026-09-24 Child table ordering](#2026-09-24--the-child-table-takes-the-ordering-away-and-nothing-tells-you), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
 | Testing | [2026-10-02 WSL2 for Smart App Control](#2026-10-02--move-the-process-not-the-policy), [2026-09-26 Tests skip CSS](#2026-09-26--a-green-test-suite-said-nothing-about-the-stylesheet), [2026-09-18 Cold cache](#2026-09-18--a-cold-cache-cannot-go-stale-so-prime-it-before-testing-invalidation), [2026-09-18 Extract to test](#2026-09-18--extract-logic-out-of-a-component-to-test-it-rather-than-test-it-through-rendering), [2026-09-17 Testcontainers shipped](#2026-09-17--a-test-that-cannot-run-is-not-a-test-that-passes), [2026-07-26 Testcontainers](#2026-07-26--ef-inmemory-is-not-a-database), [2025-10-08 Integration tests](#2025-10-08--integration-tests-need-an-escape-hatch-and-escape-hatches-need-guards) |
 | Project direction | [2026-09-19 Design as dependency graph](#2026-09-19--a-ui-design-is-a-dependency-graph-in-disguise), [2026-07-26 Project stance](#2026-07-26--practice-project-with-deployment-intent) |
 | Tooling / infrastructure | [2026-10-03 Style gate line endings](#2026-10-03--a-style-gate-must-see-the-same-bytes-ci-sees), [2026-10-02 WSL2 for Smart App Control](#2026-10-02--move-the-process-not-the-policy), [2026-09-19 Measure a latch](#2026-09-19--measure-a-latch-before-you-arm-it), [2026-09-19 Received-file gate](#2026-09-19--a-regeneration-workflow-that-only-works-where-the-tests-run-is-not-a-workflow), [2026-09-19 Generator's own TypeScript](#2026-09-19--the-openapi-generator-gets-its-own-typescript), [2026-09-16 Parity then correctness](#2026-09-16--parity-was-the-bar-for-the-swap-not-for-what-came-after), [2026-09-16 Oxlint + TS 7](#2026-09-16--replace-the-tool-when-its-upstream-says-no), [2026-09-13 Vite 8](#2026-09-13--compare-what-a-toolchain-upgrade-produces-not-what-it-prints), [2026-08-08 CI builds Debug](#2026-08-08--ci-must-build-debug-because-a-security-guard-from-2025-says-so), [2026-08-08 Remediate before you gate](#2026-08-08--remediate-before-you-gate-and-check-what-is-installed-rather-than-what-is-allowed), [2026-08-08 Frontend gate](#2026-08-08--a-check-that-cannot-start-and-a-check-that-passes-look-identical), [2026-08-04 Warnings as errors](#2026-08-04--a-warning-nobody-has-to-fix-is-a-warning-that-multiplies), [2026-07-25 .NET 10 + PostgreSQL](#2026-07-25--net-10-and-postgresql) |
@@ -53,6 +53,26 @@ Jump to every entry touching a topic.
 ---
 
 ## Entries
+
+### 2026-10-11 — A second aggregate does not force a unit of work; a write that spans two does
+
+**Context.** `R-22` needed a record of each cook. The roadmap had assumed that making it a separate aggregate would
+force the unit-of-work decision ADR-006 deferred (`docs/roadmap.md`, `R-22`).
+
+**Decision.** `Cook` is its own aggregate, referencing `Recipe` by id (ADR-028, spec 016). No write changes both:
+logging inserts one row, and deleting a recipe removes its cooks by `ON DELETE CASCADE` in the same statement. Cook
+stats are joined into `RecipeDto` after the recipe cache, so nothing is invalidated when a cook is logged.
+
+**Rejected.** An owned `Cooks` collection on `Recipe`, which reuses the existing write and cache paths but loads
+every cook ever logged on every read and protects no invariant. Counter columns on `"Recipes"`, the fastest read,
+which turn every log into the two-row atomic write ADR-006 cannot do.
+
+**Cost.** One extra query per recipe read. The rule "cooks die with their recipe" lives in the schema, invisible
+from the domain. Home and Profile aggregate in the browser until `R-11` paginates.
+
+**Takeaway.** *The trigger for a unit of work is a single operation that must change two aggregates atomically,
+not the existence of a second aggregate.* Check what each write touches before reaching for a transaction
+abstraction; a referential action or a derived read often removes the need entirely.
 
 ### 2026-10-04 — An unedited save must send back what was loaded, not a re-parse of what is shown
 

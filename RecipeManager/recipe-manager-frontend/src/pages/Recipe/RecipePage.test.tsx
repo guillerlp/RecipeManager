@@ -12,7 +12,7 @@ vi.mock('@/services', () => ({
 }));
 
 const recipe = (id: string, title: string, tags: string[]): Recipe => ({
-  id, title, tags, status: 'Published', description: '', preparationTime: 10, cookingTime: 20, servings: 2,
+  id, title, tags, status: 'Published', description: '', preparationTime: 10, cookingTime: 20, servings: 2, cookCount: 0,
   ingredients: [], instructions: [],
 });
 

@@ -1,11 +1,14 @@
 ﻿using RecipeManager.Application.DTO.Recipes;
 using RecipeManager.Domain.Entities;
+using RecipeManager.Domain.Interfaces.Repositories;
 
 namespace RecipeManager.Application.Mappings;
 
 public static class RecipeMappingExtensions
 {
-    public static RecipeDto MapToRecipeDto(this Recipe recipe)
+    // Stats come from the Cook aggregate and are joined here, after the recipe cache (ADR-028): the cached entity
+    // never holds them, so logging a cook has nothing to invalidate. No stats means never cooked.
+    public static RecipeDto MapToRecipeDto(this Recipe recipe, CookStats? stats = null)
     {
         return new RecipeDto(
             recipe.Id,
@@ -17,7 +20,9 @@ public static class RecipeMappingExtensions
             recipe.Servings,
             recipe.Ingredients.Select(i => i.MapToIngredientDto()).ToList(),
             recipe.Instructions.Select(s => s.MapToInstructionStepDto()).ToList(),
-            recipe.Tags.ToList());
+            recipe.Tags.ToList(),
+            stats?.Count ?? 0,
+            stats?.LastCookedAt);
     }
 
     public static InstructionStepDto MapToInstructionStepDto(this InstructionStep step)

@@ -931,6 +931,27 @@ endpoint is anonymous and every recipe is world-writable. See
   `AppLayout` in one `Shell` layout route) so `useBlocker` can guard unsaved edits; every route now shares one
   `AppLayout`, and a new route is a line in `routes.tsx`, not `App.tsx`.
 
+### ADR-028 — The cook log is a second aggregate referenced by id; stats join outside the cache
+
+- **Status:** accepted (2026-10-11). Full detail: [specs/016-cook-log.md](specs/016-cook-log.md).
+- **Context:** `R-22` needs a record of each cook. The roadmap asked whether that is a child of `Recipe` or a
+  separate aggregate, and noted that the latter forces the unit-of-work decision ADR-006 deferred.
+- **Decision:** `Cook` is its own aggregate root in a `"Cooks"` table, referencing `Recipe` by id through a
+  cascading FK, with its own `ICookRepository`. `RecipeDto` carries `CookCount` and `LastCookedAt`, merged in by
+  the read handlers from one uncached `GROUP BY` query. ADR-006 stands: no write changes both aggregates, and
+  deleting a recipe removes its cooks by referential action in one statement.
+- **Alternatives:** an owned `Cooks` collection on `Recipe` (reuses the write path and its cache invalidation, but
+  loads every cook ever logged on every recipe read and guards no invariant); a separate aggregate with its own
+  summary/recent/stats endpoints (cleanest contract, but three endpoints and fetches for screens that already load
+  the recipe list, and `R-11`'s "never cooked yet" needs the join anyway); counter columns on `"Recipes"` (the
+  cheapest read, but every log becomes the two-row atomic write ADR-006 cannot do).
+- **Consequences:** logging a cook invalidates no cache entry; every recipe read costs one extra query; the rule
+  that a recipe's cooks die with it lives in the schema, not the domain; Home and Profile aggregate in the browser
+  until `R-11`. ADR-006's trigger is now precisely "a write that must change two aggregates atomically" — merely
+  adding an aggregate does not pull it. `CooksController` declares `[ProducesResponseType]`, because an
+  `IActionResult` hides `CookDto` from the OpenAPI generator (`QUAL-08` records the same gap in
+  `RecipesController`).
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001

@@ -8,6 +8,8 @@ import { isRecipeId, useMediaQuery, useRecipe, useUnits } from '@/hooks';
 import { isNotFoundError } from '@/services';
 import type { Recipe } from '@/types';
 import { formatDuration, getISODuration } from '@/utils/duration';
+import { formatRelativeDate } from '@/utils/relativeDate';
+import { CookControls } from './CookControls';
 import styles from './RecipeDetailPage.module.css';
 
 // Same value as every `@media (max-width: 768px)` in the app, so the tabs appear exactly when the
@@ -94,7 +96,27 @@ const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
               <dd className={styles.statValue} data-testid="serves">{servings}</dd>
             </div>
           )}
+          <div>
+            <dt className={styles.statLabel}>Cooked</dt>
+            {recipe.cookCount > 0 ? (
+              <dd className={styles.statValue}>
+                <span>{recipe.cookCount === 1 ? '1 time' : `${recipe.cookCount} times`}</span>
+                {recipe.lastCookedAt && (
+                  <span className={styles.statNote}>
+                    last cooked{' '}
+                    <time dateTime={recipe.lastCookedAt}>
+                      {formatRelativeDate(new Date(recipe.lastCookedAt), new Date())}
+                    </time>
+                  </span>
+                )}
+              </dd>
+            ) : (
+              <dd className={styles.statValue}>never yet</dd>
+            )}
+          </div>
         </dl>
+
+        <CookControls recipeId={recipe.id} />
       </header>
 
       {isMobile ? (

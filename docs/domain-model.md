@@ -2,8 +2,9 @@
 
 **Mandatory reading for every agent before touching code.**
 
-The domain today contains **exactly one aggregate root: `Recipe`**, with two **owned entities** inside it —
-`Ingredient` and `InstructionStep` — and two enums, `Unit` and `RecipeStatus` (ADR-022, ADR-023, ADR-025).
+The domain today contains **two aggregate roots: `Recipe` and `Cook`** (ADR-028). `Recipe` has two **owned
+entities** inside it — `Ingredient` and `InstructionStep` — and there are two enums, `Unit` and `RecipeStatus`
+(ADR-022, ADR-023, ADR-025). `Cook` references its recipe by id only.
 There is no `Category`, `Tag`, or `User` entity. Do not assume otherwise. Tags are plain strings on `Recipe`
 (ADR-026).
 
@@ -17,13 +18,15 @@ Entity (abstract, RecipeManager.Domain/Shared/Entity.cs)
   Equals             concrete type + Id
   GetHashCode        Id only
     ▲
-    ├── Recipe (sealed, RecipeManager.Domain/Entities/Recipe.cs)       ← the only aggregate root
+    ├── Recipe (sealed, RecipeManager.Domain/Entities/Recipe.cs)       ← aggregate root
     │     ├── owns many ── Ingredient
     │     └── owns many ── InstructionStep ──references by id──▶ Ingredient (same recipe only)
     ├── Ingredient (sealed, RecipeManager.Domain/Entities/Ingredient.cs)
     │     owned by Recipe, never addressable on its own
-    └── InstructionStep (sealed, RecipeManager.Domain/Entities/InstructionStep.cs)
-          owned by Recipe, never addressable on its own
+    ├── InstructionStep (sealed, RecipeManager.Domain/Entities/InstructionStep.cs)
+    │     owned by Recipe, never addressable on its own
+    └── Cook (sealed, RecipeManager.Domain/Entities/Cook.cs)           ← aggregate root (ADR-028)
+          RecipeId ──references by id──▶ Recipe (FK, ON DELETE CASCADE; no navigation either way)
 ```
 
 `Equals` and `GetHashCode` deliberately use different inputs. This satisfies the equality contract — objects
@@ -45,16 +48,38 @@ comparing unequal.
 | `Instructions` | `IReadOnlyList<InstructionStep>` | child table `"RecipeInstructionSteps"` | Owned collection over a private `List<InstructionStep>` backing field, exposed sorted by `Position` — same shape as `Ingredients`, and just as genuinely read-only |
 | `Tags` | `IReadOnlyList<string>` | `character varying(40)[]`, `NOT NULL`, `CHECK (cardinality("Tags") <= 20)` | Normalised by the aggregate: trimmed, internal whitespace collapsed, lowercased, deduplicated keeping the first occurrence, so the author's order survives. A primitive collection over a private `List<string>`, returned as a read-only copy. Rows that existed before `AddRecipeTags` were back-filled `{}` (ADR-026) |
 
-Table: `"Recipes"` (quoted — PostgreSQL folds unquoted identifiers to lowercase). Six migrations:
+Table: `"Recipes"` (quoted — PostgreSQL folds unquoted identifiers to lowercase). Seven migrations:
 `20260725173218_InitialCreate`, `20260924130146_StructureIngredients` (ADR-022),
 `20260924153243_SyncIdValueGeneration`, which carries no DDL and exists only to bring the model snapshot back in
 step with the corrected key metadata, `20260926113324_StructureInstructions` (`R-17`), which moved the old
 `text[]` into the steps table, and `20261002124316_AddRecipeStatus` (`R-19`, ADR-025), which relaxes `NOT NULL`
 on four columns and adds `"Status"`. Its `Down` refuses to run while any draft exists: the scaffolded rollback
 would otherwise rewrite a draft's nulls as `0` and `''`. `20261003143025_AddRecipeTags` (`R-20`, ADR-026) adds
-`"Tags"` and its `CHECK`; its `Down` drops both, and the tags with them. No indexes on `"Recipes"` beyond the PK
+`"Tags"` and its `CHECK`; its `Down` drops both, and the tags with them. `20261011123901_AddCooks` (`R-22`,
+ADR-028) creates `"Cooks"` (below); its `Down` drops the table and **every logged cook with it**. No indexes on `"Recipes"` beyond the PK
 — not even on `"Tags"`, until `R-11` filters by it server-side — and no unique constraint on `Title` —
 **duplicate titles are allowed**.
+
+## `Cook`
+
+The second **aggregate root** (ADR-028, `R-22`): one time a recipe was cooked. It is not owned by `Recipe` — no
+`Recipe` invariant needs it, and a recipe's cooks only grow — so it has its own table, repository
+(`ICookRepository`), and controller. `Recipe` does not know cooks exist.
+
+| Property | C# type | PostgreSQL column | Notes |
+| --- | --- | --- | --- |
+| `Id` | `Guid` | `uuid`, PK | Minted in `Cook.Create`; mapped `ValueGeneratedNever()`, as `Ingredient` |
+| `RecipeId` | `Guid` | `uuid`, `NOT NULL`, FK → `"Recipes"("Id")` **ON DELETE CASCADE**, indexed (`IX_Cooks_RecipeId`) | A reference by identity — no navigation on either side |
+| `CookedAt` | `DateTimeOffset` | `timestamp with time zone`, `NOT NULL` | Always offset zero: `Create` normalises to UTC, because Npgsql writes `timestamptz` only from a UTC value |
+
+`public static Result<Cook> Create(Guid recipeId, DateTimeOffset? cookedAt, DateTimeOffset now)` is the only way
+to build one. A null `cookedAt` means `now`; the entity reads no clock — the handler passes
+`TimeProvider.GetUtcNow()`. One invariant: `CookedAt <= now`, else `CookErrors.CookedAtInFuture()` (`Validation`,
+422, field `cookedAt`). No lower bound. A cook that does not exist **for the recipe in the route** is
+`CookErrors.CookNotFound(id)` (`NotFound`, 404, field `id`) — the repository looks cooks up by recipe *and* id.
+
+Deleting a recipe deletes its cooks through the FK's referential action, in the same statement — not through domain
+code and not through a second repository call, which is why ADR-006 still needs no unit of work.
 
 ## `Ingredient`
 
@@ -203,7 +228,11 @@ caps are the exception: they are enforced in both places. "Required to publish" 
 | `UnpublishRecipeCommand` | `Guid Id` → `Result` | `POST /api/recipes/{id:guid}/unpublish` |
 | `GetAllRecipesQuery` | `RecipeStatus Status = Published` → `IEnumerable<RecipeDto>` | `GET /api/recipes?status=` |
 | `GetRecipeByIdQuery` | `Guid Id` → `Result<RecipeDto>` | `GET /api/recipes/{id}` |
-| `RecipeDto` | `Id`, `Title`, `RecipeStatus Status`, then the nullable content fields, with `List<IngredientDto>` Ingredients, `List<InstructionStepDto>` Instructions, and `List<string>` Tags (normalised, never null) | every response body |
+| `RecipeDto` | `Id`, `Title`, `RecipeStatus Status`, then the nullable content fields, with `List<IngredientDto>` Ingredients, `List<InstructionStepDto>` Instructions, and `List<string>` Tags (normalised, never null), then `int CookCount` and `DateTimeOffset? LastCookedAt` — merged in by the read handlers from `ICookRepository.GetStatsAsync`, `0`/null when never cooked (ADR-028) | every recipe response body |
+| `LogCookCommand` | `Guid RecipeId`, `DateTimeOffset? CookedAt` (null means now) → `Result<CookDto>` | built in `CooksController` from the route + `LogCookDto` |
+| `DeleteCookCommand` | `Guid RecipeId`, `Guid CookId` → `Result` | `DELETE /api/recipes/{recipeId:guid}/cooks/{cookId:guid}` |
+| `LogCookDto` | `(DateTimeOffset? CookedAt)` — no validator, deliberately (spec 016 §6) | `POST /api/recipes/{recipeId:guid}/cooks` request body |
+| `CookDto` | `(Guid Id, DateTimeOffset CookedAt)` | that `POST`'s response body |
 | `UpdateRecipeDto` | the eight content fields, no id, no status; `List<IngredientInputDto>` Ingredients, `List<InstructionStepInputDto>` Instructions, `List<string>` Tags | `PUT /api/recipes/{id:guid}` request body |
 | `IngredientDto` | `(Guid Id, decimal? Quantity, Unit? Unit, string Name, string? Notes)` | inside every response body |
 | `IngredientInputDto` | `(Guid? Id, decimal? Quantity, Unit? Unit, string Name, string? Notes)` | inside `POST`/`PUT` request bodies |
@@ -247,7 +276,13 @@ Base route `api/[controller]` ⇒ `/api/recipes` (matching is case-insensitive; 
 | PUT | `/api/recipes/{id:guid}` | **204 No Content** (no body); never changes status | 400 shape, 404 not found, 422 invariants of the current status's tier |
 | POST | `/api/recipes/{id:guid}/publish` | 204, idempotent | 404 not found, 422 listing every gap |
 | POST | `/api/recipes/{id:guid}/unpublish` | 204, idempotent | 404 not found |
-| DELETE | `/api/recipes/{id:guid}` | 204 No Content | 404 not found |
+| DELETE | `/api/recipes/{id:guid}` | 204 No Content; the recipe's cooks go with it (FK cascade) | 404 not found |
+| POST | `/api/recipes/{recipeId:guid}/cooks` | 201 + `Location: …/cooks/{cookId}` + `CookDto`; body `{}` means now | 400 malformed date, 404 recipe not found, 415 no body, 422 `cookedAt` in the future |
+| DELETE | `/api/recipes/{recipeId:guid}/cooks/{cookId:guid}` | 204 No Content | 404 cook not found, or not this recipe's |
+
+The cook endpoints live in `CooksController` (one controller per aggregate, ADR-028). There is no `GET` for a
+single cook, so the `POST`'s `Location` identifies a resource that answers only `DELETE` — RFC 9110 asks
+`Location` to identify the created resource, not to make it retrievable. Drafts can be cooked.
 
 `GET /api/recipes` returns **every recipe of one status** — no pagination, sorting, or projection. Search is done
 client-side. The list action's `status` parameter carries an explicit `= Published` default and
@@ -260,6 +295,10 @@ bind as an undefined member.
 | --- | --- | --- |
 | `recipes_{status}` (`recipes_Draft`, `recipes_Published`) | `GetAllAsync(status)` (10 min abs / 5 min sliding) | `AddAsync`, `UpdateAsync`, `DeleteAsync` — **every** status key, since a write does not know the recipe's previous status. Publish and unpublish persist through `UpdateAsync` |
 | `recipe_{guid}` | `GetByIdAsync` (10/5), `AddAsync` (30 min abs / 15 min sliding) | `UpdateAsync`, `DeleteAsync` |
+
+Cook data is **never cached**, and logging or deleting a cook invalidates nothing (ADR-028): the cache holds
+`Recipe` entities, and `CookCount`/`LastCookedAt` are joined in when the DTO is built, after the cache.
+`RecipeCacheTests.LogCook_AfterListAndDetailWereCached_ShouldShowTheNewCountInBoth` pins this.
 
 ## Frontend view of the domain
 
@@ -282,6 +321,8 @@ export type InstructionStep = Schemas['InstructionStepDto'];
 export type InstructionStepInput = Schemas['InstructionStepInputDto'];
 export type Unit = Schemas['Unit'];
 export type RecipeStatus = Schemas['RecipeStatus'];
+export type Cook = Schemas['CookDto'];
+export type LogCookRequest = Schemas['LogCookDto'];
 ```
 
 The generator marks nullable fields optional as well (`servings?: number | null`), so a reader of `Recipe` must
@@ -321,6 +362,8 @@ Read these before proposing any recipe feature.
 8. **No pagination** on `GET /api/recipes`; every recipe of the requested status is loaded, mapped, and cached in
    one memory entry per status.
 9. **No transaction boundary beyond one repository call** — see ADR-006 in [architecture.md](architecture.md).
+   Still true with a second aggregate, because no write changes both: a recipe's cooks are removed by the FK
+   cascade in the same statement that deletes the recipe (ADR-028).
 10. **No length limits on `Title` and `Description` in the database.** Those `text` columns are unbounded and the
     200/1000-character caps live only in FluentValidation, so anything bypassing the API can store arbitrarily
     large values. The ingredient and instruction-step columns are the exception — bounded in both places.
@@ -343,15 +386,10 @@ Structured ingredients and structured instructions used to head this section. Th
 ADR-023, [specs/011-structured-instructions.md](specs/011-structured-instructions.md)), and are described as
 current state in the tables above; nothing about them belongs here any more. Step references are what cooking
 mode's "For this step" and "Already used" lists (`R-23`) are built from. Draft recipes (`R-19`) followed on
-2026-10-02 (ADR-025, [specs/013-draft-recipes.md](specs/013-draft-recipes.md)).
-
-### Also decided, not yet designed (2026-09-19)
-
-Brought in by the editorial design ([agents/07-ux-ui.md](agents/07-ux-ui.md#canonical-design-reference)). None
-of these exists today. Each needs its own ADR before code:
-
-- **Cook log** (`R-22`): a record of each time a recipe was cooked. If it becomes a separate aggregate, it forces
-  the unit-of-work decision (ADR-006).
+2026-10-02 (ADR-025, [specs/013-draft-recipes.md](specs/013-draft-recipes.md)). The cook log (`R-22`), the last
+item the editorial design brought in, is now current state as the `Cook` aggregate (ADR-028,
+[specs/016-cook-log.md](specs/016-cook-log.md)): a second aggregate that did **not** force the unit of work ADR-006
+deferred, because no write changes both.
 
 ### Ownership (`R-14`, on the deploy gate)
 

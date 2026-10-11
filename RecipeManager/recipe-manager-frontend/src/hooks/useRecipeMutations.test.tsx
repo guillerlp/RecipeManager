@@ -6,19 +6,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { recipeService } from '@/services';
 import type { Recipe, UpdateRecipeRequest } from '@/types';
 import {
-  useCreateRecipe, useDeleteRecipe, usePublishRecipe, useUnpublishRecipe, useUpdateRecipe,
+  useCreateRecipe, useDeleteCook, useDeleteRecipe, useLogCook, usePublishRecipe, useUnpublishRecipe, useUpdateRecipe,
 } from './useRecipeMutations';
 
 vi.mock('@/services', () => ({
   recipeService: {
     createRecipe: vi.fn(), updateRecipe: vi.fn(), publishRecipe: vi.fn(), unpublishRecipe: vi.fn(), deleteRecipe: vi.fn(),
+    logCook: vi.fn(), deleteCook: vi.fn(),
   },
 }));
 
 const service = vi.mocked(recipeService);
 const ID = '11111111-1111-1111-1111-111111111111';
 const request: UpdateRecipeRequest = { title: 'T', ingredients: [], instructions: [], tags: [] };
-const created: Recipe = { id: ID, title: 'T', status: 'Draft', ingredients: [], instructions: [], tags: [] };
+const created: Recipe = { id: ID, title: 'T', status: 'Draft', ingredients: [], instructions: [], tags: [], cookCount: 0 };
 const ok = <T,>(data: T) => ({ data }) as AxiosResponse<T>;
 
 const setup = () => {
@@ -35,6 +36,8 @@ beforeEach(() => {
   service.publishRecipe.mockResolvedValue(ok(undefined));
   service.unpublishRecipe.mockResolvedValue(ok(undefined));
   service.deleteRecipe.mockResolvedValue(ok(undefined));
+  service.logCook.mockResolvedValue(ok({ id: 'c1', cookedAt: '2026-10-11T10:00:00+00:00' }));
+  service.deleteCook.mockResolvedValue(ok(undefined));
 });
 
 describe('recipe mutations', () => {
@@ -62,6 +65,14 @@ describe('recipe mutations', () => {
     ['delete', wrapper => {
       const { result } = renderHook(() => useDeleteRecipe(), { wrapper });
       return () => result.current.mutateAsync(ID);
+    }],
+    ['log a cook', wrapper => {
+      const { result } = renderHook(() => useLogCook(), { wrapper });
+      return () => result.current.mutateAsync({ recipeId: ID });
+    }],
+    ['delete a cook', wrapper => {
+      const { result } = renderHook(() => useDeleteCook(), { wrapper });
+      return () => result.current.mutateAsync({ recipeId: ID, cookId: 'c1' });
     }],
   ];
 
@@ -101,5 +112,17 @@ describe('recipe mutations', () => {
     expect(service.updateRecipe).toHaveBeenCalledWith(ID, request);
     expect(service.publishRecipe).toHaveBeenCalledWith(ID);
     expect(service.unpublishRecipe).toHaveBeenCalledWith(ID);
+  });
+
+  it('passes the recipe, the optional date and the cook id through to the service', async () => {
+    const { wrapper } = setup();
+    const { result: log } = renderHook(() => useLogCook(), { wrapper });
+    const { result: remove } = renderHook(() => useDeleteCook(), { wrapper });
+
+    await act(async () => { await log.current.mutateAsync({ recipeId: ID, cookedAt: '2026-10-08T10:00:00.000Z' }); });
+    await act(async () => { await remove.current.mutateAsync({ recipeId: ID, cookId: 'c1' }); });
+
+    expect(service.logCook).toHaveBeenCalledWith(ID, '2026-10-08T10:00:00.000Z');
+    expect(service.deleteCook).toHaveBeenCalledWith(ID, 'c1');
   });
 });

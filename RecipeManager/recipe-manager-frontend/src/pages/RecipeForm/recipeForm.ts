@@ -325,5 +325,7 @@ export const previewRecipe = (state: RecipeFormState): Recipe => {
     ingredients: [],
     instructions: [],
     tags: state.tags,
+    // A recipe still being written has never been cooked; the preview row shows what the list would.
+    cookCount: 0,
   };
 };

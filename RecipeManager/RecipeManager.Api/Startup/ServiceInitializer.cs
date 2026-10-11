@@ -11,6 +11,7 @@ using RecipeManager.Application.Dispatchers;
 using RecipeManager.Application.Validators.Recipes;
 using RecipeManager.Domain.Interfaces.Repositories;
 using RecipeManager.Infrastructure.Context;
+using RecipeManager.Infrastructure.Repositories.Cooks;
 using RecipeManager.Infrastructure.Repositories.Recipes;
 using RecipeManager.Infrastructure.Services;
 
@@ -70,6 +71,8 @@ public static class ServiceInitializer
 
     public static IServiceCollection RegisterInfrastructureDependencies(this IServiceCollection services)
     {
+        // The BCL clock. Handlers take it injected so tests can pin "now" (Cook.Create's future-date rule).
+        services.AddSingleton(TimeProvider.System);
         services.RegisterRepositories();
         services.RegisterCachingServices();
         return services;
@@ -79,6 +82,7 @@ public static class ServiceInitializer
     {
         services.AddScoped<IRecipeRepository, RecipeRepository>();
         services.Decorate<IRecipeRepository, CachedRecipeRepository>();
+        services.AddScoped<ICookRepository, CookRepository>();
         return services;
     }
 

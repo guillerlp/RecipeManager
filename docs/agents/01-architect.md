@@ -16,7 +16,7 @@ an implementation.
 
 Mandatory triggers — no code may be written before an architect decision:
 
-- A new entity or aggregate (there is only `Recipe` today).
+- A new entity or aggregate (there are two today, `Recipe` and `Cook`).
 - A change to `Recipe`'s property set, or any EF migration.
 - A new project reference, or a new NuGet/npm dependency.
 - Authentication, authorization, ownership, or multi-tenancy.
@@ -99,9 +99,9 @@ Do not defer these silently — each will be forced by a feature request sooner 
   and there is no rollback procedure (`INFRA-03`). Weigh this before approving one, and require an explicit
   callout in the PR description.
 - **No unit of work.** Every repository write calls `SaveChangesAsync` itself, so a multi-aggregate
-  transaction is impossible today (ADR-006). The second aggregate introduced — `User`, whichever comes first —
-  forces this decision. Plan it with that aggregate, not after. Note `Ingredient` is **not** that second
-  aggregate: ADR-022 makes it an *owned* entity, so a recipe and its ingredients still save in one call.
+  transaction is impossible today (ADR-006). A write that must change two aggregates atomically
+  forces this decision; `Cook` (ADR-028) is a second aggregate that did not, because no write touches both. Plan it with the aggregate that first needs it, not after. Note `Ingredient` is **not** an aggregate at
+  all: ADR-022 makes it an *owned* entity, so a recipe and its ingredients still save in one call.
 - ~~**Convention-only EF mapping.**~~ **Settled and built 2026-09-24.** `AppDbContext.OnModelCreating` applies
   `IEntityTypeConfiguration<T>` from `RecipeManager.Infrastructure/Context/Configurations/` by
   `ApplyConfigurationsFromAssembly`, and `RecipeConfiguration` is the first one (ADR-022). No case-by-case

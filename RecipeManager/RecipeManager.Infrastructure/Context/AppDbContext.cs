@@ -6,6 +6,7 @@ namespace RecipeManager.Infrastructure.Context;
 public class AppDbContext : DbContext
 {
     public DbSet<Recipe> Recipes { get; set; }
+    public DbSet<Cook> Cooks { get; set; }
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
