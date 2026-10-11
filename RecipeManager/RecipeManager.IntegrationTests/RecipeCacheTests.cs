@@ -173,6 +173,25 @@ public class RecipeCacheTests : IntegrationTestBase
         (await GetAllRecipes("?status=Draft")).Should().ContainSingle().Which.Id.Should().Be(recipe.Id);
     }
 
+    [SkippableFact]
+    public async Task LogCook_AfterListAndDetailWereCached_ShouldShowTheNewCountInBoth()
+    {
+        // Pins ADR-028's "nothing to invalidate": cook stats are joined after the recipe cache. Moving them onto the
+        // cached entity would leave every other test green and turn only this one red.
+        Recipe recipe = CreateRecipe("Cacio e Pepe");
+        await SeedDatabase(recipe);
+
+        await GetAllRecipes();
+        (await Client.GetAsync($"/api/recipes/{recipe.Id}")).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        (await Client.PostAsJsonAsync($"/api/recipes/{recipe.Id}/cooks", new { }, JsonOptions))
+            .StatusCode.Should().Be(HttpStatusCode.Created);
+
+        (await GetAllRecipes()).Single(r => r.Id == recipe.Id).CookCount.Should().Be(1);
+        (await Client.GetFromJsonAsync<RecipeDto>($"/api/recipes/{recipe.Id}", JsonOptions))!
+            .CookCount.Should().Be(1);
+    }
+
     private static Recipe CreateRecipe(string title) =>
         Recipe.Create(title, "Description", 10, 15, 4, [Ing("Ingredient A")], [Step("Step 1")]).Value;
 
