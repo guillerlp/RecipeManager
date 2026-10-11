@@ -12,5 +12,7 @@ public record RecipeDto(
     int? Servings,
     List<IngredientDto> Ingredients,
     List<InstructionStepDto> Instructions,
-    List<string> Tags
+    List<string> Tags,
+    int CookCount,
+    DateTimeOffset? LastCookedAt
 );

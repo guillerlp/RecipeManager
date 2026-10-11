@@ -14,12 +14,16 @@ namespace RecipeManager.UnitTests.Application.Handlers;
 public class GetAllRecipesHandlerTests
 {
     private readonly IRecipeRepository _recipeRepository;
+    private readonly ICookRepository _cookRepository;
     private readonly GetAllRecipesHandler _handler;
 
     public GetAllRecipesHandlerTests()
     {
         _recipeRepository = Substitute.For<IRecipeRepository>();
-        _handler = new GetAllRecipesHandler(_recipeRepository);
+        _cookRepository = Substitute.For<ICookRepository>();
+        // Explicit, not NSubstitute's auto-value: an auto-substituted dictionary would be a mock, not "no cooks".
+        _cookRepository.GetStatsAsync(default!, default).ReturnsForAnyArgs(new Dictionary<Guid, CookStats>());
+        _handler = new GetAllRecipesHandler(_recipeRepository, _cookRepository);
     }
 
     private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
@@ -205,6 +209,27 @@ public class GetAllRecipesHandlerTests
         await _handler.Handle(new GetAllRecipesQuery(status), CancellationToken.None);
 
         await _recipeRepository.Received(1).GetAllAsync(status, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMergeEachRecipesCookStats_AndZeroForUncooked()
+    {
+        Recipe cooked = Recipe.Create("Cooked", null, null, null, null, [], [], RecipeStatus.Draft).Value;
+        Recipe uncooked = Recipe.Create("Uncooked", null, null, null, null, [], [], RecipeStatus.Draft).Value;
+        var last = new DateTimeOffset(2026, 10, 8, 19, 0, 0, TimeSpan.Zero);
+        _recipeRepository.GetAllAsync(Arg.Any<RecipeStatus>(), Arg.Any<CancellationToken>())
+            .Returns(new List<Recipe> { cooked, uncooked });
+        _cookRepository.GetStatsAsync(
+                Arg.Is<IReadOnlyCollection<Guid>>(ids => ids.Count == 2 && ids.Contains(cooked.Id) && ids.Contains(uncooked.Id)),
+                Arg.Any<CancellationToken>())
+            .Returns(new Dictionary<Guid, CookStats> { [cooked.Id] = new(3, last) });
+
+        List<RecipeDto> result = (await _handler.Handle(new GetAllRecipesQuery(), CancellationToken.None)).ToList();
+
+        result.Single(r => r.Id == cooked.Id).CookCount.Should().Be(3);
+        result.Single(r => r.Id == cooked.Id).LastCookedAt.Should().Be(last);
+        result.Single(r => r.Id == uncooked.Id).CookCount.Should().Be(0);
+        result.Single(r => r.Id == uncooked.Id).LastCookedAt.Should().BeNull();
     }
 
     #endregion

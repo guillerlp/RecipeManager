@@ -16,12 +16,16 @@ namespace RecipeManager.UnitTests.Application.Handlers;
 public class GetRecipeByIdHandlerTests
 {
     private readonly IRecipeRepository _recipeRepository;
+    private readonly ICookRepository _cookRepository;
     private readonly GetRecipeByIdHandler _handler;
 
     public GetRecipeByIdHandlerTests()
     {
         _recipeRepository = Substitute.For<IRecipeRepository>();
-        _handler = new GetRecipeByIdHandler(_recipeRepository, Substitute.For<Microsoft.Extensions.Logging.ILogger<GetRecipeByIdHandler>>());
+        _cookRepository = Substitute.For<ICookRepository>();
+        _cookRepository.GetStatsAsync(default!, default).ReturnsForAnyArgs(new Dictionary<Guid, CookStats>());
+        _handler = new GetRecipeByIdHandler(_recipeRepository, _cookRepository,
+            Substitute.For<Microsoft.Extensions.Logging.ILogger<GetRecipeByIdHandler>>());
     }
 
     private static Ingredient Ing(string name) => Ingredient.Create(null, null, null, name, null).Value;
@@ -130,6 +134,22 @@ public class GetRecipeByIdHandlerTests
         result.Value.Instructions.Select(s => s.Text).Should().Equal(instructions.Select(s => s.Text));
     }
 
+    [Fact]
+    public async Task Handle_ShouldCarryTheRecipesCookStats()
+    {
+        Recipe recipe = Recipe.Create("Cooked", null, null, null, null, [], [], RecipeStatus.Draft).Value;
+        var last = new DateTimeOffset(2026, 10, 8, 19, 0, 0, TimeSpan.Zero);
+        _recipeRepository.GetByIdAsync(recipe.Id, Arg.Any<CancellationToken>()).Returns(recipe);
+        _cookRepository.GetStatsAsync(Arg.Is<IReadOnlyCollection<Guid>>(ids => ids.Single() == recipe.Id),
+                Arg.Any<CancellationToken>())
+            .Returns(new Dictionary<Guid, CookStats> { [recipe.Id] = new(11, last) });
+
+        Result<RecipeDto> result = await _handler.Handle(new GetRecipeByIdQuery(recipe.Id), CancellationToken.None);
+
+        result.Value.CookCount.Should().Be(11);
+        result.Value.LastCookedAt.Should().Be(last);
+    }
+
     #endregion
 
     #region Failure Scenarios
@@ -194,6 +214,16 @@ public class GetRecipeByIdHandlerTests
             .Which.Kind.Should().Be(ErrorKind.NotFound);
         error.Metadata["field"].Should().Be("id");
         error.Metadata.Should().NotContainKey("ErrorCode");
+    }
+
+    [Fact]
+    public async Task Handle_WhenRecipeNotFound_ShouldNotQueryCooks()
+    {
+        _recipeRepository.GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((Recipe?)null);
+
+        await _handler.Handle(new GetRecipeByIdQuery(Guid.NewGuid()), CancellationToken.None);
+
+        await _cookRepository.DidNotReceiveWithAnyArgs().GetStatsAsync(default!, default);
     }
 
     #endregion
