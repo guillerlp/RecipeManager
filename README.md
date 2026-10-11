@@ -126,17 +126,17 @@ dotnet dev-certs https --trust
 dotnet test RecipeManager.sln
 ```
 
-282 tests: 195 unit and 87 integration. Of the 87, **83** start a real PostgreSQL container (ADR-017) and the
-other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 282 passed;
-**without it** you get 199 passed and 83 skipped, each naming Docker as the reason. The skip is deliberate — see
+315 tests: 212 unit and 103 integration. Of the 103, **99** start a real PostgreSQL container (ADR-017) and the
+other 4 (`OpenApiContractTests`, ADR-019) need no database at all. **With Docker running** you get 315 passed;
+**without it** you get 216 passed and 99 skipped, each naming Docker as the reason. The skip is deliberate — see
 the troubleshooting entry below — but it means a green run is only as complete as its skip count says. On a
 Windows machine with Smart App Control enabled, the 4 contract tests do not skip — they **fail** with
-`FileLoadException`, the same way the 83 integration tests do. On such a machine, run the backend in WSL2
+`FileLoadException`, the same way the 99 integration tests do. On such a machine, run the backend in WSL2
 instead — see [Windows with Smart App Control](#windows-with-smart-app-control-run-the-backend-in-wsl2).
 
-The "with Docker" figure is confirmed by CI run 37130641536 (2026-10-03, `R-20` PR 1): 195 unit + 87 integration
-passed, 0 skipped — and reproduced locally inside WSL2 on 2026-10-03 against `feat/recipe-tags`: 282 passed,
-0 skipped. CI remains the authority for what merges; a WSL2 run is a faithful local reproduction of it, a native
+The "with Docker" figure was measured inside WSL2 on 2026-10-11 against `feat/cook-log` (`R-22` PR 1): 212 unit +
+103 integration passed, 0 skipped; CI confirmation is pending on that PR. The previous figure (282) was confirmed by
+CI run 37130641536 on 2026-10-03. CI remains the authority for what merges; a WSL2 run is a faithful local reproduction of it, a native
 Windows run under Smart App Control is not.
 
 Unit tests with an HTML coverage report (requires `dotnet tool install --global dotnet-reportgenerator-globaltool`):
@@ -350,7 +350,7 @@ on `ubuntu-latest`:
 
 | Job | Steps |
 | --- | --- |
-| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (282) → upload `openapi-received` snapshot on failure → vulnerable-package check |
+| **Backend** | `dotnet restore --locked-mode` → `dotnet build` (Debug) → `dotnet test` (315) → upload `openapi-received` snapshot on failure → vulnerable-package check |
 | **Frontend** | `npm ci` → contract types are current (`npm run gen:api` + diff check) → `npm run typecheck` → `npm run lint` → `npm test` → `npm run build` → `npm audit --audit-level=high` → `npm audit --audit-level=high --prefix ../contracts` |
 
 Two things are worth knowing before a run surprises you:

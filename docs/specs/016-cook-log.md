@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `016` |
-| **Status** | approved — design agreed 2026-10-11, awaiting implementation plan |
+| **Status** | in progress — PR 1 (backend, contract, Detail) open; PR 2 (Home, Profile) to follow |
 | **Author** | `00-leader` + `01-architect` |
 | **Created** | `2026-10-11` |
 | **Branch** | `feat/cook-log` (PR 1), `feat/cook-log-stats` (PR 2) |
@@ -27,19 +27,19 @@ counts and dates derived from those logs.
 
 **PR 1 — backend, contract, Detail screen** (`feat/cook-log`)
 
-- [ ] `Cook` entity: its own aggregate root, `RecipeId` + `CookedAt` (§6).
-- [ ] `CookErrors.CookedAtInFuture()` (422) and `CookErrors.CookNotFound(id)` (404).
-- [ ] `ICookRepository` (Domain) and `CookRepository` (Infrastructure). No cache decorator (§7, §9).
-- [ ] `"Cooks"` table with a cascading, indexed FK to `"Recipes"`; migration `AddCooks`.
-- [ ] `LogCookCommand` / `DeleteCookCommand` and their handlers; `TimeProvider.System` registered as a singleton.
-- [ ] `CooksController` at `api/recipes/{recipeId:guid}/cooks`: `POST` and `DELETE /{cookId:guid}`.
-- [ ] `RecipeDto` gains `CookCount` and `LastCookedAt`, filled by both read handlers from one stats query.
-- [ ] Regenerated `contracts/openapi.json` and `src/types/generated/api.ts`; `Cook` and `LogCookRequest` aliases
+- [x] `Cook` entity: its own aggregate root, `RecipeId` + `CookedAt` (§6).
+- [x] `CookErrors.CookedAtInFuture()` (422) and `CookErrors.CookNotFound(id)` (404).
+- [x] `ICookRepository` (Domain) and `CookRepository` (Infrastructure). No cache decorator (§7, §9).
+- [x] `"Cooks"` table with a cascading, indexed FK to `"Recipes"`; migration `AddCooks`.
+- [x] `LogCookCommand` / `DeleteCookCommand` and their handlers; `TimeProvider.System` registered as a singleton.
+- [x] `CooksController` at `api/recipes/{recipeId:guid}/cooks`: `POST` and `DELETE /{cookId:guid}`.
+- [x] `RecipeDto` gains `CookCount` and `LastCookedAt`, filled by both read handlers from one stats query.
+- [x] Regenerated `contracts/openapi.json` and `src/types/generated/api.ts`; `Cook` and `LogCookRequest` aliases
       in `src/types/recipe.ts`; `logCook` and `deleteCook` in `services/recipeService.ts`.
-- [ ] `useLogCook` and `useDeleteCook` in `hooks/useRecipeMutations.ts`.
-- [ ] Detail: a "Cooked" stat, an "I cooked this" button with Undo, and a "Cooked on another day?" disclosure.
-- [ ] `utils/relativeDate.ts`, used by the Cooked stat (and by PR 2).
-- [ ] ADR-028, `domain-model.md`, `architecture.md`, `decisions-log.md`, `learning-mode.md` concept row,
+- [x] `useLogCook` and `useDeleteCook` in `hooks/useRecipeMutations.ts`.
+- [x] Detail: a "Cooked" stat, an "I cooked this" button with Undo, and a "Cooked on another day?" disclosure.
+- [x] `utils/relativeDate.ts`, used by the Cooked stat (and by PR 2).
+- [x] ADR-028, `domain-model.md`, `architecture.md`, `decisions-log.md`, `learning-mode.md` concept row,
       `known-issues.md` (`BUG-22`, `UX-20`), and the test counts in `CLAUDE.md`.
 
 **PR 2 — Home and Profile** (`feat/cook-log-stats`)

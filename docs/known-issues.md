@@ -86,6 +86,7 @@ kind of negative test.
 | [BUG-19](#bug-19) | Low | API | A publish racing a `PUT` can store a published recipe with null fields (no concurrency token) |
 | [BUG-20](#bug-20) | Low | API | A NUL character in any text field returns 500 |
 | [BUG-21](#bug-21) | Low | API | Tag normalisation ignores Unicode equivalence and invisible characters |
+| [BUG-22](#bug-22) | Low | API | Logging a cook while its recipe is being deleted returns 500 |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [TEST-08](#test-08) | Low | Tests | Servings reset between recipes is not pinned by a test |
@@ -103,6 +104,7 @@ kind of negative test.
 | [QUAL-04](#qual-04) | Low | Quality | Routes, verbs, and status codes are still hand-typed on the client |
 | [QUAL-05](#qual-05) | Low | Quality | Frontend indentation is mixed and no formatter enforces it |
 | [QUAL-07](#qual-07) | Low | Quality | `ValidateIngredients`/`ValidateInstructions` throw on a null list instead of failing |
+| [QUAL-08](#qual-08) | Low | Quality | `RecipesController` documents no response types, so the contract shows a bare 200 for every write |
 | [UX-06](#ux-06) | Medium | UX | `--rule` is a decorative hairline, not a control boundary |
 | [UX-07](#ux-07) | Low | UX | No visual-regression tooling |
 | [UX-10](#ux-10) | Low | UX | Recipe detail Retry gives no in-progress feedback |
@@ -115,6 +117,7 @@ kind of negative test.
 | [UX-17](#ux-17) | Low | UX | The detail screen's tag links are small touch targets |
 | [UX-18](#ux-18) | Low | UX | Filtering the recipe list is not announced to screen readers |
 | [UX-19](#ux-19) | Low | UX | The ingredient parser reads neither fraction glyphs nor a comma decimal |
+| [UX-20](#ux-20) | Low | UX | A mistaken cook cannot be removed after leaving its page |
 | [DEC-03](#dec-03) | — | Decision | `Ardalis.GuardClauses` is referenced but unused |
 | [DEC-04](#dec-04) | — | Decision | `UseErrorHandler` position in the pipeline |
 | [DEC-07](#dec-07) | — | Decision | 24 h cap excludes slow-cooked and fermented recipes |
@@ -511,6 +514,21 @@ value exactly — either check after normalising in the domain, or accept and no
 
 ---
 
+### BUG-22
+**Logging a cook while its recipe is being deleted returns 500 — Low**
+
+Found 2026-10-11 while specifying `R-22` (spec 016 §15). `LogCookHandler` checks that the recipe exists, then
+inserts; a `DELETE` of the same recipe between the two makes the insert violate `FK_Cooks_Recipes_RecipeId`, which
+`ErrorHandlerMiddleware` reports as a 500 instead of a 404. Needs two concurrent requests on one recipe, which a
+single user does not produce, and a test cannot open the window deterministically.
+
+**Fix.** Catch the Npgsql foreign-key violation (`SqlState 23503`) in `CookRepository.AddAsync` and return
+`RecipeNotFound`, which means changing `AddAsync` to return a `Result`.
+
+**Owner:** `02-senior-csharp` · **Effort:** ~1 h
+
+---
+
 ## Testing gaps
 
 ### TEST-04
@@ -753,6 +771,22 @@ methods receive.
 
 ---
 
+### QUAL-08
+**`RecipesController` documents no response types — Low**
+
+Found 2026-10-11 while building `R-22` (spec 016). Every `RecipesController` write returns `IActionResult`, so
+Swashbuckle cannot see the body type and `contracts/openapi.json` documents each of them as a bare `200` with no
+content — including `POST /api/recipes`, which really returns 201 with a `RecipeDto`. The SPA gets away with it
+only because `RecipeDto` is also a `GET` response. `CooksController` hit the same gap — no `CookDto` schema was
+generated at all — and declares `[ProducesResponseType]` on both actions (ADR-028).
+
+**Fix.** The same attributes on `RecipesController`'s `Create` (201 `RecipeDto`), `Update`/`Delete`/`Publish`/
+`Unpublish` (204), and their 400/404/422 `ProblemDetails`; regenerate the snapshot and the TS types.
+
+**Owner:** `08-api-contract` + `02-senior-csharp` · **Effort:** ~30 min
+
+---
+
 ## UX & accessibility
 
 ### UX-06
@@ -933,6 +967,20 @@ token, attached to a whole number or alone. A comma decimal is a product decisio
 separator) — decide it with `07-ux-ui` before parsing it.
 
 **Owner:** `03-senior-react` · **Effort:** ~30 min
+
+---
+
+### UX-20
+**A mistaken cook cannot be removed after leaving its page — Low**
+
+Found 2026-10-11 while specifying `R-22` (spec 016 §4). Undo deletes the cook the page just logged, by the id the
+`POST` returned. Once the page is left that id is gone, and there is no list of a recipe's cooks, so "Cooked N
+times" stays inflated until the row is deleted in SQL.
+
+**Fix.** `GET /api/recipes/{id}/cooks` and a small history on Detail with a delete per row — the first time a
+cook list is worth its endpoint.
+
+**Owner:** `03-senior-react` + `02-senior-csharp` · **Effort:** ~2 h
 
 ---
 
