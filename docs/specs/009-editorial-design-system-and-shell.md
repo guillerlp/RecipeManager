@@ -73,9 +73,9 @@ Three PRs, each independently reviewable and shippable.
 
 ## 4. Out of scope
 
-- **Home's "Last cooked" rail and the cooks/stats numbers** — need `R-22`. Left out rather than stubbed.
+- **Home's "Last cooked" rail and the cooks/stats numbers** — need `R-22`. Left out rather than stubbed. — **Shipped with `R-22`** (spec 016): the cook count and the rail on Home, the stats on Profile.
 - **Home's three "Jump to" saved views** — `under 30 minutes` and `feeds a table` need `R-11`'s query contract,
-  `never cooked yet` needs `R-22`. Building them client-side now means building them twice.
+  `never cooked yet` needs `R-22`. Building them client-side now means building them twice. — `R-22` shipped `cookCount` on `RecipeDto`; the view itself is still `R-11`'s.
 - **Tag chips on list rows** — need `R-20`.
 - **Units (metric/imperial) preference** — needs `R-10`'s conversion policy. Not rendered, not even disabled.
 - **Default serving size and Keep-screen-awake preferences** — nothing reads them until `R-21` and `R-23`. A
@@ -324,7 +324,7 @@ contract change, and no new input or rendered user content (§10).
 - PR 2 keeps the footer theme switch working until PR 3 moves the control into Settings, so no PR in the sequence
   leaves the app without a way to change theme.
 - The design's blender glyph stays the brand mark; `Logo` is restyled, not replaced.
-- Home's masthead reads `<n> recipes · yours alone`, dropping the design's `78 cooks` until `R-22`.
+- Home's masthead reads `<n> recipes · yours alone`, dropping the design's `78 cooks` until `R-22` — restored by `R-22` (spec 016) as `· N cooks`, hidden at zero.
 - Keeping `RecipeCard`'s existing `formatDuration` / `getISODuration` and `<time dateTime>` markup — the design
   shows a bare total, but dropping the machine-readable duration would regress the accessibility bar.
 

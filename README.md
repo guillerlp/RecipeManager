@@ -134,9 +134,8 @@ Windows machine with Smart App Control enabled, the 4 contract tests do not skip
 `FileLoadException`, the same way the 99 integration tests do. On such a machine, run the backend in WSL2
 instead — see [Windows with Smart App Control](#windows-with-smart-app-control-run-the-backend-in-wsl2).
 
-The "with Docker" figure was measured inside WSL2 on 2026-10-11 against `feat/cook-log` (`R-22` PR 1): 212 unit +
-103 integration passed, 0 skipped; CI confirmation is pending on that PR. The previous figure (282) was confirmed by
-CI run 37130641536 on 2026-10-03. CI remains the authority for what merges; a WSL2 run is a faithful local reproduction of it, a native
+The "with Docker" figure is confirmed by CI run 38144909040 (2026-10-11, `R-22` PR 1): 212 unit + 103 integration
+passed, 0 skipped — and reproduced locally inside WSL2 the same day against `feat/cook-log`. CI remains the authority for what merges; a WSL2 run is a faithful local reproduction of it, a native
 Windows run under Smart App Control is not.
 
 Unit tests with an HTML coverage report (requires `dotnet tool install --global dotnet-reportgenerator-globaltool`):

@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `016` |
-| **Status** | in progress — PR 1 (backend, contract, Detail) open; PR 2 (Home, Profile) to follow |
+| **Status** | shipped 2026-10-23 — ADR-028 (#82, then the Home and Profile PR) |
 | **Author** | `00-leader` + `01-architect` |
 | **Created** | `2026-10-11` |
 | **Branch** | `feat/cook-log` (PR 1), `feat/cook-log-stats` (PR 2) |
@@ -44,11 +44,11 @@ counts and dates derived from those logs.
 
 **PR 2 — Home and Profile** (`feat/cook-log-stats`)
 
-- [ ] `utils/cookStats.ts`: `{ totalCooks, mostCooked, recentlyCooked }` from the published and draft lists.
-- [ ] Home: `· N cooks` in the masthead (hidden at 0) and a "Last cooked" aside of up to three recipes (hidden
+- [x] `utils/cookStats.ts`: `{ totalCooks, mostCooked, recentlyCooked }` from the published and draft lists.
+- [x] Home: `· N cooks` in the masthead (hidden at 0) and a "Last cooked" aside of up to three recipes (hidden
       when nothing has been cooked).
-- [ ] Profile: a stats row with "Cooked" and "Most cooked".
-- [ ] `R-22` removed from the roadmap; spec 009's "until `R-22`" notes resolved; this spec set to shipped.
+- [x] Profile: a stats row with "Cooked" and "Most cooked".
+- [x] `R-22` removed from the roadmap; spec 009's "until `R-22`" notes resolved; this spec set to shipped.
 
 ## 4. Out of scope
 
@@ -243,26 +243,26 @@ counts and dates derived from those logs.
 
 ## 11. Acceptance criteria
 
-- [ ] Given a recipe, when `POST …/cooks` with `{}`, then 201, a `Location` ending in the new cook's id, a body
+- [x] Given a recipe, when `POST …/cooks` with `{}`, then 201, a `Location` ending in the new cook's id, a body
       with that id and a `cookedAt` equal to the server's now, and one row in `"Cooks"`.
-- [ ] Given a recipe, when `POST …/cooks` with a past `cookedAt`, then 201 and that instant is stored in UTC.
-- [ ] When `POST …/cooks` with a future `cookedAt`, then 422 with `field: "cookedAt"` and no row stored.
-- [ ] When `POST …/cooks` with `cookedAt: "not-a-date"`, then 400.
-- [ ] Given no such recipe, when `POST …/cooks`, then 404.
-- [ ] Given a cook of recipe A, when `DELETE /api/recipes/A/cooks/{id}`, then 204 and the row is gone.
-- [ ] Given a cook of recipe A, when `DELETE /api/recipes/B/cooks/{id}`, then 404 and the row remains.
-- [ ] Given a recipe cooked three times, when `GET /api/recipes/{id}` and `GET /api/recipes`, then `cookCount` is
+- [x] Given a recipe, when `POST …/cooks` with a past `cookedAt`, then 201 and that instant is stored in UTC.
+- [x] When `POST …/cooks` with a future `cookedAt`, then 422 with `field: "cookedAt"` and no row stored.
+- [x] When `POST …/cooks` with `cookedAt: "not-a-date"`, then 400.
+- [x] Given no such recipe, when `POST …/cooks`, then 404.
+- [x] Given a cook of recipe A, when `DELETE /api/recipes/A/cooks/{id}`, then 204 and the row is gone.
+- [x] Given a cook of recipe A, when `DELETE /api/recipes/B/cooks/{id}`, then 404 and the row remains.
+- [x] Given a recipe cooked three times, when `GET /api/recipes/{id}` and `GET /api/recipes`, then `cookCount` is
       3 and `lastCookedAt` is the latest of the three.
-- [ ] Given a recipe never cooked, then `cookCount` is 0 and `lastCookedAt` is null.
-- [ ] Given a recipe whose list and detail responses are already cached, when a cook is logged, then the next
+- [x] Given a recipe never cooked, then `cookCount` is 0 and `lastCookedAt` is null.
+- [x] Given a recipe whose list and detail responses are already cached, when a cook is logged, then the next
       `GET`s both show the new count.
-- [ ] Given a recipe with cooks, when it is deleted, then its rows in `"Cooks"` are gone.
-- [ ] Given a draft recipe, when a cook is logged, then 201 (drafts can be cooked).
-- [ ] Detail: "I cooked this" → `Logged · Undo`, the count increments after refetch; Undo restores both.
-- [ ] Detail: a backdated day is sent as local noon in UTC; the date input does not allow a future day.
-- [ ] Home: masthead shows `N cooks` counting draft and published recipes, hidden at 0; the rail lists up to three
+- [x] Given a recipe with cooks, when it is deleted, then its rows in `"Cooks"` are gone.
+- [x] Given a draft recipe, when a cook is logged, then 201 (drafts can be cooked).
+- [x] Detail: "I cooked this" → `Logged · Undo`, the count increments after refetch; Undo restores both.
+- [x] Detail: a backdated day is sent as local noon in UTC; the date input does not allow a future day.
+- [x] Home: masthead shows `N cooks` counting draft and published recipes, hidden at 0; the rail lists up to three
       recipes newest first and is absent with no cooks.
-- [ ] Profile: total and most cooked are shown; a tie in count goes to the more recent cook.
+- [x] Profile: total and most cooked are shown; a tie in count goes to the more recent cook.
 
 ## 12. Test plan
 
