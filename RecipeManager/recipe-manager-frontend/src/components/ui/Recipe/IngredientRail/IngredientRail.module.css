@@ -48,10 +48,6 @@
   white-space: nowrap;
 }
 
-.spoken {
-  composes: visuallyHidden from '@/styles/a11y.module.css';
-}
-
 /* A row with no amount keeps its name in the second column. */
 .name {
   composes: body from '@/styles/typography.module.css';
