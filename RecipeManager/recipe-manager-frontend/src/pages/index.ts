@@ -6,3 +6,4 @@ export * from './NotFound';
 export * from './Profile';
 export * from './RecipeDetail';
 export * from './RecipeForm';
+export * from './CookingMode';

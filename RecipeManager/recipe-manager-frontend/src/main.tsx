@@ -10,6 +10,7 @@ import '@fontsource-variable/newsreader';
 import './styles/themes/variables.css';
 import './styles/themes/light.css';
 import './styles/themes/dark.css';
+import './styles/themes/cooking.css';
 import './styles/globals.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';

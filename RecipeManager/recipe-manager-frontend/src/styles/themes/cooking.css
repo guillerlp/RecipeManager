@@ -1,0 +1,15 @@
+/* Cooking mode's palette (spec 017 §8.3, ADR-029). Not a theme: it applies under light and dark alike, on one
+   route only, by re-declaring the theme tokens on the cooking page's root. Same names as light.css/dark.css —
+   tokenParity.test.ts fails if one is missing. Ratios: on --paper / on --paper-2, WCAG relative luminance. */
+[data-palette="cooking"] {
+  --paper: #12110f;
+  --paper-2: #1c1a17;
+  --ink: #f7f4ee;        /* 17.19 / 15.82 */
+  --ink-2: #a9a29a;      /*  7.48 /  6.88 */
+  --ink-3: #8f887e;      /*  5.38 /  4.95 */
+  --rule: #2b2822;       /*  1.28 /  1.18 — decorative only (UX-06) */
+  --field-border: #746d63; /* 3.69 / 3.40 — WCAG 1.4.11 boundary for controls */
+  --accent: #f6c453;     /* 11.63 / 10.70 */
+  --accent-text: #12110f; /* 11.63 on --accent */
+  --danger: #f28b82;     /*  7.90 /  7.27 */
+}

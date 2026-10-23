@@ -3,7 +3,7 @@
 import { Fragment, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { IngredientRail, MethodSteps, RecipeDetailTabs } from '@/components';
-import { PrintIcon } from '@/components/ui/Icon';
+import { PrintIcon, RestaurantIcon } from '@/components/ui/Icon';
 import { isRecipeId, useMediaQuery, useRecipe, useUnits } from '@/hooks';
 import { isNotFoundError } from '@/services';
 import type { Recipe } from '@/types';
@@ -45,13 +45,27 @@ const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
     />
   );
   const method = <MethodSteps steps={recipe.instructions} />;
+  // Carries this visit's servings so cooking mode shows the same amounts (spec 017 §8.2). A link: it goes
+  // somewhere (ADR-024). Nothing to cook without steps, drafts included.
+  const startCooking = recipe.instructions.length > 0 && (
+    <Link
+      to={`/recipes/${recipe.id}/cook${servings === null ? '' : `?servings=${servings}`}`}
+      className={styles.startCooking}
+    >
+      <RestaurantIcon className={styles.startCookingIcon} />
+      Start cooking
+    </Link>
+  );
 
   return (
     <article className={styles.page}>
       {/* A link, not a button: Edit goes somewhere (ADR-024), so it can be opened in a new tab. */}
       <div className={styles.topBar}>
         <BackLink />
-        <Link to={`/recipes/${recipe.id}/edit`} className={styles.edit}>Edit</Link>
+        <div className={styles.topActions}>
+          {!isMobile && startCooking}
+          <Link to={`/recipes/${recipe.id}/edit`} className={styles.edit}>Edit</Link>
+        </div>
       </div>
 
       <header className={styles.header}>
@@ -135,6 +149,9 @@ const RecipeDetail = ({ recipe }: { recipe: Recipe }) => {
         <PrintIcon className={styles.printIcon} />
         Print
       </button>
+
+      {/* Where a thumb is, on a phone: the sticky bar spec 012 left room for. */}
+      {isMobile && startCooking && <div className={styles.cookBar}>{startCooking}</div>}
     </article>
   );
 };

@@ -952,6 +952,25 @@ endpoint is anonymous and every recipe is world-writable. See
   `IActionResult` hides `CookDto` from the OpenAPI generator (`QUAL-08` records the same gap in
   `RecipesController`).
 
+### ADR-029 — Cooking mode: a route outside the chrome, a palette that is not a theme
+
+- **Status:** accepted (2026-10-23). Full detail: [specs/017-cooking-mode.md](specs/017-cooking-mode.md).
+- **Context:** `R-23` is a full-screen view read at arm's length on a phone. It needs the theme and units providers
+  but none of the app chrome, and a warm near-black palette that must hold whichever theme the user chose.
+- **Decision:** `Shell` is split into a providers route and a `Chrome` layout route (`AppLayout`); every existing page
+  stays under `Chrome`, `/recipes/:id/cook` sits beside it. The palette re-declares the existing colour tokens under
+  `[data-palette="cooking"]` in `styles/themes/cooking.css`, set on the cooking page's root, and
+  `tokenParity.test.ts` requires it to declare every token the themes declare. Step and servings live in the URL.
+  PR 2 uses the Wake Lock, Web Audio, and Vibration APIs directly behind feature detection — no dependency.
+- **Alternatives:** a third `data-theme` value (a theme is an app-wide preference; this belongs to one route and must
+  override either theme); new `--cook-*` token names (every reused style would need a cooking variant); the route
+  inside `AppLayout` with the chrome hidden by CSS (it still mounts, takes landmarks and focus order); servings
+  and step in router state (lost when a mobile browser reloads a discarded tab — the cooking scenario).
+- **Consequences:** a colour token added to the themes must also get a cooking value, or it would silently fall
+  back to the active theme inside cooking mode — the parity test turns that into a failure. The route tree has one
+  more nesting level. Every exit from cooking mode replaces its history entry, and Detail's servings reset on
+  return, since they are page state (spec 012).
+
 ---
 
 These ADRs were **reconstructed from code and commit messages** — no ADR files existed before, so ADR-001

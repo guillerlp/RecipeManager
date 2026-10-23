@@ -39,6 +39,47 @@
   background: var(--paper-2);
 }
 
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/* The page's one call to action: filled accent, unlike Edit's outline. */
+.startCooking {
+  composes: ui from '@/styles/typography.module.css';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: 0.375rem 1rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-text);
+  text-decoration: none;
+}
+
+.startCookingIcon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Sticks to the bottom of the scrolling main, so it sits just above the bottom nav. */
+.cookBar {
+  position: sticky;
+  bottom: 0;
+  margin: 0 calc(-1 * var(--spacing-md));
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+}
+
+.cookBar .startCooking {
+  width: 100%;
+  min-height: 3rem;
+  box-sizing: border-box;
+}
+
 .header {
   display: flex;
   flex-direction: column;
@@ -180,7 +221,9 @@
   .back,
   .edit,
   .print,
-  .cook {
+  .cook,
+  .startCooking,
+  .cookBar {
     display: none;
   }
 

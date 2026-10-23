@@ -83,6 +83,10 @@ old generic blue-on-white one:
 | Brand | `--accent`, `--accent-text` (the text colour that is always safe on `--accent` — white fails 2.54:1 on the dark accent, so this is a token rather than a per-theme guess) |
 | Status | `--danger` |
 
+**Cooking palette** (`cooking.css`, ADR-029): the same token names re-declared under `[data-palette="cooking"]` on the
+cooking page's root — warm near-black and amber in both themes. It is not a theme: never put it on `<html>`, and give
+any new theme token a cooking value too (`tokenParity.test.ts` enforces it). Ratios are in the file and spec 017 §8.3.
+
 Every ratio in `light.css`/`dark.css` is measured against the surface the token is actually used on and recorded
 in a comment beside it. Three values deviate from the canonical design file for a measured contrast reason —
 see ADR-021 for the ratios.

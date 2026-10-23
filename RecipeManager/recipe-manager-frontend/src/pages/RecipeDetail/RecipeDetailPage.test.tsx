@@ -283,3 +283,37 @@ describe('RecipeDetailPage cook stat', () => {
     expect(last.getAttribute('dateTime')).toBe(new Date(2026, 9, 8, 19, 0).toISOString());
   });
 });
+
+describe('RecipeDetailPage Start cooking', () => {
+  const startCooking = () => screen.getByRole('link', { name: 'Start cooking' });
+
+  it('links to cooking mode with the current servings', async () => {
+    getRecipeById.mockResolvedValue({ data: recipe } as AxiosResponse<Recipe>);
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Increase servings' }));
+    expect(startCooking().getAttribute('href')).toBe(`/recipes/${ID}/cook?servings=5`);
+  });
+
+  it('leaves servings out for a draft that has none, and still offers it', async () => {
+    getRecipeById.mockResolvedValue({ data: { ...recipe, status: 'Draft', servings: null } } as AxiosResponse<Recipe>);
+    renderPage();
+    await screen.findByText('Draft');
+    expect(startCooking().getAttribute('href')).toBe(`/recipes/${ID}/cook`);
+  });
+
+  it('is not offered for a recipe with no steps', async () => {
+    const noSteps: Recipe = { ...recipe, instructions: [] };
+    getRecipeById.mockResolvedValue({ data: noSteps } as AxiosResponse<Recipe>);
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: recipe.title });
+    expect(screen.queryByRole('link', { name: 'Start cooking' })).toBeNull();
+  });
+
+  it('is offered on mobile too', async () => {
+    pretendMobile();
+    getRecipeById.mockResolvedValue({ data: recipe } as AxiosResponse<Recipe>);
+    renderPage();
+    await screen.findByRole('heading', { level: 1, name: recipe.title });
+    expect(startCooking().getAttribute('href')).toBe(`/recipes/${ID}/cook?servings=4`);
+  });
+});

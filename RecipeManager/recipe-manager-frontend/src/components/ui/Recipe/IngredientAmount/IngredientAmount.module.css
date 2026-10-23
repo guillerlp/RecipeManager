@@ -1,0 +1,3 @@
+.spoken {
+  composes: visuallyHidden from '@/styles/a11y.module.css';
+}

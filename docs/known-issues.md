@@ -87,6 +87,7 @@ kind of negative test.
 | [BUG-20](#bug-20) | Low | API | A NUL character in any text field returns 500 |
 | [BUG-21](#bug-21) | Low | API | Tag normalisation ignores Unicode equivalence and invisible characters |
 | [BUG-22](#bug-22) | Low | API | Logging a cook while its recipe is being deleted returns 500 |
+| [BUG-23](#bug-23) | Low | Frontend | A fast double tap on Detail's "I cooked this" can log two cooks |
 | [TEST-04](#test-04) | Low | Tests | `Location` header on 201 never asserted |
 | [TEST-05](#test-05) | Low | Tests | No agreed coverage threshold |
 | [TEST-08](#test-08) | Low | Tests | Servings reset between recipes is not pinned by a test |
@@ -526,6 +527,20 @@ single user does not produce, and a test cannot open the window deterministicall
 `RecipeNotFound`, which means changing `AddAsync` to return a `Result`.
 
 **Owner:** `02-senior-csharp` · **Effort:** ~1 h
+
+### BUG-23
+**A fast double tap on Detail's "I cooked this" can log two cooks — Low**
+
+Found 2026-10-23 while building `R-23` (spec 017 §8.7). `pages/RecipeDetail/CookControls.tsx` guards the button and
+the backdate form only with `disabled={logCook.isPending}`, and TanStack Query flushes `isPending` to React on its
+own notify tick — two clicks dispatched back to back both reach `mutate`. Proven on cooking mode's Log cook: with
+only `isPending`, two synchronous clicks post twice. `CookControls.test.tsx` waits for the button to disable before
+the second click, which hides the window. A duplicate cannot be removed after leaving the page (`UX-20`).
+
+**Fix.** The `useRef` "sending" guard `FinishPanel` uses in `pages/CookingMode/CookingModePage.tsx`, with a test that
+clicks twice synchronously and settles a macrotask before counting.
+
+**Owner:** `03-senior-react` · **Effort:** ~30 min
 
 ---
 

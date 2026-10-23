@@ -84,3 +84,26 @@ describe('App routing to the form', () => {
     expect(screen.getByRole('contentinfo')).toBeTruthy();
   });
 });
+
+describe('App routing to cooking mode', () => {
+  it('renders cooking mode without the app chrome', async () => {
+    const id = '33333333-3333-3333-3333-333333333333';
+    const recipe: Recipe = {
+      id, title: 'Cacio e Pepe', status: 'Published', description: 'Three ingredients.', preparationTime: 5, cookingTime: 12,
+      servings: 2, ingredients: [], tags: [], cookCount: 0,
+      instructions: [{ id: 's1', text: 'Boil the pasta.', durationMinutes: null, ingredientIds: [] }],
+    };
+    vi.mocked(recipeService.getRecipeById).mockResolvedValue({ data: recipe } as AxiosResponse<Recipe>);
+    window.history.pushState({}, '', `/recipes/${id}/cook`);
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <App />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Cacio e Pepe' })).toBeTruthy();
+    expect(screen.queryByRole('contentinfo')).toBeNull();
+    expect(screen.queryAllByRole('navigation', { name: 'Primary navigation' })).toHaveLength(0);
+  });
+});
