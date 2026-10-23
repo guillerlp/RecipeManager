@@ -1,9 +1,11 @@
 // src/pages/Profile/ProfilePage.tsx
 
+import { Link } from 'react-router-dom';
 import { LockOpenIcon } from '@/components/ui/Icon';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { useTheme, useUnits } from '@/hooks';
+import { useRecipes, useTheme, useUnits } from '@/hooks';
 import type { ThemePreference, UnitSystem } from '@/types';
+import { summariseCooks } from '@/utils/cookStats';
 import styles from './ProfilePage.module.css';
 
 const THEME_OPTIONS: readonly { value: ThemePreference; label: string }[] = [
@@ -21,6 +23,10 @@ const UNIT_OPTIONS: readonly { value: UnitSystem; label: string }[] = [
 export const ProfilePage: React.FC = () => {
   const { preference, setPreference } = useTheme();
   const { unitSystem, setUnitSystem } = useUnits();
+  // Both lists, as on Home: a draft's cooks are cooks too (spec 016 §8).
+  const { data: published } = useRecipes();
+  const { data: drafts } = useRecipes('Draft');
+  const { totalCooks, mostCooked } = summariseCooks([...(published ?? []), ...(drafts ?? [])]);
 
   return (
     <div className={styles.page}>
@@ -34,6 +40,26 @@ export const ProfilePage: React.FC = () => {
           <p className={styles.since}>Cooking from this catalogue since March 2026</p>
         </div>
       </header>
+
+      <dl className={styles.stats}>
+        <div>
+          <dt className={styles.statLabel}>Cooked</dt>
+          <dd className={styles.statValue}>{totalCooks > 0 ? totalCooks : 'none yet'}</dd>
+        </div>
+        <div>
+          <dt className={styles.statLabel}>Most cooked</dt>
+          {mostCooked ? (
+            <dd className={styles.statValue}>
+              <Link to={`/recipes/${mostCooked.id}`} className={styles.statLink}>{mostCooked.title}</Link>
+              <span className={styles.statNote}>
+                {mostCooked.cookCount === 1 ? '1 time' : `${mostCooked.cookCount} times`}
+              </span>
+            </dd>
+          ) : (
+            <dd className={styles.statValue}>—</dd>
+          )}
+        </div>
+      </dl>
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Preferences</h2>
