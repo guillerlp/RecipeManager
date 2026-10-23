@@ -138,3 +138,39 @@
     gap: var(--spacing-sm);
   }
 }
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2xl);
+  margin: 0;
+}
+
+.stats dd {
+  margin: 0;
+}
+
+.statLabel {
+  composes: label from '@/styles/typography.module.css';
+  color: var(--ink-3);
+}
+
+.statValue {
+  composes: title from '@/styles/typography.module.css';
+  color: var(--ink);
+}
+
+.statLink {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.statLink:hover {
+  text-decoration: underline;
+}
+
+.statNote {
+  composes: label from '@/styles/typography.module.css';
+  display: block;
+  color: var(--ink-3);
+}

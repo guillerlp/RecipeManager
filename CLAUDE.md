@@ -76,7 +76,7 @@ Full detail and rationale: [docs/tech-stack.md](docs/tech-stack.md).
     RecipeManager.Api/               RecipesController, CooksController, Startup/*, Startup/Swagger/*, Middlewares/*, Extensions/*
     RecipeManager.UnitTests/         212 tests — xUnit + NSubstitute (Domain + Application handlers/mappings/validators + Api result mapping)
     RecipeManager.IntegrationTests/  103 tests — xUnit + WebApplicationFactory (99 real PostgreSQL via Testcontainers, 4 OpenAPI contract needing no Docker)
-    recipe-manager-frontend/         React 19 + Vite SPA — 323 Vitest tests, colocated
+    recipe-manager-frontend/         React 19 + Vite SPA — 333 Vitest tests, colocated
     run-coverage.ps1                 unit-test coverage + HTML report
 ```
 
@@ -120,13 +120,13 @@ dotnet test RecipeManager.sln
 ```
 
 Current state: build succeeds with **0 warnings** and the suite has **315 tests** (212 unit + 103 integration) after
-`R-22` PR 1, measured in WSL2 on 2026-10-11 (315 passed, 0 failed, 0 skipped); CI confirmation is pending on that PR
-— the previous figure, 282, was confirmed by **CI run 37130641536** on 2026-10-03. Of the 103 integration tests, **99 need Docker** and are
+`R-22` PR 1, confirmed by **CI run 38144909040** on 2026-10-11: 315 passed, 0 failed, 0 skipped (`R-22` PR 2 is
+frontend-only and leaves them unchanged). Of the 103 integration tests, **99 need Docker** and are
 reported as skipped without it (ADR-017); the other 4 (`OpenApiContractTests`, ADR-019) need no Docker, but on a
 Windows machine under Smart App Control (`INFRA-06`) they **fail** rather than skip — and that machine can have
 any freshly-built assembly blocked, `dotnet ef` included. **CI is the authority for these numbers**; a run inside
 **WSL2** reproduces them faithfully (README, "Windows with Smart App Control"), a native Windows run does not.
-The frontend has 323 Vitest tests across 28 files (`npm test`).
+The frontend has 333 Vitest tests across 29 files (`npm test`).
 `RecipeManager/Directory.Build.props` sets `TreatWarningsAsErrors` for every project (ADR-010), so a warning is
 a **build failure**, not a note. Code style is too: the root `.editorconfig` makes `IDE0055` formatting,
 `IDE0005` unused usings, and `IDE0161` file-scoped namespaces build errors (ADR-020), so fix them with

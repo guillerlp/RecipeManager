@@ -341,6 +341,10 @@ Writes exist since `R-21` (spec 015, ADR-027). The form reads a `Recipe` and wri
 same pass that builds `ingredients`, each existing ingredient echoes its `id`, and a row nobody edited is sent with
 its stored value. Free-text ingredient lines are parsed only in the browser (`utils/ingredientLine.ts`).
 
+Home and Profile derive their cook totals ("78 cooks", "Last cooked", "Most cooked") in the browser from the
+published **and** draft lists (`utils/cookStats.ts`), because a draft's cooks are cooks too. That works only while
+`GET /api/recipes` is unpaginated (`SEC-07`); `R-11` replaces it with a server query.
+
 ## Known limitations
 
 Read these before proposing any recipe feature.

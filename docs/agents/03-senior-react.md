@@ -64,7 +64,8 @@ build config.
 - [ ] Service methods return `Promise<AxiosResponse<T>>`; the hook unwraps `.data`.
 - [ ] Mutations live in `hooks/useRecipeMutations.ts` (ADR-027): each invalidates `queryKey: ['recipes']` on success,
       which covers every list (`['recipes', 'list', status]`) and every detail entry. A new write follows the same
-      rule — `useRecipes`/`useRecipe` set `refetchOnMount: false`, so nothing else refreshes them.
+      rule — within their 5-minute `staleTime` nothing else refreshes `useRecipes`/`useRecipe`; an invalidated query that is
+      not on screen refetches when its page next mounts (`refetchOnMount: true`).
 - [ ] Every fetching component handles all four states: loading, error, empty, populated. `RecipeList` is the
       reference — including distinct empty states for "no recipes at all" vs. "no search matches".
 - [ ] Errors surface a message and a real recovery action. `RecipeList`'s current retry does
@@ -168,8 +169,8 @@ npm test
      placement every time you add state.
    - **What triggers a re-render**, and why a `useMemo`/`useCallback` is or is not warranted here. Do not add
      memoisation reflexively — explain the actual cost you are avoiding, or leave it out.
-   - **Cache behaviour.** `useRecipes` sets `refetchOnMount: false` and `refetchOnWindowFocus: false`, so data
-     only refreshes through explicit invalidation. Explain what a mutation must invalidate and what the user
+   - **Cache behaviour.** `useRecipes` sets a 5-minute `staleTime` and `refetchOnWindowFocus: false`, so data
+     refreshes through explicit invalidation — at once if on screen, on next mount (`refetchOnMount: true`) if not. Explain what a mutation must invalidate and what the user
      would see if it did not.
    - **Why this element**, when the choice carries accessibility meaning — `<button>` vs. `<div onClick>`,
      `<article>` vs. `<section>`, `<time dateTime>` vs. plain text.

@@ -212,9 +212,10 @@ adding/updating its `index.ts`.
 - Query hooks live in `recipe-manager-frontend/src/hooks/`, return the `useQuery` result unchanged, and set their own
   `staleTime`/`gcTime`/`retry`. The `queryKey` is an array (`['recipes']`, `['recipes', id]`).
 - **Mutations must invalidate the queries they affect**:
-  `queryClient.invalidateQueries({ queryKey: ['recipes'] })` in `onSuccess`. `useRecipes` disables
-  `refetchOnMount` and `refetchOnWindowFocus`, so nothing else will refresh the list — a mutation without
-  invalidation leaves permanently stale data on screen. No mutation hook exists yet; the first one sets the
+  `queryClient.invalidateQueries({ queryKey: ['recipes'] })` in `onSuccess`. `useRecipes` and `useRecipe`
+  disable `refetchOnWindowFocus` and keep a 5-minute `staleTime`, so within that window only an invalidation makes
+  them refetch — at once if on screen, when their page next mounts if not (`refetchOnMount: true`, `R-22` PR 2). A
+  mutation without invalidation leaves stale data on screen. No mutation hook exists yet; the first one sets the
   precedent.
 - Consumers of a context must go through a guard hook that throws when the provider is missing — copy the
   `useTheme` pattern. Never call `useContext(SomeContext)` directly in a component; `Footer` did until `R-03`,

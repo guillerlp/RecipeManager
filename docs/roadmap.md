@@ -79,7 +79,7 @@ waited on it is now unblocked** — the whole of Phase 3 was gated on this one.
 It closed `BUG-11` (with GitHub [#8](https://github.com/guillerlp/RecipeManager/issues/8)), `SEC-09`, and
 `TEST-03`, and removed the last `text[]` from the schema. ADR-023 is the one thing ADR-022 did not foresee: a
 create request has no ingredient ids to reference, so requests address ingredients **by index into the same
-payload** and responses carry ids. `R-23` is now waiting only on `R-22`.
+payload** and responses carry ids. `R-23` is now waiting only on `R-22` — shipped 2026-10-23, so `R-23` waits on nothing.
 
 `R-18` (recipe detail screen) shipped 2026-09-26 as **ADR-024** in two PRs
 ([spec 012](specs/012-recipe-detail-screen.md)): the screen, with servings scaling and rows as links, closing
@@ -102,6 +102,13 @@ Publish / Unpublish / Delete, a Drafts view on `/recipes`, and an Edit link (#77
 list-row preview, and an unsaved-changes guard, which moved the app onto a data router. It opened `UX-19`. Its
 entry is gone from this file.
 
+`R-22` (cook log) shipped 2026-10-23 as **ADR-028** ([spec 016](specs/016-cook-log.md)) in two PRs: a `Cook`
+aggregate referenced by id with a cascading FK, `POST`/`DELETE` cook endpoints, `cookCount`/`lastCookedAt` on every
+`RecipeDto` joined after the cache, and the Detail stat with log, backdate, and Undo (#82) — then Home's cook count
+and "Last cooked" rail and Profile's "Cooked" and "Most cooked", derived in the browser until `R-11`. It is the
+second aggregate, and it did not force the unit of work ADR-006 deferred. It opened `BUG-22`, `QUAL-08`, and
+`UX-20`. Its entry is gone from this file.
+
 Build order. Each item names what it waits on, so a later item can move up if its dependencies are met:
 
 | Order | Item | Waits on |
@@ -112,26 +119,13 @@ Build order. Each item names what it waits on, so a later item can move up if it
 | ~~4~~ | ~~`R-19` Draft recipes~~ — **shipped 2026-10-02**, ADR-025 | — |
 | ~~5~~ | ~~`R-20` Tags~~ — **shipped 2026-10-04**, ADR-026 | — |
 | ~~6~~ | ~~`R-21` Add/edit form~~ — **shipped 2026-10-11**, ADR-027 | — |
-| 7 | `R-22` Cook log | — |
-| 8 | `R-23` Cooking mode | ~~`R-17`~~, `R-22` |
+| ~~7~~ | ~~`R-22` Cook log~~ — **shipped 2026-10-23**, ADR-028 | — |
+| 8 | `R-23` Cooking mode | ~~`R-17`~~, ~~`R-22`~~ |
 | 9 | `R-24` Export and import | `SEC-08`, ~~`SEC-09`~~ |
 
 `R-11`, `R-12`, `R-13`, and `R-14` keep their IDs and are unordered relative to the list above; each notes what
 the design asks of it. `R-13` is worth doing early, since every screen above is easier to check against realistic
 data.
-
-### R-22
-**Cook log** · `01-architect` (ADR required) → full stack · ~1–2 days
-
-Record each time a recipe is cooked. This feeds "Cooked 11 times", Home's "Last cooked" rail and
-"never cooked yet" view, and the Profile stats (total cooks, most cooked). It is probably a child collection
-of `Recipe` or a separate aggregate. If it is a separate aggregate, it forces the unit-of-work decision
-ADR-006 deferred, so plan that here, not after. Decide whether logging a cook invalidates the recipe's cache
-entries.
-
-**In progress** — designed as ADR-028 ([spec 016](specs/016-cook-log.md)): a separate `Cook` aggregate that did
-*not* force the unit of work, with stats joined outside the cache. PR 1 (backend, contract, Detail) is in review;
-PR 2 (Home's cook count and "Last cooked" rail, Profile stats) follows.
 
 ### R-23
 **Cooking mode** · `07-ux-ui` → `03-senior-react` · ~2 days
@@ -139,7 +133,7 @@ PR 2 (Home's cook count and "Last cooked" rail, Profile stats) follows.
 Design screen 3f. It deliberately breaks the paper palette: warm near-black with an amber accent, for reading
 at arm's length. One step at a time with a large type size, only that step's ingredients, and the ones
 already used struck through. It has a step timer, and uses the Screen Wake Lock API behind the Settings
-preference. Finishing logs a cook (`R-22`). The accent pair must be contrast-checked as its own palette,
+preference. Finishing logs a cook through `POST /api/recipes/{id}/cooks` with `{}` (`R-22`, ADR-028). The accent pair must be contrast-checked as its own palette,
 since it is not a theme.
 
 ### R-24
@@ -174,7 +168,7 @@ endpoint is still unpaginated.
 
 The editorial design asks for "Load the rest" on the Recipes screen, and three saved views on Home ("under 30
 minutes", "feeds a table", "never cooked yet"). Design the query contract so those are filters on the same
-endpoint, not three new endpoints. The last one needs `R-22`.
+endpoint, not three new endpoints. The last one can filter on `cookCount`, which `R-22` added to `RecipeDto` (ADR-028).
 
 `?tag=` belongs here too (ADR-026): tags are a `character varying(40)[]`, so the server-side filter is
 `'roast' = ANY("Tags")` and needs a **GIN** index on `"Tags"`, added in the same migration — a B-tree cannot serve

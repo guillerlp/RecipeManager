@@ -23,6 +23,7 @@ export const useRecipe = (id: string) =>
     // A missing recipe will still be missing on the next attempt; retrying only delays "not found".
     retry: (failureCount, error) => !isNotFoundError(error) && failureCount < 2,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    // Refetches on mount only when stale — i.e. after a write invalidated it while this screen was not mounted.
+    refetchOnMount: true,
     refetchOnReconnect: false,
   });

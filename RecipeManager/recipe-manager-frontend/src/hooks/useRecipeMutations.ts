@@ -1,7 +1,8 @@
 // The SPA's first mutations (spec 015 §8.4). One rule for all of them: on success, invalidate the ['recipes'] prefix.
 // It covers every list (['recipes', 'list', status]) and every detail entry (['recipes', id]); a status change
-// moves a recipe between lists, so nothing narrower is safe. useRecipes and useRecipe set refetchOnMount: false,
-// so without this the screens would keep showing the old recipe until a reload.
+// moves a recipe between lists, so nothing narrower is safe. useRecipes and useRecipe keep data fresh for 5 minutes,
+// so without this the screens would keep showing the old recipe. Only on-screen queries refetch at once; an
+// invalidated one that is not mounted refetches when its page mounts again (refetchOnMount: true).
 import { useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { recipeService } from '@/services';
 import type { Cook, CreateRecipeRequest, Recipe, UpdateRecipeRequest } from '@/types';

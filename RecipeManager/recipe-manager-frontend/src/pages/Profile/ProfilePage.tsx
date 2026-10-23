@@ -1,9 +1,11 @@
 // src/pages/Profile/ProfilePage.tsx
 
+import { Link } from 'react-router-dom';
 import { LockOpenIcon } from '@/components/ui/Icon';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { useTheme, useUnits } from '@/hooks';
+import { useRecipes, useTheme, useUnits } from '@/hooks';
 import type { ThemePreference, UnitSystem } from '@/types';
+import { summariseCooks } from '@/utils/cookStats';
 import styles from './ProfilePage.module.css';
 
 const THEME_OPTIONS: readonly { value: ThemePreference; label: string }[] = [
@@ -21,6 +23,11 @@ const UNIT_OPTIONS: readonly { value: UnitSystem; label: string }[] = [
 export const ProfilePage: React.FC = () => {
   const { preference, setPreference } = useTheme();
   const { unitSystem, setUnitSystem } = useUnits();
+  // Both lists, as on Home: a draft's cooks are cooks too (spec 016 §8).
+  const { data: published } = useRecipes();
+  const { data: drafts } = useRecipes('Draft');
+  // Only once both lists are in: a pending or failed list would otherwise read as "none yet", a false statement.
+  const stats = published !== undefined && drafts !== undefined ? summariseCooks([...published, ...drafts]) : null;
 
   return (
     <div className={styles.page}>
@@ -34,6 +41,28 @@ export const ProfilePage: React.FC = () => {
           <p className={styles.since}>Cooking from this catalogue since March 2026</p>
         </div>
       </header>
+
+      {stats && (
+        <dl className={styles.stats}>
+          <div>
+            <dt className={styles.statLabel}>Cooked</dt>
+            <dd className={styles.statValue}>{stats.totalCooks > 0 ? stats.totalCooks : 'none yet'}</dd>
+          </div>
+          <div>
+            <dt className={styles.statLabel}>Most cooked</dt>
+            {stats.mostCooked ? (
+              <dd className={styles.statValue}>
+                <Link to={`/recipes/${stats.mostCooked.id}`} className={styles.statLink}>{stats.mostCooked.title}</Link>
+                <span className={styles.statNote}>
+                  {stats.mostCooked.cookCount === 1 ? '1 time' : `${stats.mostCooked.cookCount} times`}
+                </span>
+              </dd>
+            ) : (
+              <dd className={styles.statValue}>—</dd>
+            )}
+          </div>
+        </dl>
+      )}
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Preferences</h2>
