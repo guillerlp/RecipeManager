@@ -124,3 +124,104 @@ describe('CookingModePage states', () => {
     expect(container.querySelector('[data-palette="cooking"]')).not.toBeNull();
   });
 });
+
+const openCooking = async (path?: string, value: Recipe = recipe) => {
+  resolveWith(value);
+  const view = renderCooking(path);
+  await screen.findByRole('heading', { level: 1, name: value.title });
+  return view;
+};
+
+const next = () => fireEvent.click(screen.getByRole('button', { name: /Next step/ }));
+
+describe('CookingModePage steps', () => {
+  it('shows step 1 of 3 by default, with Back unavailable', async () => {
+    await openCooking();
+    expect(screen.getByRole('heading', { name: 'Step 1 of 3' })).toBeTruthy();
+    expect(screen.getByText('Pat the chicken dry.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Back/ }).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('advances with Next step and records the step in the URL without a history entry', async () => {
+    const { router } = await openCooking();
+    next();
+    expect(screen.getByRole('heading', { name: 'Step 2 of 3' })).toBeTruthy();
+    expect(router.state.location.search).toBe('?step=2');
+    expect(router.state.historyAction).toBe('REPLACE');
+  });
+
+  it('opens at the step in the URL, clamped to the last one', async () => {
+    await openCooking(`/recipes/${ID}/cook?step=99`);
+    expect(screen.getByRole('heading', { name: 'Step 3 of 3' })).toBeTruthy();
+  });
+
+  it('keeps the servings in the URL when the step changes', async () => {
+    const { router } = await openCooking(`/recipes/${ID}/cook?servings=6`);
+    next();
+    expect(new URLSearchParams(router.state.location.search).get('servings')).toBe('6');
+  });
+
+  it('shows Finish instead of Next step on the last step', async () => {
+    await openCooking(`/recipes/${ID}/cook?step=3`);
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Next step/ })).toBeNull();
+  });
+
+  it('does nothing on Back from step 1', async () => {
+    await openCooking();
+    fireEvent.click(screen.getByRole('button', { name: /Back/ }));
+    expect(screen.getByRole('heading', { name: 'Step 1 of 3' })).toBeTruthy();
+  });
+
+  it('moves focus to the new step heading', async () => {
+    await openCooking();
+    next();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Step 2 of 3' }));
+  });
+
+  it('changes step with the arrow keys', async () => {
+    await openCooking();
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByRole('heading', { name: 'Step 2 of 3' })).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(screen.getByRole('heading', { name: 'Step 1 of 3' })).toBeTruthy();
+  });
+
+  it('does not open the finish panel with ArrowRight on the last step', async () => {
+    await openCooking(`/recipes/${ID}/cook?step=3`);
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.queryByRole('heading', { name: 'Log this cook?' })).toBeNull();
+  });
+
+  it('links Close back to the recipe', async () => {
+    await openCooking();
+    expect(screen.getByRole('link', { name: 'Leave cooking mode' }).getAttribute('href')).toBe(`/recipes/${ID}`);
+  });
+});
+
+describe('CookingModePage ingredients', () => {
+  it('splits a by-step recipe into this step, already used, and also needed', async () => {
+    await openCooking(`/recipes/${ID}/cook?step=3`);
+    const forStep = screen.getByRole('list', { name: 'For this step' });
+    const used = screen.getByRole('list', { name: 'Already used' });
+    const alsoNeeded = screen.getByRole('list', { name: 'Also needed' });
+    expect(forStep.textContent).toContain('new potatoes');
+    expect(used.textContent).toContain('whole chicken');
+    expect(used.textContent).toContain('lemons');
+    expect(used.textContent).toContain(', used');
+    expect(alsoNeeded.textContent).toContain('flaky salt');
+  });
+
+  it('shows the full list when no step references an ingredient', async () => {
+    const unreferenced = { ...recipe, instructions: recipe.instructions.map(s => ({ ...s, ingredientIds: [] })) };
+    await openCooking(undefined, unreferenced);
+    const all = screen.getByRole('list', { name: 'Ingredients' });
+    expect(all.querySelectorAll('li')).toHaveLength(4);
+    expect(screen.queryByRole('list', { name: 'Already used' })).toBeNull();
+  });
+
+  it('scales quantities by the servings in the URL', async () => {
+    await openCooking(`/recipes/${ID}/cook?step=2&servings=6`);
+    expect(screen.getByRole('list', { name: 'For this step' }).textContent).toContain('3');
+  });
+});

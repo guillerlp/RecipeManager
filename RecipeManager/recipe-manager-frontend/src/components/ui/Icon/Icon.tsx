@@ -94,3 +94,23 @@ export const PrintIcon = ({ className }: IconProps) => (
     <path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3m-3 11H8v-5h8zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1m-1-9H6v4h12z" />
   </SvgIcon>
 );
+
+export const ArrowBackIcon = ({ className }: IconProps) => (
+  <SvgIcon className={className}>
+    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z" />
+  </SvgIcon>
+);
+
+export const CloseIcon = ({ className }: IconProps) => (
+  <SvgIcon className={className}>
+    <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+  </SvgIcon>
+);
+
+// The design's "skillet" is a Material Symbols glyph that @mui/icons-material does not carry; Restaurant is the
+// nearest Material Icons equivalent.
+export const RestaurantIcon = ({ className }: IconProps) => (
+  <SvgIcon className={className}>
+    <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4" />
+  </SvgIcon>
+);
