@@ -33,6 +33,12 @@ describe('theme token parity', () => {
     expect(dark.has(token)).toBe(true);
   });
 
+  // The cooking palette re-declares the theme tokens under [data-palette="cooking"] (spec 017 §8.3). A theme token
+  // it forgets would silently take the active theme's value inside cooking mode — this makes that a failure.
+  it('cooking.css declares every colour token the themes declare', () => {
+    expect([...tokensOf(read('./cooking.css'))].sort()).toEqual([...light].sort());
+  });
+
   it('no longer declares the superseded --color-* tokens', () => {
     expect([...light].filter((t) => t.startsWith('--color-'))).toEqual([]);
     expect([...dark].filter((t) => t.startsWith('--color-'))).toEqual([]);
