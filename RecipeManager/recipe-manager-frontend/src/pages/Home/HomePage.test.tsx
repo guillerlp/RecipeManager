@@ -1,13 +1,22 @@
 // src/pages/Home/HomePage.test.tsx
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { HomePage } from './HomePage';
 
+const lists = vi.hoisted(() => ({
+  Published: [
+    { id: '1', title: 'Cacio e Pepe', cookCount: 11, lastCookedAt: '2026-10-08T19:00:00Z' },
+    { id: '2', title: 'Black Bean Soup', cookCount: 0, lastCookedAt: null },
+  ],
+  Draft: [{ id: '3', title: 'Focaccia', cookCount: 2, lastCookedAt: '2026-10-10T19:00:00Z' }],
+}));
+
 vi.mock('@/hooks/useRecipes', () => ({
-  useRecipes: () => ({ data: [{ id: '1' }, { id: '2' }], isLoading: false, error: null }),
+  useRecipes: (status: 'Published' | 'Draft' = 'Published') =>
+    ({ data: lists[status], isLoading: false, error: null }),
 }));
 
 const renderHome = () =>
@@ -20,10 +29,19 @@ const renderHome = () =>
   );
 
 describe('HomePage', () => {
-  it('shows the live recipe count in the masthead', () => {
+  it('shows the live recipe count and every cook in the masthead', () => {
     renderHome();
 
-    expect(screen.getByText('2 recipes · yours alone')).toBeTruthy();
+    expect(screen.getByText('2 recipes · 13 cooks · yours alone')).toBeTruthy();
+  });
+
+  it('lists the most recently cooked recipes, drafts included, newest first', () => {
+    renderHome();
+
+    const rail = screen.getByRole('complementary', { name: 'Last cooked' });
+    const links = within(rail).getAllByRole('link').map(link => link.textContent);
+    expect(links).toEqual(['Focaccia', 'Cacio e Pepe']);
+    expect(within(rail).getByRole('link', { name: 'Focaccia' }).getAttribute('href')).toBe('/recipes/3');
   });
 
   it('offers both entry points', () => {
@@ -54,6 +72,27 @@ describe('HomePage while the recipe count is unresolved', () => {
     expect(screen.getByRole('link', { name: 'Browse recipes' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Add a recipe' })).toBeTruthy();
     expect(screen.queryByText(/recipes · yours alone/)).toBeNull();
+  });
+});
+
+describe('HomePage with nothing cooked yet', () => {
+  it('drops the cook count and the rail', async () => {
+    vi.resetModules();
+    vi.doMock('@/hooks/useRecipes', () => ({
+      useRecipes: () => ({ data: [{ id: '1', title: 'A', cookCount: 0, lastCookedAt: null }], isLoading: false, error: null }),
+    }));
+    const { HomePage: FreshHomePage } = await import('./HomePage');
+
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <FreshHomePage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText('1 recipe · yours alone')).toBeTruthy();
+    expect(screen.queryByRole('complementary', { name: 'Last cooked' })).toBeNull();
   });
 });
 
