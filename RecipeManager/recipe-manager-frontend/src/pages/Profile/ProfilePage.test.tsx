@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider, UnitsProvider } from '@/contexts';
 import { ProfilePage } from './ProfilePage';
 
-type Row = { id: string; title: string; cookCount: number; lastCookedAt: string | null };
+interface Row { id: string; title: string; cookCount: number; lastCookedAt: string | null }
 // undefined stands for a list still loading, or one that failed.
 const lists = vi.hoisted(() => ({ Published: [] as Row[] | undefined, Draft: [] as Row[] | undefined }));
 
