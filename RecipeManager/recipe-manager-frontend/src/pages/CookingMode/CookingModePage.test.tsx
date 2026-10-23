@@ -103,6 +103,7 @@ describe('CookingModePage states', () => {
     await act(() => vi.advanceTimersByTimeAsync(5_000));
     expect(screen.getByText("Couldn't load this recipe.")).toBeTruthy();
     expect(screen.queryByText(/ECONNREFUSED/)).toBeNull();
+    expect(screen.getByRole('link', { name: 'Back to the recipe' }).getAttribute('href')).toBe(`/recipes/${ID}`);
 
     vi.useRealTimers();
     resolveWith(recipe);
@@ -245,7 +246,15 @@ describe('CookingModePage finish', () => {
     expect(screen.queryByRole('button', { name: 'Finish' })).toBeNull();
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('heading', { name: 'Log this cook?' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Finish' })).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Finish' }));
+  });
+
+  it('stays open on Escape while the cook is being logged, so it cannot be logged twice', async () => {
+    logCook.mockReturnValue(new Promise(() => undefined));
+    await openFinish();
+    fireEvent.click(screen.getByRole('button', { name: 'Log cook' }));
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.getByRole('heading', { name: 'Log this cook?' })).toBeTruthy();
   });
 
   it('logs the cook once and returns to the recipe without a history entry', async () => {

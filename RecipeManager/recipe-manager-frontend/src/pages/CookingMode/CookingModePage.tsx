@@ -59,13 +59,19 @@ const Cooking = ({ recipe }: { recipe: Recipe }) => {
     mounted.current = true;
   }, [step]);
 
+  // Closing the panel unmounts the focused heading; focus goes back to the Finish button it came from rather than
+  // dropping to <body>.
+  const finishRef = useRef<HTMLButtonElement>(null);
+  const wasFinishing = useRef(false);
+  useEffect(() => {
+    if (wasFinishing.current && !finishing) finishRef.current?.focus();
+    wasFinishing.current = finishing;
+  }, [finishing]);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (finishing) {
-        if (event.key === 'Escape') setFinishing(false);
-        return;
-      }
-      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      // The panel owns the keyboard while it is open (FinishPanel handles Escape).
+      if (finishing || event.altKey || event.ctrlKey || event.metaKey) return;
       if (event.key === 'ArrowRight' && !isLast) goTo(step + 1);
       if (event.key === 'ArrowLeft' && step > 1) goTo(step - 1);
     };
@@ -100,7 +106,7 @@ const Cooking = ({ recipe }: { recipe: Recipe }) => {
         </aside>
       </div>
 
-      {finishing ? <FinishPanel recipeId={recipe.id} /> : <div className={styles.controls}>
+      {finishing ? <FinishPanel recipeId={recipe.id} onClose={() => setFinishing(false)} /> : <div className={styles.controls}>
         {/* aria-disabled, not disabled: a disabled button drops focus out of the page (the R-21 reorder rule). */}
         <button
           type="button"
@@ -111,7 +117,9 @@ const Cooking = ({ recipe }: { recipe: Recipe }) => {
           <ArrowBackIcon /> Back
         </button>
         {isLast ? (
-          <button type="button" className={styles.next} onClick={() => setFinishing(true)}>Finish</button>
+          <button type="button" ref={finishRef} className={styles.next} onClick={() => setFinishing(true)}>
+            Finish
+          </button>
         ) : (
           <button type="button" className={styles.next} onClick={() => goTo(step + 1)}>
             Next step <ArrowForwardIcon />
@@ -124,7 +132,7 @@ const Cooking = ({ recipe }: { recipe: Recipe }) => {
 
 // Inline, not a modal: it replaces the controls it came from, so there is no focus trap to manage. Every exit
 // replaces the history entry, so Back on Detail does not reopen cooking mode (spec 017 §8.7).
-const FinishPanel = ({ recipeId }: { recipeId: string }) => {
+const FinishPanel = ({ recipeId, onClose }: { recipeId: string; onClose: () => void }) => {
   const navigate = useNavigate();
   const logCook = useLogCook();
   const toRecipe = () => navigate(`/recipes/${recipeId}`, { replace: true });
@@ -143,6 +151,16 @@ const FinishPanel = ({ recipeId }: { recipeId: string }) => {
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
+
+  // Not while a log is in flight: unmounting now would drop the onSuccess navigation (TanStack Query skips per-call
+  // callbacks once the observer is gone) and a fresh panel's Log cook would post the same cook again.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !sending.current) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   return (
     <section className={styles.finish} aria-labelledby="cooking-finish">
@@ -187,6 +205,8 @@ export const CookingModePage = () => {
     return (
       <Message text="Couldn't load this recipe.">
         <button type="button" className={styles.messageButton} onClick={() => void query.refetch()}>Retry</button>
+        {/* No chrome on this route: without a way back, a persistent failure would leave only the browser's Back. */}
+        <Link to={`/recipes/${id}`} className={styles.messageLink}>Back to the recipe</Link>
       </Message>
     );
   }
