@@ -5,7 +5,8 @@ import { ThemeProvider, UnitsProvider } from '@/contexts';
 import { ProfilePage } from './ProfilePage';
 
 type Row = { id: string; title: string; cookCount: number; lastCookedAt: string | null };
-const lists = vi.hoisted(() => ({ Published: [] as Row[], Draft: [] as Row[] }));
+// undefined stands for a list still loading, or one that failed.
+const lists = vi.hoisted(() => ({ Published: [] as Row[] | undefined, Draft: [] as Row[] | undefined }));
 
 vi.mock('@/hooks/useRecipes', () => ({
   useRecipes: (status: 'Published' | 'Draft' = 'Published') =>
@@ -35,6 +36,16 @@ describe('ProfilePage stats', () => {
 
     expect(screen.getByText('none yet')).toBeTruthy();
     expect(screen.getByText('—')).toBeTruthy();
+  });
+
+  it('claims nothing while either list is unresolved, rather than "none yet"', () => {
+    lists.Draft = undefined;
+    renderPage();
+
+    expect(screen.queryByText('none yet')).toBeNull();
+    expect(screen.queryByText('Cooked')).toBeNull();
+    // The rest of the page does not wait for it.
+    expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeTruthy();
   });
 
   it('totals every cook and links the most cooked recipe', () => {

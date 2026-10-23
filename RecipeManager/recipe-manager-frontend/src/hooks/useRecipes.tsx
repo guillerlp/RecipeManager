@@ -15,7 +15,9 @@ export const useRecipes = (status: RecipeStatus = 'Published') => {
         gcTime: 15 * 60 * 1000,
         retry: 2,
         refetchOnWindowFocus: false,
-        refetchOnMount: false,
+        // Refetches on mount only when stale: within staleTime that means only after a write invalidated it, which is
+        // how a screen that was not mounted during the write (Home after a cook on Detail) picks the write up.
+        refetchOnMount: true,
         refetchOnReconnect: false,
 
         throwOnError: false

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { AxiosResponse } from 'axios';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,11 +8,12 @@ import type { Recipe, UpdateRecipeRequest } from '@/types';
 import {
   useCreateRecipe, useDeleteCook, useDeleteRecipe, useLogCook, usePublishRecipe, useUnpublishRecipe, useUpdateRecipe,
 } from './useRecipeMutations';
+import { useRecipes } from './useRecipes';
 
 vi.mock('@/services', () => ({
   recipeService: {
     createRecipe: vi.fn(), updateRecipe: vi.fn(), publishRecipe: vi.fn(), unpublishRecipe: vi.fn(), deleteRecipe: vi.fn(),
-    logCook: vi.fn(), deleteCook: vi.fn(),
+    logCook: vi.fn(), deleteCook: vi.fn(), getAllRecipes: vi.fn(),
   },
 }));
 
@@ -41,8 +42,8 @@ beforeEach(() => {
 });
 
 describe('recipe mutations', () => {
-  // useRecipes and useRecipe never refetch by themselves (refetchOnMount: false), so a write that forgets this
-  // leaves the list and the detail screen showing the old recipe until a reload.
+  // useRecipes and useRecipe do not refetch by themselves within their staleTime, so a write that forgets this
+  // leaves the list and the detail screen showing the old recipe.
   type Wrapper = ReturnType<typeof setup>['wrapper'];
   // Each entry renders its hook (outside act, so result.current exists) and returns the write to run.
   const writes: [string, (wrapper: Wrapper) => () => Promise<unknown>][] = [
@@ -124,5 +125,23 @@ describe('recipe mutations', () => {
 
     expect(service.logCook).toHaveBeenCalledWith(ID, '2026-10-08T10:00:00.000Z');
     expect(service.deleteCook).toHaveBeenCalledWith(ID, 'c1');
+  });
+});
+
+describe('a list that is not on screen when a write happens', () => {
+  // Home and Profile are unmounted while a cook is logged on Detail. invalidation only refetches *active* queries, so
+  // this pins refetchOnMount: true — with false, they would show the old count when they mount again.
+  it('is refetched, so its page shows the write when it mounts again', async () => {
+    service.getAllRecipes.mockResolvedValue(ok([]));
+    const { wrapper } = setup();
+    const list = renderHook(() => useRecipes(), { wrapper });
+    await waitFor(() => expect(list.result.current.isSuccess).toBe(true));
+    list.unmount();
+
+    const { result } = renderHook(() => useLogCook(), { wrapper });
+    await act(async () => { await result.current.mutateAsync({ recipeId: ID }); });
+    renderHook(() => useRecipes(), { wrapper });
+
+    await waitFor(() => expect(service.getAllRecipes).toHaveBeenCalledTimes(2));
   });
 });
