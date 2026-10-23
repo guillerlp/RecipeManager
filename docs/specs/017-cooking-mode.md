@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **ID** | `017` |
-| **Status** | draft |
+| **Status** | in progress — PR 1 (screen) |
 | **Author** | `00-leader` + `07-ux-ui`, with the user (2026-10-23) |
 | **Created** | `2026-10-23` |
 | **Branch** | `feat/cooking-mode` (PR 1), `feat/cooking-mode-timer` (PR 2) |
@@ -28,18 +28,18 @@ scaled on Detail, a step timer that gets attention when it ends — and finishin
 
 **PR 1 — the screen** (`feat/cooking-mode`)
 
-- [ ] Route `/recipes/:id/cook`, full-screen, outside `AppLayout` but inside the providers (§8.1).
-- [ ] Cooking palette as a scoped token override (§8.3), contrast measured on both cooking surfaces.
-- [ ] One step at a time: "Step N of M", step text in large serif, Back / Next step, `?step=` in the URL (§8.4).
-- [ ] Ingredient lists per §8.5: "For this step" / "Already used" / "Also needed", or the full "Ingredients" list
+- [x] Route `/recipes/:id/cook`, full-screen, outside `AppLayout` but inside the providers (§8.1).
+- [x] Cooking palette as a scoped token override (§8.3), contrast measured on both cooking surfaces.
+- [x] One step at a time: "Step N of M", step text in large serif, Back / Next step, `?step=` in the URL (§8.4).
+- [x] Ingredient lists per §8.5: "For this step" / "Already used" / "Also needed", or the full "Ingredients" list
       when no step references any ingredient.
-- [ ] Quantities scaled by `?servings=` and converted by the Units preference — the same scale → convert →
+- [x] Quantities scaled by `?servings=` and converted by the Units preference — the same scale → convert →
       format pipeline as `IngredientRail`, **extracted and shared, not copied** (§8.6).
-- [ ] Finish on the last step opens an inline "Log this cook?" confirm; Log cook calls `useLogCook` (§8.7).
-- [ ] Close (×) leaves without logging and without asking.
-- [ ] Left / Right arrow keys move between steps.
-- [ ] "Start cooking" link on Detail, carrying the current servings (§8.2).
-- [ ] ADR-029 in [../architecture.md](../architecture.md); `R-23` removed from the roadmap when PR 2 lands.
+- [x] Finish on the last step opens an inline "Log this cook?" confirm; Log cook calls `useLogCook` (§8.7).
+- [x] Close (×) leaves without logging and without asking.
+- [x] Left / Right arrow keys move between steps.
+- [x] "Start cooking" link on Detail, carrying the current servings (§8.2).
+- [x] ADR-029 in [../architecture.md](../architecture.md). (`R-23` leaves the roadmap when PR 2 lands.)
 
 **PR 2 — timer and wake lock** (`feat/cooking-mode-timer`)
 
