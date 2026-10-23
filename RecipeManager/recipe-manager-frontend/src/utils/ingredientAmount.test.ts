@@ -5,7 +5,7 @@ import { formatAmount } from './quantity';
 import { convertQuantity } from './units';
 
 const ingredient = (overrides: Partial<Ingredient>): Ingredient =>
-  ({ id: 'i1', quantity: null, unit: null, name: 'thing', notes: null, ...overrides }) as Ingredient;
+  ({ id: 'i1', quantity: null, unit: null, name: 'thing', notes: null, ...overrides });
 
 describe('shownAmount', () => {
   it('scales by the servings ratio', () => {

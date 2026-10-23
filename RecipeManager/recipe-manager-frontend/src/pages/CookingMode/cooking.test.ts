@@ -32,9 +32,9 @@ describe('parseServings', () => {
 });
 
 const ingredient = (id: string): Ingredient =>
-  ({ id, quantity: null, unit: null, name: id.toUpperCase(), notes: null }) as Ingredient;
+  ({ id, quantity: null, unit: null, name: id.toUpperCase(), notes: null });
 const step = (ingredientIds: string[]): InstructionStep =>
-  ({ id: `s-${ingredientIds.join('')}`, text: 'Do it.', durationMinutes: null, ingredientIds }) as InstructionStep;
+  ({ id: `s-${ingredientIds.join('')}`, text: 'Do it.', durationMinutes: null, ingredientIds });
 
 const [A, B, C, D] = ['a', 'b', 'c', 'd'].map(ingredient);
 const ingredients = [A, B, C, D];

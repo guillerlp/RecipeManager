@@ -135,7 +135,9 @@ const Cooking = ({ recipe }: { recipe: Recipe }) => {
 const FinishPanel = ({ recipeId, onClose }: { recipeId: string; onClose: () => void }) => {
   const navigate = useNavigate();
   const logCook = useLogCook();
-  const toRecipe = () => navigate(`/recipes/${recipeId}`, { replace: true });
+  const toRecipe = () => {
+    void navigate(`/recipes/${recipeId}`, { replace: true });
+  };
 
   // isPending reaches the button only after TanStack Query's next notify tick, so a fast second tap would still
   // land; the ref closes that window synchronously.

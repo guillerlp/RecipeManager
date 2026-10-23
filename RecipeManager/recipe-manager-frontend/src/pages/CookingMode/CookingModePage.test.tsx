@@ -5,7 +5,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UnitsProvider } from '@/contexts';
 import { recipeService } from '@/services';
-import type { Recipe } from '@/types';
+import type { Cook, Recipe } from '@/types';
 import { CookingModePage } from './CookingModePage';
 
 vi.mock('@/services', async importOriginal => ({
@@ -258,7 +258,7 @@ describe('CookingModePage finish', () => {
   });
 
   it('logs the cook once and returns to the recipe without a history entry', async () => {
-    logCook.mockResolvedValue({ data: { id: 'c1', recipeId: ID, cookedAt: '2026-10-23T18:00:00Z' } } as AxiosResponse);
+    logCook.mockResolvedValue({ data: { id: 'c1', cookedAt: '2026-10-23T18:00:00Z' } } as AxiosResponse<Cook>);
     const { router } = await openFinish();
     fireEvent.click(screen.getByRole('button', { name: 'Log cook' }));
     expect(await screen.findByText('detail page')).toBeTruthy();
@@ -283,7 +283,7 @@ describe('CookingModePage finish', () => {
     await openFinish();
     fireEvent.click(screen.getByRole('button', { name: 'Log cook' }));
     expect((await screen.findByRole('alert')).textContent).toBe("Couldn't log this cook. Try again.");
-    expect((screen.getByRole('button', { name: 'Log cook' }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Log cook' }).disabled).toBe(false);
   });
 
   it('returns to the recipe without logging on Not now', async () => {
