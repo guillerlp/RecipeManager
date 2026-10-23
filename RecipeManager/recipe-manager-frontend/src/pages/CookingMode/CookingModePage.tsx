@@ -2,9 +2,9 @@
 // Cooking mode (spec 017, ADR-029): one step at a time, read at arm's length. Outside the app chrome, under the
 // cooking palette in both themes.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowBackIcon, ArrowForwardIcon, CloseIcon } from '@/components/ui/Icon';
-import { isRecipeId, useRecipe, useUnits } from '@/hooks';
+import { isRecipeId, useLogCook, useRecipe, useUnits } from '@/hooks';
 import { isNotFoundError } from '@/services';
 import type { Recipe } from '@/types';
 import { ingredientLists, parseServings, parseStep } from './cooking';
@@ -61,7 +61,11 @@ const Cooking = ({ recipe }: { recipe: Recipe }) => {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (finishing || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (finishing) {
+        if (event.key === 'Escape') setFinishing(false);
+        return;
+      }
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
       if (event.key === 'ArrowRight' && !isLast) goTo(step + 1);
       if (event.key === 'ArrowLeft' && step > 1) goTo(step - 1);
     };
@@ -96,7 +100,7 @@ const Cooking = ({ recipe }: { recipe: Recipe }) => {
         </aside>
       </div>
 
-      <div className={styles.controls}>
+      {finishing ? <FinishPanel recipeId={recipe.id} /> : <div className={styles.controls}>
         {/* aria-disabled, not disabled: a disabled button drops focus out of the page (the R-21 reorder rule). */}
         <button
           type="button"
@@ -113,8 +117,50 @@ const Cooking = ({ recipe }: { recipe: Recipe }) => {
             Next step <ArrowForwardIcon />
           </button>
         )}
-      </div>
+      </div>}
     </Frame>
+  );
+};
+
+// Inline, not a modal: it replaces the controls it came from, so there is no focus trap to manage. Every exit
+// replaces the history entry, so Back on Detail does not reopen cooking mode (spec 017 §8.7).
+const FinishPanel = ({ recipeId }: { recipeId: string }) => {
+  const navigate = useNavigate();
+  const logCook = useLogCook();
+  const toRecipe = () => navigate(`/recipes/${recipeId}`, { replace: true });
+
+  // isPending reaches the button only after TanStack Query's next notify tick, so a fast second tap would still
+  // land; the ref closes that window synchronously.
+  const sending = useRef(false);
+  const log = () => {
+    if (sending.current) return;
+    sending.current = true;
+    logCook.mutate({ recipeId }, {
+      onSuccess: toRecipe,
+      onError: () => { sending.current = false; },
+    });
+  };
+
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => headingRef.current?.focus(), []);
+
+  return (
+    <section className={styles.finish} aria-labelledby="cooking-finish">
+      <h2 id="cooking-finish" ref={headingRef} tabIndex={-1} className={styles.finishTitle}>Log this cook?</h2>
+      {logCook.isError && <p role="alert" className={styles.finishError}>Couldn't log this cook. Try again.</p>}
+      <div className={styles.controls}>
+        <button type="button" className={styles.back} onClick={toRecipe}>Not now</button>
+        {/* No cookedAt: the server stamps the time (ADR-028). */}
+        <button
+          type="button"
+          className={styles.next}
+          disabled={logCook.isPending}
+          onClick={log}
+        >
+          Log cook
+        </button>
+      </div>
+    </section>
   );
 };
 

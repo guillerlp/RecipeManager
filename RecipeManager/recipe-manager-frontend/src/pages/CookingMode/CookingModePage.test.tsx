@@ -225,3 +225,70 @@ describe('CookingModePage ingredients', () => {
     expect(screen.getByRole('list', { name: 'For this step' }).textContent).toContain('3');
   });
 });
+
+const logCook = vi.mocked(recipeService.logCook);
+const openFinish = async () => {
+  const view = await openCooking(`/recipes/${ID}/cook?step=3`);
+  fireEvent.click(screen.getByRole('button', { name: 'Finish' }));
+  return view;
+};
+
+describe('CookingModePage finish', () => {
+  it('asks before logging and focuses the question', async () => {
+    await openFinish();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Log this cook?' }));
+    expect(logCook).not.toHaveBeenCalled();
+  });
+
+  it('closes the question with Escape', async () => {
+    await openFinish();
+    expect(screen.queryByRole('button', { name: 'Finish' })).toBeNull();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('heading', { name: 'Log this cook?' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Finish' })).toBeTruthy();
+  });
+
+  it('logs the cook once and returns to the recipe without a history entry', async () => {
+    logCook.mockResolvedValue({ data: { id: 'c1', recipeId: ID, cookedAt: '2026-10-23T18:00:00Z' } } as AxiosResponse);
+    const { router } = await openFinish();
+    fireEvent.click(screen.getByRole('button', { name: 'Log cook' }));
+    expect(await screen.findByText('detail page')).toBeTruthy();
+    expect(logCook).toHaveBeenCalledTimes(1);
+    expect(logCook).toHaveBeenCalledWith(ID, undefined);
+    expect(router.state.historyAction).toBe('REPLACE');
+  });
+
+  it('logs one cook on a double tap', async () => {
+    logCook.mockReturnValue(new Promise(() => undefined));
+    await openFinish();
+    const button = screen.getByRole('button', { name: 'Log cook' });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    // mutationFn runs after a microtask, so settle before counting.
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    expect(logCook).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the question open with an error when logging fails', async () => {
+    logCook.mockRejectedValue(new Error('boom'));
+    await openFinish();
+    fireEvent.click(screen.getByRole('button', { name: 'Log cook' }));
+    expect((await screen.findByRole('alert')).textContent).toBe("Couldn't log this cook. Try again.");
+    expect((screen.getByRole('button', { name: 'Log cook' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('returns to the recipe without logging on Not now', async () => {
+    const { router } = await openFinish();
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    expect(await screen.findByText('detail page')).toBeTruthy();
+    expect(logCook).not.toHaveBeenCalled();
+    expect(router.state.historyAction).toBe('REPLACE');
+  });
+
+  it('ignores the arrow keys while the question is open', async () => {
+    await openFinish();
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(screen.getByRole('heading', { name: 'Log this cook?' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Step 3 of 3' })).toBeTruthy();
+  });
+});
